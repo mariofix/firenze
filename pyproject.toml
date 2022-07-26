@@ -1,0 +1,41 @@
+[tool.poetry]
+name = "zvn-firenze"
+version = "1.0.0"
+description = "Servicio de comunicacion y administracion para servicio Tatot"
+authors = ["Mario Hernandez <mariofix@pm.me>"]
+readme = "README.md"
+packages = [{include = "zvn_firenze"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+fastapi = "^0.79.0"
+thankyou = "^0.0.1"
+PyMySQL = "^1.0.2"
+python-dotenv = "^0.20.0"
+requests = "^2.28.1"
+python-slugify = "^6.1.2"
+alembic = "^1.8.1"
+SQLAlchemy = "^1.4.39"
+peewee = "^3.15.1"
+bcrypt = "^3.2.2"
+uvicorn = {extras = ["standard"], version = "^0.18.2"}
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+python-jose = {extras = ["cryptography"], version = "^3.3.0"}
+
+[tool.poetry.group.deploy]
+optional = true
+
+[tool.poetry.group.deploy.dependencies]
+gunicorn = "^20.1.0"
+
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+black = "*"
+pytest = "*"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
