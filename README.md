@@ -3,16 +3,26 @@
 Servicio de comunicacion y administracion para servicio Tatot  
 Asterisk 18  
 Python 3.9  
-
+FastAPI  
 
 # Changelog 
 ## [Unreleased]
-- Que los audios los pueda subir ruurd
+- Que los audios los pueda subir ruurd desde Portal (#1)
+- Migrar tablas operativas (#2)
+
 
 ## [1.0.0] - 2022-07-26
 ### Changed
 - Cambio de nombre a Firenze
-- Incorporacion FastAPI
+- Incorporacion FastAPI para audiotex
+- Nueva tabla de llamadas en linea
+
+### DB Querys
+```sql
+CREATE TABLE `audiotex`.`clientesonline` (`id` bigint(20) UNSIGNED NOT NULL, `clientid` int(10) UNSIGNED NOT NULL DEFAULT 0, `ani` varchar(16) NOT NULL, `ddi` varchar(16) NOT NULL, `service` varchar(16) NOT NULL, `operator` varchar(4) NOT NULL, `phone` varchar(16) NOT NULL, `time` datetime NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+ALTER TABLE `clientesonline` ADD PRIMARY KEY (`id`);
+```
+
 
 ## [prod-0.0.5] - 2022-05-18
 ### Added

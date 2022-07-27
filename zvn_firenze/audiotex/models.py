@@ -58,6 +58,20 @@ class Call(BaseModel):
         primary_key = False
 
 
+class CurrentCall(BaseModel):
+    id = IntegerField(primary_key=True)
+    clientid = IntegerField(null=False, default=0)
+    ani = CharField(max_length=16, default=None)
+    ddi = CharField(max_length=16, default=0)
+    service = CharField(max_length=16, default=0)
+    operator = CharField(max_length=4, default=0)
+    phone = CharField(max_length=16, default=0)
+    time = DateTimeField(default=datetime.datetime.now)
+
+    class Meta:
+        table_name = "clientesonline"
+
+
 ###############################
 # Modelos de Fonotarot Chile
 ###############################
