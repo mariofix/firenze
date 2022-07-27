@@ -1,4 +1,4 @@
-from zvn_firenze.database import Base
+from firenze.database import Base
 from pydantic import BaseModel
 from pydantic.utils import GetterDict
 import peewee

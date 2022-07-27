@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends, Security, Query, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.sql.sqltypes import JSON
-from zvn_firenze.audiotex import models, schemas
-from zvn_firenze.schemas import Message
-from zvn_firenze.auth import loggedin_user
+from firenze.audiotex import models, schemas
+from firenze.schemas import Message
+from firenze.auth import loggedin_user
 from typing import List, Any, Optional
-from zvn_firenze.audiotex.database import db_state_default
+from firenze.audiotex.database import db_state_default
 import enum
 from peewee import fn, DoesNotExist
 from playhouse.shortcuts import model_to_dict

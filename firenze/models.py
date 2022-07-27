@@ -13,7 +13,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relation, relationship
 from sqlalchemy.dialects.mysql import LONGTEXT, JSON
-from zvn_firenze.database import Base
+from firenze.database import Base
 import datetime
 import enum
 

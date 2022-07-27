@@ -1,7 +1,7 @@
 import peewee
 from contextvars import ContextVar
 from playhouse.db_url import connect
-from zvn_firenze.config import settings
+from firenze.config import settings
 
 db_state_default = {"closed": None, "conn": None, "ctx": None, "transactions": None}
 db_state = ContextVar("db_state", default=db_state_default.copy())

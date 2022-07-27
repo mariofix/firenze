@@ -1,10 +1,10 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from zvn_firenze.config import settings, LOGGING_CONFIG
-from zvn_firenze.auth import authRouter
-from zvn_firenze.core import coreRouter
-from zvn_firenze.audiotex import audiotexRouter
+from firenze.config import settings, LOGGING_CONFIG
+from firenze.auth import authRouter
+from firenze.core import coreRouter
+from firenze.audiotex import audiotexRouter
 
 import logging
 

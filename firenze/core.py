@@ -11,9 +11,9 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy.orm import Session
 from thankyou import give_thanks
 from typing import List
-from zvn_firenze import crud, schemas, auth
-from zvn_firenze.models import GenericError, ProcessError, Event
-from zvn_firenze.database import SessionLocal
+from firenze import crud, schemas, auth
+from firenze.models import GenericError, ProcessError, Event
+from firenze.database import SessionLocal
 import datetime
 import json
 

@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from zvn_firenze.config import settings
+from firenze.config import settings
 
 engine = create_engine(settings.SQLALCHEMY_DATABASE_URL, connect_args={})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

@@ -1,5 +1,5 @@
 from peewee import Model, IntegerField, CharField, DateTimeField, TextField
-from zvn_firenze.audiotex.database import conn
+from firenze.audiotex.database import conn
 import datetime
 
 

@@ -1,5 +1,5 @@
-from zvn_firenze import create_app
-from zvn_firenze.config import settings
+from firenze import create_app
+from firenze.config import settings
 import sentry_sdk
 from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
 

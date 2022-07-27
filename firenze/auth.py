@@ -6,9 +6,9 @@ from fastapi.security import (
 )
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
-from zvn_firenze.database import SessionLocal
-from zvn_firenze import crud, schemas, models
-from zvn_firenze.config import settings
+from firenze.database import SessionLocal
+from firenze import crud, schemas, models
+from firenze.config import settings
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from typing import Optional

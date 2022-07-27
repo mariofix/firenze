@@ -1,10 +1,10 @@
 [tool.poetry]
-name = "zvn-firenze"
+name = "firenze"
 version = "1.0.0"
 description = "Servicio de comunicacion y administracion para servicio Tatot"
 authors = ["Mario Hernandez <mariofix@pm.me>"]
 readme = "README.md"
-packages = [{include = "zvn_firenze"}]
+packages = [{include = "firenze"}]
 
 [tool.poetry.dependencies]
 python = "^3.9"
