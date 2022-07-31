@@ -5,6 +5,13 @@ Asterisk 18
 Python 3.9  
 FastAPI  
 
+# Instalacion
+poetry self update --preview (asegurarse de estar en 1.2.X)
+poetry env remove --all
+Si el archivo poetry.toml no existe, ejecutar la siguiente linea, saltar de lo contrario.
+poetry config virtualenvs.in-project true --local
+poetry install
+
 # Changelog 
 ## [Unreleased]
 - Que los audios los pueda subir ruurd desde Portal (#1)
@@ -16,6 +23,7 @@ FastAPI
 - Cambio de nombre a Firenze
 - Incorporacion FastAPI para audiotex
 - Nueva tabla de llamadas en linea
+- Virtualenv en el directorio para facilidad de acceso
 
 ### DB Querys
 ```sql

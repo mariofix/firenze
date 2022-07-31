@@ -73,7 +73,7 @@ def create_user(
     include_in_schema=True,
 )
 def read_users(
-    # uid=Security(auth.loggedin_user, scopes=["core"]),
+    uid=Security(auth.loggedin_user, scopes=["core"]),
     db: Session = Depends(get_db),
 ):
     users = crud.get_users(db)
@@ -90,7 +90,7 @@ def read_users(
 )
 def read_user(
     user_id: int,
-    # uid=Security(auth.loggedin_user, scopes=["core"]),
+    uid=Security(auth.loggedin_user, scopes=["core"]),
     db: Session = Depends(get_db),
 ):
     db_user = crud.get_user(db, user_id=user_id)
@@ -107,7 +107,7 @@ def read_user(
     include_in_schema=True,
 )
 def get_events(
-    # uid=Security(auth.loggedin_user, scopes=["core"]), db: Session = Depends(get_db)
+    uid=Security(auth.loggedin_user, scopes=["core"]), db: Session = Depends(get_db)
 ):
     events = crud.get_events(db)
 

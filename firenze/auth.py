@@ -18,7 +18,9 @@ oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="/token",
     scopes={
         "core": "Core related endpoints",
-        "audiotex": "VoiceWorks related endpoints",
+        "audiotex": "VoiceWorks related endpoints(legacy)",
+        "asterisk": "Asterisk related endpoints",
+        "firenze": "Firenze related endpoints",
     },
 )
 authRouter = APIRouter()

@@ -41,6 +41,7 @@ def ftc_user_search(
     request: Request,
     correo: Optional[str] = Query(None, max_length=255),
     telefono: Optional[str] = Query(None, max_length=16),
+    uid=Security(loggedin_user, scopes=["audiotex"]),
 ):
     salida = schemas.ClientId()
     sql_clientid = models.FTChileClientId.busca(telefono)
@@ -86,7 +87,9 @@ def ftc_user_search(
     summary="Busca Informacion de clientid",
     dependencies=[Depends(get_db)],
 )
-def ftc_clientid_search(clientid: int):
+def ftc_clientid_search(
+    clientid: int, uid=Security(loggedin_user, scopes=["audiotex"])
+):
     sql_clientid = models.FTChileClientId.select().where(
         models.FTChileClientId.clientid == clientid
     )
@@ -127,7 +130,9 @@ def ftc_clientid_search(clientid: int):
     dependencies=[Depends(get_db)],
     response_model_exclude_unset=True,
 )
-def ftc_new_customer(cust: schemas.ClientId):
+def ftc_new_customer(
+    cust: schemas.ClientId, uid=Security(loggedin_user, scopes=["audiotex"])
+):
     current = (
         models.FTChileClientId.select()
         .where(models.FTChileClientId.ani == cust.telefonos[0])
@@ -181,7 +186,9 @@ def ftc_new_customer(cust: schemas.ClientId):
     dependencies=[Depends(get_db)],
     response_model_exclude_unset=True,
 )
-def ftc_agrega_saldo(clientid: int, segundos: int):
+def ftc_agrega_saldo(
+    clientid: int, segundos: int, uid=Security(loggedin_user, scopes=["audiotex"])
+):
     try:
         creditos = models.FTChileCreditos.actualiza(clientid, segundos)
     except Exception:
@@ -199,7 +206,7 @@ def ftc_agrega_saldo(clientid: int, segundos: int):
     summary="Busca informacion de cliente segun ANI",
     dependencies=[Depends(get_db)],
 )
-def ftc_phone_search(ani: str):
+def ftc_phone_search(ani: str, uid=Security(loggedin_user, scopes=["audiotex"])):
     try:
         telefonos = models.FTChileClientId.busca(ani).get()
     except DoesNotExist as e:
@@ -218,7 +225,9 @@ def ftc_phone_search(ani: str):
     summary="Inserta telefono al clientid",
     dependencies=[Depends(get_db)],
 )
-def ftc_phone_search(clientid: int, ani: str):
+def ftc_phone_search(
+    clientid: int, ani: str, uid=Security(loggedin_user, scopes=["audiotex"])
+):
     try:
         models.FTChileClientId.info(clientid).get()
     except DoesNotExist:
@@ -248,7 +257,7 @@ def ftc_phone_search(clientid: int, ani: str):
     dependencies=[Depends(get_db)],
     response_model_exclude_unset=True,
 )
-def at_clientid_search(clientid: int):
+def at_clientid_search(clientid: int, uid=Security(loggedin_user, scopes=["audiotex"])):
     sql_clientid = models.AlotarotClientId.select().where(
         models.AlotarotClientId.clientid == clientid
     )
@@ -279,7 +288,9 @@ def at_clientid_search(clientid: int):
     dependencies=[Depends(get_db)],
     response_model_exclude_unset=True,
 )
-def at_new_customer(cust: schemas.ClientId):
+def at_new_customer(
+    cust: schemas.ClientId, uid=Security(loggedin_user, scopes=["audiotex"])
+):
     current = (
         models.AlotarotClientId.select()
         .where(models.AlotarotClientId.ani == cust.telefonos[0])
@@ -322,7 +333,9 @@ def at_new_customer(cust: schemas.ClientId):
     dependencies=[Depends(get_db)],
     response_model_exclude_unset=True,
 )
-def at_agrega_saldo(clientid: int, segundos: int):
+def at_agrega_saldo(
+    clientid: int, segundos: int, uid=Security(loggedin_user, scopes=["audiotex"])
+):
     try:
         creditos = models.AlotarotCreditos.actualiza(clientid, segundos)
     except Exception:
@@ -340,7 +353,7 @@ def at_agrega_saldo(clientid: int, segundos: int):
     summary="Busca informacion de cliente segun ANI",
     dependencies=[Depends(get_db)],
 )
-def at_phone_search(ani: str):
+def at_phone_search(ani: str, uid=Security(loggedin_user, scopes=["audiotex"])):
     try:
         telefonos = models.AlotarotClientId.busca(ani).get()
     except DoesNotExist as e:
@@ -359,7 +372,9 @@ def at_phone_search(ani: str):
     summary="Inserta telefono al clientid",
     dependencies=[Depends(get_db)],
 )
-def ftc_phone_search(clientid: int, ani: str):
+def ftc_phone_search(
+    clientid: int, ani: str, uid=Security(loggedin_user, scopes=["audiotex"])
+):
     try:
         models.AlotarotClientId.info(clientid).get()
     except DoesNotExist:
@@ -389,7 +404,7 @@ def ftc_phone_search(clientid: int, ani: str):
     dependencies=[Depends(get_db)],
     response_model_exclude_unset=True,
 )
-def ftl_clientid_search(pin: int):
+def ftl_clientid_search(pin: int, uid=Security(loggedin_user, scopes=["audiotex"])):
     try:
         cliente = models.FTLatamClient.busca(pin).get()
     except DoesNotExist:
@@ -407,7 +422,9 @@ def ftl_clientid_search(pin: int):
     dependencies=[Depends(get_db)],
     response_model_exclude_unset=True,
 )
-def pin_post(cust: schemas.ClientIdLatam):
+def pin_post(
+    cust: schemas.ClientIdLatam, uid=Security(loggedin_user, scopes=["audiotex"])
+):
     try:
         new = models.FTLatamClient.create(
             clientid=cust.clientid,
