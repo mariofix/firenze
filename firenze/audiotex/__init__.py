@@ -249,6 +249,44 @@ def ftc_phone_search(
 # Alotarot
 ##################
 @audiotexRouter.get(
+    "/alotarot/client",
+    description="Busca clientid",
+    response_model=schemas.ClientId,
+    responses={404: {"model": Message}},
+    summary="Busca clientid",
+    dependencies=[Depends(get_db)],
+)
+def at_user_search(
+    request: Request,
+    correo: Optional[str] = Query(None, max_length=255),
+    telefono: Optional[str] = Query(None, max_length=16),
+    uid=Security(loggedin_user, scopes=["audiotex"]),
+):
+    salida = schemas.ClientId()
+    sql_clientid = models.AlotarotClientId.busca(telefono)
+    if sql_clientid.count() == 0:
+        request.app.logger.warning(f"Telefono<{telefono}>: None")
+        raise HTTPException(
+            status_code=404,
+            detail=f"No se encuentran registros",
+        )
+    elif sql_clientid.count() == 1:
+        clientid = sql_clientid.first()
+        salida.clientid = clientid.clientid
+
+    credits = models.AlotarotCreditos.saldo(salida.clientid).get()
+    salida.creditos = int(credits.creditos)
+
+    tel = []
+    sql_telefonos = models.AlotarotClientId.info(salida.clientid)
+    for phone in sql_telefonos:
+        tel.append(phone.ani)
+    salida.telefonos = tel
+
+    return salida
+
+
+@audiotexRouter.get(
     "/alotarot/client/{clientid}",
     description="Busca informacion del ClientID",
     response_model=schemas.ClientId,
@@ -303,23 +341,29 @@ def at_new_customer(
         )
 
     try:
-        models.AlotarotClientId.create(
+        nuevo = models.AlotarotClientId.create(
             ani=cust.telefonos[0],
-            clientid=cust.clientid,
-        ).save()
+            clientid=models.AlotarotClientId.select(
+                fn.Max(models.AlotarotClientId.clientid)
+            ).scalar()
+            + 1,
+        )
+        clientid = nuevo.clientid
+        nuevo.save()
     except Exception as error:
         raise HTTPException(
             status_code=500, detail="No se pudo insertar el registro: {error}"
         )
     try:
-        creditos = models.AlotarotCreditos.actualiza(cust.clientid, cust.creditos)
-    except Exception:
+        creditos = models.AlotarotCreditos.actualiza(clientid, cust.creditos)
+    except Exception as e:
+        print(e)
         raise HTTPException(status_code=500, detail="No se pudo agregar los creditos.")
 
     salida = {
         "creditos": creditos,
         "telefonos": cust.telefonos,
-        "clientid": cust.clientid,
+        "clientid": clientid,
     }
     return salida
 
@@ -372,7 +416,7 @@ def at_phone_search(ani: str, uid=Security(loggedin_user, scopes=["audiotex"])):
     summary="Inserta telefono al clientid",
     dependencies=[Depends(get_db)],
 )
-def ftc_phone_search(
+def at_phone_search(
     clientid: int, ani: str, uid=Security(loggedin_user, scopes=["audiotex"])
 ):
     try:
@@ -427,7 +471,6 @@ def pin_post(
 ):
     try:
         new = models.FTLatamClient.create(
-            clientid=cust.clientid,
             pin=cust.pin,
             correo=cust.correo,
             creditos=cust.creditos,
