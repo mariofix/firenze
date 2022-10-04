@@ -1,0 +1,102 @@
+from firenze.models import User, Event, Service, ServiceNumber, DoNotCall, OnlineCalls
+from sqladmin import ModelView
+
+
+class UserAdmin(ModelView, model=User):
+    column_list = [User.login, User.enabled, User.scopes]
+    column_default_sort = [(User.login, False)]
+    column_searchable_list = [User.email, User.scopes]
+
+    form_widget_args = {
+        "created_at": {
+            "readonly": True,
+        },
+        "modified_at": {
+            "readonly": True,
+        },
+    }
+
+
+class EventAdmin(ModelView, model=Event):
+    column_list = [Event.id, Event.name, Event.verb, Event.created_at]
+    column_default_sort = [(Event.id, True)]
+    column_searchable_list = [Event.name, Event.ip, Event.verb, Event.data]
+
+    form_widget_args = {
+        "created_at": {
+            "readonly": True,
+        },
+        "modified_at": {
+            "readonly": True,
+        },
+    }
+
+
+class ServiceAdmin(ModelView, model=Service):
+    column_list = [Service.name, Service.slug, Service.numbers]
+    form_widget_args = {
+        "created_at": {
+            "readonly": True,
+        },
+        "modified_at": {
+            "readonly": True,
+        },
+    }
+
+
+class DIDAdmin(ModelView, model=ServiceNumber):
+    column_list = [
+        ServiceNumber.did,
+        ServiceNumber.service,
+        ServiceNumber.active,
+        ServiceNumber.asterisk_context,
+    ]
+    name = "Service Number"
+    name_plural = "Service Numbers"
+    form_widget_args = {
+        "created_at": {
+            "readonly": True,
+        },
+        "modified_at": {
+            "readonly": True,
+        },
+    }
+
+
+class DNCAdmin(ModelView, model=DoNotCall):
+    column_list = [DoNotCall.ani, DoNotCall.created_at]
+    name = "DNC List"
+    name_plural = "DNC List"
+    column_labels = {DoNotCall.created_at: "Date Created"}
+    form_widget_args = {
+        "created_at": {
+            "readonly": True,
+        },
+        "modified_at": {
+            "readonly": True,
+        },
+    }
+
+
+class CallsAdmin(ModelView, model=OnlineCalls):
+    name = "Online Calls"
+    name_plural = "Online Calls"
+    column_labels = {OnlineCalls.created_at: "Date Created"}
+
+    form_widget_args = {
+        "created_at": {
+            "readonly": True,
+        },
+        "modified_at": {
+            "readonly": True,
+        },
+    }
+
+
+def register_admin(the_app):
+    the_app.sqladmin.add_view(UserAdmin)
+    the_app.sqladmin.add_view(EventAdmin)
+    the_app.sqladmin.add_view(ServiceAdmin)
+    the_app.sqladmin.add_view(DIDAdmin)
+    the_app.sqladmin.add_view(DNCAdmin)
+    the_app.sqladmin.add_view(CallsAdmin)

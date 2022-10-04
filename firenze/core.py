@@ -12,7 +12,8 @@ from sqlalchemy.orm import Session
 from thankyou import give_thanks
 from typing import List
 from firenze import crud, schemas, auth
-from firenze.models import GenericError, ProcessError, Event
+from firenze.models import Event
+from firenze.exceptions import GenericError, ProcessError
 from firenze.database import SessionLocal
 import datetime
 import json
