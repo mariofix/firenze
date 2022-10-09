@@ -2,20 +2,34 @@
 
 Servicio de comunicacion y administracion para servicio Tatot  
 Asterisk 18  
-Python 3.9  
+Python 3.10 
 FastAPI  
+SQLAdmin  
+Typer
 
 # Instalacion
-poetry self update --preview (asegurarse de estar en 1.2.X)
-poetry env remove --all
-Si el archivo poetry.toml no existe, ejecutar la siguiente linea, saltar de lo contrario.
-poetry config virtualenvs.in-project true --local
-poetry install
+poetry install --with deploy
 
 # Changelog 
 ## [Unreleased]
 - Que los audios los pueda subir ruurd desde Portal (#1)
 - Migrar tablas operativas (#2)
+
+## [1.0.1] - 2022-09-27
+### Added
+- Metodo para buscar clientes en alotarot
+- CLI App para asterisk en Typer
+- SQLAdmin
+- Soporte Python 3.10
+
+### Changed
+- Python environment en /opt/zvn-firenze
+
+### Migrated
+- Service: Tabla maestra de servicios
+- ServiceNumber: DID asignados a cada servicio (1-n)
+- DoNotCall: Tabla DNC estandar.
+- OnlineCalls: Tabla para las llamadas activas
 
 
 ## [1.0.0] - 2022-07-26

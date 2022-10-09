@@ -57,7 +57,7 @@ def thanks():
 )
 def create_user(
     user: schemas.UserCreate,
-    # uid=Depends(auth.loggedin_user),
+    uid=Depends(auth.loggedin_user),
     db: Session = Depends(get_db),
 ):
     db_user = crud.get_user_by_login(db, login=user.login)

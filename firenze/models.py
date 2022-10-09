@@ -1,4 +1,3 @@
-from typing import Text
 from sqlalchemy import (
     Column,
     Integer,
@@ -7,15 +6,13 @@ from sqlalchemy import (
     func,
     Boolean,
     ForeignKey,
-    Float,
-    Enum,
     text,
+    UniqueConstraint,
 )
-from sqlalchemy.orm import relation, relationship, declarative_mixin
+from sqlalchemy.orm import relationship, declarative_mixin
 from sqlalchemy.dialects.mysql import LONGTEXT, JSON
 from firenze.database import Base
 import datetime
-import enum
 
 
 @declarative_mixin
@@ -24,14 +21,17 @@ class TimestampMixin:
         DateTime(timezone=True),
         default=datetime.datetime.now,
         server_default=func.now(),
+        nullable=False,
     )
     modified_at = Column(
         DateTime(timezone=True),
+        default=datetime.datetime.now,
         server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"),
+        nullable=False,
     )
 
 
-class User(Base):
+class User(Base, TimestampMixin):
     __tablename__ = "user"
 
     id = Column(Integer, primary_key=True)
@@ -41,18 +41,6 @@ class User(Base):
     allowed_ips = Column(JSON, nullable=True)
     enabled = Column(Boolean, default=True)
     scopes = Column(JSON, nullable=True)
-    created_at = Column(
-        DateTime(timezone=True),
-        default=datetime.datetime.now,
-        server_default=func.now(),
-        nullable=False,
-    )
-    modified_at = Column(
-        DateTime(timezone=True),
-        default=datetime.datetime.now,
-        server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"),
-        nullable=False,
-    )
 
     def __str__(self):
         return self.login
@@ -61,7 +49,7 @@ class User(Base):
         return f"User({self.id=}, {self.login=}, {self.email=}, {self.enabled=})"
 
 
-class Event(Base):
+class Event(Base, TimestampMixin):
     __tablename__ = "event"
 
     id = Column(Integer, primary_key=True)
@@ -71,16 +59,6 @@ class Event(Base):
     verb = Column(String(10), index=True, nullable=False)
     url = Column(String(255), index=True, nullable=False)
     data = Column(LONGTEXT, nullable=True)
-
-    created_at = Column(
-        DateTime(timezone=True),
-        default=datetime.datetime.now,
-        server_default=func.now(),
-    )
-    modified_at = Column(
-        DateTime(timezone=True),
-        server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"),
-    )
 
     def __str__(self):
         return self.name
@@ -113,7 +91,7 @@ class ServiceNumber(Base, TimestampMixin):
     service_id = Column(
         Integer,
         ForeignKey("service.id", ondelete="SET NULL", onupdate="CASCADE"),
-        nullable=False,
+        nullable=True,
     )
     service = relationship("Service", back_populates="numbers")
 
@@ -145,5 +123,7 @@ class OnlineCalls(Base, TimestampMixin):
     operator = Column(Integer, nullable=False)
     client_id = Column(Integer, nullable=False)
 
+    __table_args__ = (UniqueConstraint("service", "ani", name="oc_unique_ani"),)
+
     def __str__(self):
-        return self.client_id
+        return self.ani
