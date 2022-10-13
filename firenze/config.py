@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     API_PREFIX: str = ""
 
     class Config:
-        env_file = ".env"
+        env_file = "/opt/zvn-firenze/app/.env"
         case_sensitive = True
 
 
@@ -52,7 +52,15 @@ LOGGING_CONFIG = {
         "file": {
             "level": settings.LOG_LEVEL,
             "class": "logging.handlers.TimedRotatingFileHandler",
-            "filename": "logs/firenze.log",
+            "filename": "/opt/zvn-firenze/app/logs/firenze-api.log",
+            "formatter": "verbose",
+            "when": "midnight",
+            "interval": 1,
+        },
+        "cli": {
+            "level": settings.LOG_LEVEL,
+            "class": "logging.handlers.TimedRotatingFileHandler",
+            "filename": "/opt/zvn-firenze/app/logs/firenze-cli.log",
             "formatter": "verbose",
             "when": "midnight",
             "interval": 1,
@@ -66,6 +74,11 @@ LOGGING_CONFIG = {
     "loggers": {
         "firenze": {
             "handlers": ["file", "console"],
+            "level": settings.LOG_LEVEL,
+            "propagate": True,
+        },
+        "firenze-cli": {
+            "handlers": ["cli", "console"],
             "level": settings.LOG_LEVEL,
             "propagate": True,
         },

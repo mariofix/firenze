@@ -8,7 +8,7 @@ import logging.config
 import pystrix
 
 logging.config.dictConfig(LOGGING_CONFIG)
-logger = logging.getLogger("firenze")
+logger = logging.getLogger("firenze-cli")
 
 cli = typer.Typer()
 cli.add_typer(online_calls.app, name="online-calls", help="Manages the OnlineCalls")

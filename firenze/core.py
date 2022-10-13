@@ -42,9 +42,14 @@ def index(request: Request):
     include_in_schema=True,
     tags=["core"],
 )
-def thanks():
-    thanks = give_thanks()
-    return {"message": thanks, "time": datetime.datetime.now()}
+@coreRouter.head(
+    "/thanks"
+)
+def thanks(
+    db: Session = Depends(get_db),
+):
+    crud.get_users(db)
+    return {"message": give_thanks(), "time": datetime.datetime.now()}
 
 
 @coreRouter.post(

@@ -1,9 +1,11 @@
 from typing import Any
 from firenze.config import LOGGING_CONFIG
 import logging.config
+import typer
+import pystrix
 
 logging.config.dictConfig(LOGGING_CONFIG)
-logger = logging.getLogger("firenze")
+logger = logging.getLogger("firenze-cli")
 
 
 def verbose(agi: Any, msg: str) -> None:

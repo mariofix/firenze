@@ -81,16 +81,26 @@ class DNCAdmin(ModelView, model=DoNotCall):
 class CallsAdmin(ModelView, model=OnlineCalls):
     name = "Online Calls"
     name_plural = "Online Calls"
-    column_labels = {OnlineCalls.created_at: "Date Created"}
-
-    form_widget_args = {
-        "created_at": {
-            "readonly": True,
-        },
-        "modified_at": {
-            "readonly": True,
-        },
+    can_create = False
+    can_edit = False
+    can_export = False
+    can_delete = False
+    can_view_details = False
+    column_labels = {
+        OnlineCalls.created_at: "Fecha Llamada",
+        OnlineCalls.service: "Servicio",
+        OnlineCalls.did: "DID",
+        OnlineCalls.ani: "ANI",
+        OnlineCalls.operator: "Tarotista",
     }
+    column_list = [
+        OnlineCalls.created_at,
+        OnlineCalls.service,
+        OnlineCalls.did,
+        OnlineCalls.ani,
+        OnlineCalls.client_id,
+        OnlineCalls.operator,
+    ]
 
 
 def register_admin(the_app):

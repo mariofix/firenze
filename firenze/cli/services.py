@@ -5,7 +5,7 @@ import logging.config
 import typer
 
 logging.config.dictConfig(LOGGING_CONFIG)
-logger = logging.getLogger("firenze")
+logger = logging.getLogger("firenze-cli")
 app = typer.Typer()
 
 
