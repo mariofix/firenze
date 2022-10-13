@@ -480,3 +480,24 @@ def pin_post(
         raise HTTPException(status_code=409, detail=f"No se pudo insertar: {e}")
 
     return model_to_dict(new)
+
+
+@audiotexRouter.post(
+    "/fonotarot-latam/credit/{clientid}/{segundos}",
+    description="Suma Saldo",
+    response_model=schemas.Credits,
+    responses={409: {"model": Message}, 500: {"model": Message}},
+    summary="Suma Saldo",
+    dependencies=[Depends(get_db)],
+    response_model_exclude_unset=True,
+)
+def ftl_agrega_saldo(
+    clientid: int, segundos: int, uid=Security(loggedin_user, scopes=["audiotex"])
+):
+    try:
+        creditos = models.FTLatamClient.actualiza_creditos(clientid, segundos)
+    except Exception:
+        raise HTTPException(status_code=500, detail="No se pudo agregar los creditos.")
+
+    salida = {"creditos": creditos, "clientid": clientid}
+    return salida
