@@ -15,6 +15,14 @@ poetry install --with deploy
 - Que los audios los pueda subir ruurd desde Portal (#1)
 - Migrar tablas operativas (#2)
 
+## [1.0.2] - 2022-10-14
+### Added
+- Sumar saldo en FonotarotLatam
+- Metodo HEAD para /thanks
+
+### Changed
+- Loggers separados por aplicacion (api, cli)
+
 ## [1.0.1] - 2022-09-27
 ### Added
 - Metodo para buscar clientes en alotarot

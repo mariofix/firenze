@@ -43,7 +43,11 @@ def index(request: Request):
     tags=["core"],
 )
 @coreRouter.head(
-    "/thanks"
+    "/thanks",
+    name="Thanks",
+    description='"Thanks" in a random language.',
+    include_in_schema=True,
+    tags=["core"],
 )
 def thanks(
     db: Session = Depends(get_db),

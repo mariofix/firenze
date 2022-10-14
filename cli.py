@@ -1,6 +1,4 @@
-#!/opt/zvn-firenze/app/.venv/bin/python
-import typer
-import pystrix
+#!/home/mariofix/proyectos/zvn-firenze/.venv/bin/python
 from firenze.cli import cli
 from firenze.config import settings
 import sentry_sdk

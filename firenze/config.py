@@ -1,6 +1,10 @@
+from typing import Any
 from pydantic import BaseSettings
 from functools import lru_cache
 from typing import Set
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 class Settings(BaseSettings):
@@ -20,9 +24,10 @@ class Settings(BaseSettings):
     AUDIOTEX_DSN: str
     ALLOWED_DOMAINS: Set[str] = set()
     API_PREFIX: str = ""
+    BASE_DIR: Any = BASE_DIR
 
     class Config:
-        env_file = "/opt/zvn-firenze/app/.env"
+        env_file = f"{BASE_DIR}/.env"
         case_sensitive = True
 
 
@@ -52,15 +57,7 @@ LOGGING_CONFIG = {
         "file": {
             "level": settings.LOG_LEVEL,
             "class": "logging.handlers.TimedRotatingFileHandler",
-            "filename": "/opt/zvn-firenze/app/logs/firenze-api.log",
-            "formatter": "verbose",
-            "when": "midnight",
-            "interval": 1,
-        },
-        "cli": {
-            "level": settings.LOG_LEVEL,
-            "class": "logging.handlers.TimedRotatingFileHandler",
-            "filename": "/opt/zvn-firenze/app/logs/firenze-cli.log",
+            "filename": f"{settings.BASE_DIR}/logs/firenze-api.log",
             "formatter": "verbose",
             "when": "midnight",
             "interval": 1,
@@ -77,6 +74,39 @@ LOGGING_CONFIG = {
             "level": settings.LOG_LEVEL,
             "propagate": True,
         },
+    },
+}
+
+
+LOGGING_CONFIG_CLI = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "simple": {
+            "format": "{levelname}:\t  {message}",
+            "style": "{",
+        },
+        "verbose": {
+            "format": "{asctime} {name}.{levelname} {filename}({lineno}) {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "cli": {
+            "level": settings.LOG_LEVEL,
+            "class": "logging.handlers.TimedRotatingFileHandler",
+            "filename": f"{settings.BASE_DIR}/logs/firenze-cli.log",
+            "formatter": "verbose",
+            "when": "midnight",
+            "interval": 1,
+        },
+        "console": {
+            "level": settings.LOG_LEVEL,
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+        },
+    },
+    "loggers": {
         "firenze-cli": {
             "handlers": ["cli", "console"],
             "level": settings.LOG_LEVEL,

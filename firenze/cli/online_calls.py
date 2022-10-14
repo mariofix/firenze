@@ -1,10 +1,10 @@
-from firenze.config import LOGGING_CONFIG
+from firenze.config import LOGGING_CONFIG_CLI
 from firenze.models import OnlineCalls
 from sqlalchemy import delete, update
 import logging.config
 import typer
 
-logging.config.dictConfig(LOGGING_CONFIG)
+logging.config.dictConfig(LOGGING_CONFIG_CLI)
 logger = logging.getLogger("firenze-cli")
 app = typer.Typer()
 
