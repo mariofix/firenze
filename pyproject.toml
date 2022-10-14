@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "firenze"
-version = "1.0.1"
+version = "1.0.2"
 description = "Servicio de comunicacion y administracion para servicio Tatot"
 authors = ["Mario Hernandez <mariofix@pm.me>"]
 readme = "README.md"
@@ -29,6 +29,7 @@ sqladmin = "^0.6.1"
 typer = {extras = ["all"], version = "^0.6.1"}
 mysqldb-wrapper = "^0.10.6"
 python-dateutil = "^2.8.2"
+fastapi-crudrouter = "^0.8.5"
 
 [tool.poetry.group.deploy]
 optional = true

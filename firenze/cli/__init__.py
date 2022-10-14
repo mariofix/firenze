@@ -1,5 +1,5 @@
 from firenze.database import engine, SessionLocal
-from firenze.config import LOGGING_CONFIG
+from firenze.config import LOGGING_CONFIG_CLI
 from firenze.models import DoNotCall
 from firenze.cli.utils import verbose, set_asterisk_var
 from firenze.cli import online_calls, services
@@ -7,8 +7,8 @@ import typer
 import logging.config
 import pystrix
 
-logging.config.dictConfig(LOGGING_CONFIG)
-logger = logging.getLogger("firenze")
+logging.config.dictConfig(LOGGING_CONFIG_CLI)
+logger = logging.getLogger("firenze-cli")
 
 cli = typer.Typer()
 cli.add_typer(online_calls.app, name="online-calls", help="Manages the OnlineCalls")
@@ -27,6 +27,7 @@ def main(
     ctx.obj["agi"] = pystrix.agi.AGI() if agi else False
     ctx.obj["dbsession"] = SessionLocal()
     ctx.obj["dbengine"] = engine
+    ctx.obj["logger"] = logger
 
 
 @cli.command()

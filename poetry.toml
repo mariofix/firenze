@@ -1,3 +1,3 @@
 [virtualenvs]
-in-project = false
-path = "/opt/zvn-firenze"
+in-project = true
+#path = "/opt/zvn-firenze"
