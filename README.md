@@ -19,9 +19,11 @@ poetry install --with deploy
 ### Added
 - Sumar saldo en FonotarotLatam
 - Metodo HEAD para /thanks
+- Admin scope
 
 ### Changed
 - Loggers separados por aplicacion (api, cli)
+- Transformacion de numeros en audiotex
 
 ## [1.0.1] - 2022-09-27
 ### Added
