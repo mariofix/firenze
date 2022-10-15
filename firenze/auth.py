@@ -21,6 +21,7 @@ oauth2_scheme = OAuth2PasswordBearer(
         "audiotex": "VoiceWorks related endpoints(legacy)",
         "asterisk": "Asterisk related endpoints",
         "firenze": "Firenze related endpoints",
+        "admin": "Admin Powers",
     },
 )
 authRouter = APIRouter()
@@ -74,9 +75,8 @@ def token(
         )
 
     access_token_expires = timedelta(minutes=settings.SECRET_EXPIRES)
-    final_scopes = list(set(user.scopes).intersection(form_data.scopes))
     # No se puede guardar un int en sub 🤷
-    token_info = {"sub": str(user.id), "scopes": final_scopes}
+    token_info = {"sub": str(user.id)}
     token = create_access_token(data=token_info, expires_delta=access_token_expires)
 
     return {"access_token": token, "token_type": "bearer"}
@@ -93,31 +93,49 @@ async def loggedin_user(
     else:
         authenticate_value = "Bearer"
 
-    credentials_exception = HTTPException(
-        status_code=401,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": authenticate_value},
-    )
-
     try:
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[settings.SECRET_ALGO]
         )
     except JWTError as e:
         request.app.logger.error(e)
-        raise credentials_exception
+        raise HTTPException(
+            status_code=401,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": authenticate_value},
+        )
 
     token_user_id: int = payload.get("sub")
     if not token_user_id:
         request.app.logger.error(f"{token_user_id=}")
-        raise credentials_exception
+        raise HTTPException(
+            status_code=401,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": authenticate_value},
+        )
     user = crud.get_user(db, token_user_id)
     if not user:
-        raise credentials_exception
+        request.app.logger.error(f"{user=}")
+        raise HTTPException(
+            status_code=401,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": authenticate_value},
+        )
 
-    token_scopes = payload.get("scopes", [])
+    if not user.scopes:
+        request.app.logger.error(f"{user=} no tiene scopes definidos")
+        raise HTTPException(
+            status_code=401,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": authenticate_value},
+        )
+    if "admin" in user.scopes:
+        request.app.logger.info(f"{user=} is admin")
+        return user.id
+
+    request.app.logger.info(f"{user.scopes=}")
     for scope in security_scopes.scopes:
-        if scope not in token_scopes:
+        if scope not in user.scopes:
             raise HTTPException(
                 status_code=401,
                 detail=f"Can't access this (scope '{security_scopes.scope_str}' not found)",

@@ -9,6 +9,8 @@ from firenze.audiotex.database import db_state_default
 import enum
 from peewee import fn, DoesNotExist
 from playhouse.shortcuts import model_to_dict
+import phonenumbers
+from typing import Any
 
 
 async def reset_db_state():
@@ -23,6 +25,18 @@ def get_db(db_state=Depends(reset_db_state)):
     finally:
         if not database.conn.is_closed():
             database.conn.close()
+
+
+def lee_numero(numero: str, request: Any, pais: str = "CL") -> str:
+    try:
+        tel = phonenumbers.parse(numero, pais)
+    except Exception as e:
+        request.app.logger.warning(f"{numero} no parece completo")
+    else:
+        request.app.logger.info(f"{tel=}")
+        numero = tel.national_number
+
+    return numero, tel
 
 
 audiotexRouter = APIRouter(prefix="/audiotex", tags=["audiotex"])
@@ -44,6 +58,9 @@ def ftc_user_search(
     uid=Security(loggedin_user, scopes=["audiotex"]),
 ):
     salida = schemas.ClientId()
+    if telefono:
+        telefono, tel2 = lee_numero(telefono, request)
+
     sql_clientid = models.FTChileClientId.busca(telefono)
     if sql_clientid.count() == 0:
         sql_naw = models.FTChileNaw.select().where(models.FTChileNaw.correo == correo)
@@ -73,7 +90,7 @@ def ftc_user_search(
     tel = []
     sql_telefonos = models.FTChileClientId.info(salida.clientid)
     for phone in sql_telefonos:
-        tel.append(phone.ani)
+        tel.append(f"56{phone.ani}")
     salida.telefonos = tel
 
     return salida
@@ -88,20 +105,23 @@ def ftc_user_search(
     dependencies=[Depends(get_db)],
 )
 def ftc_clientid_search(
-    clientid: int, uid=Security(loggedin_user, scopes=["audiotex"])
+    clientid: int,
+    request: Request,
+    uid=Security(loggedin_user, scopes=["audiotex"]),
 ):
     sql_clientid = models.FTChileClientId.select().where(
         models.FTChileClientId.clientid == clientid
     )
     count = sql_clientid.count()
     if count == 0:
+        request.app.logger.info(f"{clientid=} not found")
         raise HTTPException(
             status_code=404,
-            detail=f"ClientID: {clientid} :: No se encuentra en la base de datos",
+            detail=f"ClientID:{clientid}  No se encuentra en la base de datos",
         )
     tel = []
     for phone in sql_clientid:
-        tel.append(phone.ani)
+        tel.append(f"56{phone.ani}")
     credits = models.FTChileCreditos.saldo(clientid).get()
     try:
         naw = (
@@ -110,7 +130,7 @@ def ftc_clientid_search(
             .first()
         )
         correo = naw.correo
-    except Exception:
+    except Exception as e:
         correo = ""
 
     return {
@@ -131,22 +151,28 @@ def ftc_clientid_search(
     response_model_exclude_unset=True,
 )
 def ftc_new_customer(
-    cust: schemas.ClientId, uid=Security(loggedin_user, scopes=["audiotex"])
+    cust: schemas.ClientId,
+    request: Request,
+    uid=Security(loggedin_user, scopes=["audiotex"]),
 ):
+    telefono, tel2 = lee_numero(cust.telefonos[0], request)
     current = (
         models.FTChileClientId.select()
-        .where(models.FTChileClientId.ani == cust.telefonos[0])
+        .where(models.FTChileClientId.ani == telefono)
         .first()
     )
     if current is not None:
+        request.app.logger.warning(
+            f"El telefono {telefono=} está asociado a otro cliente"
+        )
         raise HTTPException(
             status_code=409,
-            detail=f"El telefono {cust.telefonos[0]} ingresado está asociado a otro cliente",
+            detail=f"El telefono {telefono=} está asociado a otro cliente",
         )
 
     try:
         nuevo = models.FTChileClientId.create(
-            ani=cust.telefonos[0],
+            ani=telefono,
             clientid=models.FTChileClientId.select(
                 fn.Max(models.FTChileClientId.clientid)
             ).scalar()
@@ -155,17 +181,19 @@ def ftc_new_customer(
         clientid = nuevo.clientid
         nuevo.save()
     except Exception as error:
+        request.app.logger.error(f"{error=}")
         raise HTTPException(
-            status_code=500, detail="No se pudo insertar el registro: {error}"
+            status_code=500, detail=f"No se pudo insertar el registro: {error}"
         )
     try:
         creditos = models.FTChileCreditos.actualiza(clientid, cust.creditos)
-    except Exception:
+    except Exception as error:
+        request.app.logger.error(f"{error=}")
         raise HTTPException(status_code=500, detail="No se pudo agregar los creditos.")
     try:
         models.FTChileNaw.create(clientid=clientid, correo=cust.correo).save()
-    except Exception:
-        # don't care
+    except Exception as error:
+        request.app.logger.warning(f"{error=}")
         pass
 
     salida = {
@@ -187,11 +215,15 @@ def ftc_new_customer(
     response_model_exclude_unset=True,
 )
 def ftc_agrega_saldo(
-    clientid: int, segundos: int, uid=Security(loggedin_user, scopes=["audiotex"])
+    clientid: int,
+    segundos: int,
+    request: Request,
+    uid=Security(loggedin_user, scopes=["audiotex"]),
 ):
     try:
         creditos = models.FTChileCreditos.actualiza(clientid, segundos)
-    except Exception:
+    except Exception as error:
+        request.app.logger.error(f"{error=}")
         raise HTTPException(status_code=500, detail="No se pudo agregar los creditos.")
 
     salida = {"creditos": creditos, "clientid": clientid}
@@ -206,14 +238,18 @@ def ftc_agrega_saldo(
     summary="Busca informacion de cliente segun ANI",
     dependencies=[Depends(get_db)],
 )
-def ftc_phone_search(ani: str, uid=Security(loggedin_user, scopes=["audiotex"])):
+def ftc_phone_search(
+    ani: str, request: Request, uid=Security(loggedin_user, scopes=["audiotex"])
+):
+    ani, tel2 = lee_numero(ani, request)
     try:
         telefonos = models.FTChileClientId.busca(ani).get()
     except DoesNotExist as e:
+        request.app.logger.warning(f"{ani=} no existe")
         raise HTTPException(status_code=404, detail=f"Teléfono {ani} no existe.")
     else:
         clientid = telefonos.clientid
-        info = ftc_clientid_search(clientid)
+        info = ftc_clientid_search(clientid, request)
         return info
 
 
@@ -221,27 +257,35 @@ def ftc_phone_search(ani: str, uid=Security(loggedin_user, scopes=["audiotex"]))
     "/fonotarot-cl/phone/{clientid}/{ani}",
     description="Inserta telefono al clientid",
     response_model=schemas.ClientId,
-    responses={404: {"model": Message}},
+    responses={404: {"model": Message}, 409: {"model": Message}},
     summary="Inserta telefono al clientid",
     dependencies=[Depends(get_db)],
 )
-def ftc_phone_search(
-    clientid: int, ani: str, uid=Security(loggedin_user, scopes=["audiotex"])
+def ftc_phone_update(
+    clientid: int,
+    ani: str,
+    request: Request,
+    uid=Security(loggedin_user, scopes=["audiotex"]),
 ):
+    ani, tel2 = lee_numero(ani, request)
     try:
         models.FTChileClientId.info(clientid).get()
-    except DoesNotExist:
+    except DoesNotExist as error:
+        request.app.logger.warning(f"{clientid=} no existe")
         raise HTTPException(status_code=404, detail=f"Clientid {clientid} no existe.")
 
     try:
         models.FTChileClientId.busca(ani).get()
     except DoesNotExist:
+        request.app.logger.info(f"{ani=} no existe, creando.")
         models.FTChileClientId.create(clientid=clientid, ani=ani).save()
-        info = ftc_clientid_search(clientid)
+        info = ftc_clientid_search(clientid, request)
         return info
     else:
+        # Por que es un error?
+        request.app.logger.warning(f"{ani=}")
         raise HTTPException(
-            status_code=404, detail=f"Teléfono {ani} existe en los registros."
+            status_code=409, detail=f"Teléfono {ani} existe en los registros."
         )
 
 
@@ -262,6 +306,9 @@ def at_user_search(
     telefono: Optional[str] = Query(None, max_length=16),
     uid=Security(loggedin_user, scopes=["audiotex"]),
 ):
+    if telefono:
+        telefono, tel2 = lee_numero(telefono, request)
+
     salida = schemas.ClientId()
     sql_clientid = models.AlotarotClientId.busca(telefono)
     if sql_clientid.count() == 0:
@@ -280,7 +327,7 @@ def at_user_search(
     tel = []
     sql_telefonos = models.AlotarotClientId.info(salida.clientid)
     for phone in sql_telefonos:
-        tel.append(phone.ani)
+        tel.append(f"56{phone.ani}")
     salida.telefonos = tel
 
     return salida
@@ -295,19 +342,22 @@ def at_user_search(
     dependencies=[Depends(get_db)],
     response_model_exclude_unset=True,
 )
-def at_clientid_search(clientid: int, uid=Security(loggedin_user, scopes=["audiotex"])):
+def at_clientid_search(
+    clientid: int, request: Request, uid=Security(loggedin_user, scopes=["audiotex"])
+):
     sql_clientid = models.AlotarotClientId.select().where(
         models.AlotarotClientId.clientid == clientid
     )
     count = sql_clientid.count()
     if count == 0:
+        request.app.logger.info(f"{clientid=} not found")
         raise HTTPException(
             status_code=404,
             detail=f"ClientID: {clientid} :: No se encuentra en la base de datos",
         )
     tel = []
     for phone in sql_clientid:
-        tel.append(phone.ani)
+        tel.append(f"56{phone.ani}")
     credits = models.AlotarotCreditos.saldo(clientid).get()
 
     return {
@@ -327,22 +377,28 @@ def at_clientid_search(clientid: int, uid=Security(loggedin_user, scopes=["audio
     response_model_exclude_unset=True,
 )
 def at_new_customer(
-    cust: schemas.ClientId, uid=Security(loggedin_user, scopes=["audiotex"])
+    cust: schemas.ClientId,
+    request: Request,
+    uid=Security(loggedin_user, scopes=["audiotex"]),
 ):
+    telefono, tel2 = lee_numero(cust.telefonos[0], request)
     current = (
         models.AlotarotClientId.select()
-        .where(models.AlotarotClientId.ani == cust.telefonos[0])
+        .where(models.AlotarotClientId.ani == telefono)
         .first()
     )
-    if current is not None:
+    if current:
+        request.app.logger.warning(
+            f"El telefono {telefono=} está asociado a otro cliente"
+        )
         raise HTTPException(
             status_code=409,
-            detail=f"El telefono {cust.telefonos[0]} está asociado a otro cliente",
+            detail=f"El telefono {telefono} está asociado a otro cliente",
         )
 
     try:
         nuevo = models.AlotarotClientId.create(
-            ani=cust.telefonos[0],
+            ani=telefono,
             clientid=models.AlotarotClientId.select(
                 fn.Max(models.AlotarotClientId.clientid)
             ).scalar()
@@ -351,13 +407,14 @@ def at_new_customer(
         clientid = nuevo.clientid
         nuevo.save()
     except Exception as error:
+        request.app.logger.error(f"{error=}")
         raise HTTPException(
-            status_code=500, detail="No se pudo insertar el registro: {error}"
+            status_code=500, detail=f"No se pudo insertar el registro: {error}"
         )
     try:
         creditos = models.AlotarotCreditos.actualiza(clientid, cust.creditos)
-    except Exception as e:
-        print(e)
+    except Exception as error:
+        request.app.logger.error(f"{error=}")
         raise HTTPException(status_code=500, detail="No se pudo agregar los creditos.")
 
     salida = {
@@ -378,11 +435,15 @@ def at_new_customer(
     response_model_exclude_unset=True,
 )
 def at_agrega_saldo(
-    clientid: int, segundos: int, uid=Security(loggedin_user, scopes=["audiotex"])
+    clientid: int,
+    segundos: int,
+    request: Request,
+    uid=Security(loggedin_user, scopes=["audiotex"]),
 ):
     try:
         creditos = models.AlotarotCreditos.actualiza(clientid, segundos)
-    except Exception:
+    except Exception as error:
+        request.app.logger.error(f"{error=}")
         raise HTTPException(status_code=500, detail="No se pudo agregar los creditos.")
 
     salida = {"creditos": creditos, "clientid": clientid}
@@ -397,14 +458,18 @@ def at_agrega_saldo(
     summary="Busca informacion de cliente segun ANI",
     dependencies=[Depends(get_db)],
 )
-def at_phone_search(ani: str, uid=Security(loggedin_user, scopes=["audiotex"])):
+def at_phone_search(
+    ani: str, request: Request, uid=Security(loggedin_user, scopes=["audiotex"])
+):
+    ani, tel2 = lee_numero(ani, request)
     try:
         telefonos = models.AlotarotClientId.busca(ani).get()
-    except DoesNotExist as e:
+    except DoesNotExist as error:
+        request.app.logger.error(f"{error=}")
         raise HTTPException(status_code=404, detail=f"Teléfono {ani} no existe.")
     else:
         clientid = telefonos.clientid
-        info = at_clientid_search(clientid)
+        info = at_clientid_search(clientid, request)
         return info
 
 
@@ -412,27 +477,35 @@ def at_phone_search(ani: str, uid=Security(loggedin_user, scopes=["audiotex"])):
     "/alotarot/phone/{clientid}/{ani}",
     description="Inserta telefono al clientid",
     response_model=schemas.ClientId,
-    responses={404: {"model": Message}},
+    responses={404: {"model": Message}, 409: {"model": Message}},
     summary="Inserta telefono al clientid",
     dependencies=[Depends(get_db)],
 )
-def at_phone_search(
-    clientid: int, ani: str, uid=Security(loggedin_user, scopes=["audiotex"])
+def at_phone_update(
+    clientid: int,
+    ani: str,
+    request: Request,
+    uid=Security(loggedin_user, scopes=["audiotex"]),
 ):
+    ani, tel2 = lee_numero(ani, request)
     try:
         models.AlotarotClientId.info(clientid).get()
-    except DoesNotExist:
+    except DoesNotExist as error:
+        request.app.logger.warning(f"{clientid=} not found")
         raise HTTPException(status_code=404, detail=f"Clientid {clientid} no existe.")
 
     try:
         models.AlotarotClientId.busca(ani).get()
-    except DoesNotExist:
+    except DoesNotExist as error:
+        request.app.logger.info(f"{ani=} no existe, creando.")
         models.AlotarotClientId.create(clientid=clientid, ani=ani).save()
-        info = at_clientid_search(clientid)
+        info = at_clientid_search(clientid, request)
         return info
     else:
+        # Por que es un error?
+        request.app.logger.warning(f"{ani=}")
         raise HTTPException(
-            status_code=404, detail=f"Teléfono {ani} existe en los registros."
+            status_code=409, detail=f"Teléfono {ani} existe en los registros."
         )
 
 
@@ -448,10 +521,13 @@ def at_phone_search(
     dependencies=[Depends(get_db)],
     response_model_exclude_unset=True,
 )
-def ftl_clientid_search(pin: int, uid=Security(loggedin_user, scopes=["audiotex"])):
+def ftl_clientid_search(
+    pin: int, request: Request, uid=Security(loggedin_user, scopes=["audiotex"])
+):
     try:
         cliente = models.FTLatamClient.busca(pin).get()
     except DoesNotExist:
+        request.app.logger.warning(f"PIN {pin} no existe.")
         raise HTTPException(status_code=404, detail=f"PIN {pin} no existe.")
     else:
         return model_to_dict(cliente)
@@ -467,7 +543,9 @@ def ftl_clientid_search(pin: int, uid=Security(loggedin_user, scopes=["audiotex"
     response_model_exclude_unset=True,
 )
 def pin_post(
-    cust: schemas.ClientIdLatam, uid=Security(loggedin_user, scopes=["audiotex"])
+    cust: schemas.ClientIdLatam,
+    request: Request,
+    uid=Security(loggedin_user, scopes=["audiotex"]),
 ):
     try:
         new = models.FTLatamClient.create(
@@ -477,6 +555,7 @@ def pin_post(
         )
         new.save()
     except Exception as e:
+        request.app.logger.error(e)
         raise HTTPException(status_code=409, detail=f"No se pudo insertar: {e}")
 
     return model_to_dict(new)
@@ -492,11 +571,15 @@ def pin_post(
     response_model_exclude_unset=True,
 )
 def ftl_agrega_saldo(
-    clientid: int, segundos: int, uid=Security(loggedin_user, scopes=["audiotex"])
+    clientid: int,
+    segundos: int,
+    request: Request,
+    uid=Security(loggedin_user, scopes=["audiotex"]),
 ):
     try:
         creditos = models.FTLatamClient.actualiza_creditos(clientid, segundos)
-    except Exception:
+    except Exception as e:
+        request.app.logger.error(e)
         raise HTTPException(status_code=500, detail="No se pudo agregar los creditos.")
 
     salida = {"creditos": creditos, "clientid": clientid}
