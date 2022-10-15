@@ -1,10 +1,11 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from firenze.config import settings, LOGGING_CONFIG
-from firenze.auth import authRouter
+from firenze.auth import authRouter, AdminAuth
 from firenze.core import coreRouter
 from firenze.audiotex import audiotexRouter
+from firenze.services.fonotarot_latam import app as ftlRouter
 from firenze.admin import register_admin
 from firenze.database import engine
 from sqladmin import Admin
@@ -31,7 +32,14 @@ def create_app():
     )
 
     # sqladmin
-    app.sqladmin = Admin(app, engine, base_url="/boss", title="Firenze Admin")
+    admin_auth = AdminAuth(secret_key=settings.SECRET_KEY)
+    app.sqladmin = Admin(
+        app,
+        engine,
+        base_url="/boss",
+        title="Firenze Admin",
+        authentication_backend=admin_auth,
+    )
     register_admin(app)
 
     # Lo relacionado con Auth
@@ -39,6 +47,9 @@ def create_app():
 
     # Incluimos gestion basica
     app.include_router(coreRouter)
+
+    # Fonotarot Latam
+    app.include_router(ftlRouter)
 
     # audiotex
     app.include_router(audiotexRouter)
