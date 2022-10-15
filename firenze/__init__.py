@@ -5,7 +5,8 @@ from firenze.config import settings, LOGGING_CONFIG
 from firenze.auth import authRouter, AdminAuth
 from firenze.core import coreRouter
 from firenze.audiotex import audiotexRouter
-from firenze.services.fonotarot_latam import app as ftlRouter
+
+# from firenze.services.fonotarot_latam import app as ftlRouter
 from firenze.admin import register_admin
 from firenze.database import engine
 from sqladmin import Admin
@@ -49,7 +50,7 @@ def create_app():
     app.include_router(coreRouter)
 
     # Fonotarot Latam
-    app.include_router(ftlRouter)
+    # app.include_router(ftlRouter)
 
     # audiotex
     app.include_router(audiotexRouter)
