@@ -6,12 +6,16 @@ from fastapi.security import (
 )
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
+from sqladmin.authentication import AuthenticationBackend
 from firenze.database import SessionLocal
 from firenze import crud, schemas, models
 from firenze.config import settings
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from typing import Optional
+import logging
+
+logger = logging.getLogger("firenze")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(
@@ -143,3 +147,61 @@ async def loggedin_user(
             )
 
     return user.id
+
+
+class AdminAuth(AuthenticationBackend):
+    async def login(self, request: Request) -> bool:
+        form = await request.form()
+        db = SessionLocal()
+        user: models.User = crud.get_user_by_login(db, form["username"])
+        logger.info(f"{user=}")
+        if (not user) or (not pwd_context.verify(form["password"], user.password)):
+            logger.warning("User not found or invalid password")
+            return False
+        if user.enabled == 0:
+            logger.warning("User disabled")
+            return False
+        access_token_expires = timedelta(minutes=settings.SECRET_EXPIRES)
+        token_info = {"sub": str(user.id)}
+        token = create_access_token(data=token_info, expires_delta=access_token_expires)
+        request.session.update({"token": token})
+        return True
+
+    async def logout(self, request: Request) -> bool:
+        logger.info("Goodbye")
+        request.session.clear()
+        return True
+
+    async def authenticate(self, request: Request) -> bool:
+        token = request.session.get("token")
+        if not token:
+            logger.error(f"{token=}")
+            return False
+        try:
+            payload = jwt.decode(
+                token, settings.SECRET_KEY, algorithms=[settings.SECRET_ALGO]
+            )
+        except JWTError as e:
+            logger.error(e)
+            return False
+
+        token_user_id: int = payload.get("sub")
+        if not token_user_id:
+            logger.error(f"{token_user_id=}")
+            return False
+
+        db = SessionLocal()
+        user: models.User = crud.get_user(db, token_user_id)
+        if not user:
+            logger.error(f"{user=}")
+            return False
+
+        if not user.scopes:
+            request.app.logger.error(f"{user.scopes=}")
+            return False
+
+        if "admin" not in user.scopes:
+            logger.info(f"{user=} is not admin")
+            return False
+
+        return True
