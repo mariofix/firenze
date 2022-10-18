@@ -2,7 +2,7 @@ from firenze.database import engine, SessionLocal
 from firenze.config import LOGGING_CONFIG_CLI
 from firenze.models import DoNotCall
 from firenze.cli.utils import verbose, set_asterisk_var
-from firenze.cli import online_calls, services
+from firenze.cli import online_calls, services, user_management
 import typer
 import logging.config
 import pystrix
@@ -13,6 +13,7 @@ logger = logging.getLogger("firenze-cli")
 cli = typer.Typer()
 cli.add_typer(online_calls.app, name="online-calls", help="Manages the OnlineCalls")
 cli.add_typer(services.app, name="services", help="Queries the Services")
+cli.add_typer(user_management.app, name="users", help="User management")
 
 
 @cli.callback()

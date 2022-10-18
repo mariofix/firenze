@@ -31,6 +31,7 @@ mysqldb-wrapper = "^0.10.6"
 python-dateutil = "^2.8.2"
 fastapi-crudrouter = "^0.8.5"
 phonenumbers = "^8.12.57"
+sqlalchemy-repr = "^0.0.2"
 
 [tool.poetry.group.deploy]
 optional = true
@@ -45,6 +46,9 @@ optional = true
 black = "*"
 pytest = "*"
 pytest-cov = "*"
+
+[tool.poetry.scripts]
+firenze = "cli:cli"
 
 
 [build-system]

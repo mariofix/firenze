@@ -56,59 +56,6 @@ def thanks(
     return {"message": give_thanks(), "time": datetime.datetime.now()}
 
 
-@coreRouter.post(
-    "/users/",
-    name="Create User",
-    response_model=schemas.User,
-    responses={409: {"model": schemas.Message}},
-    tags=["core"],
-    include_in_schema=True,
-)
-def create_user(
-    user: schemas.UserCreate,
-    uid=Depends(auth.loggedin_user),
-    db: Session = Depends(get_db),
-):
-    db_user = crud.get_user_by_login(db, login=user.login)
-    if db_user:
-        raise HTTPException(status_code=409, detail="User Exists")
-    return crud.create_user(db=db, user=user)
-
-
-@coreRouter.get(
-    "/users/",
-    name="List Users",
-    response_model=List[schemas.User],
-    tags=["core"],
-    include_in_schema=True,
-)
-def read_users(
-    uid=Security(auth.loggedin_user, scopes=["core"]),
-    db: Session = Depends(get_db),
-):
-    users = crud.get_users(db)
-    return users
-
-
-@coreRouter.get(
-    "/users/{user_id}",
-    name="Read User",
-    response_model=schemas.User,
-    responses={404: {"model": schemas.Message}},
-    include_in_schema=True,
-    tags=["core"],
-)
-def read_user(
-    user_id: int,
-    uid=Security(auth.loggedin_user, scopes=["core"]),
-    db: Session = Depends(get_db),
-):
-    db_user = crud.get_user(db, user_id=user_id)
-    if db_user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    return db_user
-
-
 @coreRouter.get(
     "/events/",
     name="List Events",
