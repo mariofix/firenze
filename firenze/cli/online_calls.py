@@ -3,6 +3,10 @@ from firenze.models import OnlineCalls
 from sqlalchemy import delete, update
 import logging.config
 import typer
+from rich.console import Console
+from rich.table import Table
+from rich import box
+
 
 logging.config.dictConfig(LOGGING_CONFIG_CLI)
 logger = logging.getLogger("firenze-cli")
@@ -81,3 +85,43 @@ def update_online_call(
         raise typer.Exit(code=1)
     else:
         logger.debug(f"Updated {service=} AND {ani=} with {operator=}")
+
+
+@app.command("list")
+def list_online_call(
+    ctx: typer.Context,
+    service: str = typer.Argument(None, help="Service slug"),
+):
+    """
+    Show the current calls
+    """
+    session = ctx.obj.get("dbsession")
+    logger = ctx.obj.get("logger")
+    calls = session.query(OnlineCalls)
+    if service:
+        calls = calls.filter_by(service=service)
+    calls = calls.all()
+
+    table = Table(title="On Line Calls", highlight=True, box=box.ASCII2)
+
+    table.add_column("ID")
+    table.add_column("Date")
+    table.add_column("Service")
+    table.add_column("client_id")
+    table.add_column("ANI")
+    table.add_column("DID")
+    table.add_column("Operator")
+
+    for call in calls:
+        table.add_row(
+            str(call.id),
+            str(call.created_at),
+            call.service,
+            str(call.client_id),
+            call.ani,
+            call.did,
+            str(call.operator),
+        )
+
+    console = Console()
+    console.print(table)
