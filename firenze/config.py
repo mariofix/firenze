@@ -8,20 +8,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 class Settings(BaseSettings):
-    ENVIRONMENT: str
+    ENVIRONMENT: str = "production"
     SQLALCHEMY_DATABASE_URL: str
-    VERSION: str
     DEBUG: bool = False
     LOG_LEVEL: str = "INFO"
     STATIC_DIR: str = "static"
     SENTRY_ENABLED: bool = False
-    SENTRY_RELEASE: str
-    SENTRY_DSN: str
-    SENTRY_ENVIRONMENT: str
+    SENTRY_RELEASE: str = None
+    SENTRY_DSN: str = None
+    SENTRY_ENVIRONMENT: str = None
     SECRET_KEY: str = "secret_key"
     SECRET_ALGO: str = "HS256"
-    SECRET_EXPIRES: int = 1
-    AUDIOTEX_DSN: str
+    SECRET_EXPIRES: int = 30
     ALLOWED_DOMAINS: Set[str] = set()
     API_PREFIX: str = ""
     BASE_DIR: Any = BASE_DIR
@@ -55,7 +53,7 @@ LOGGING_CONFIG = {
     },
     "handlers": {
         "file": {
-            "level": settings.LOG_LEVEL,
+            "level": "DEBUG" if settings.DEBUG else settings.LOG_LEVEL,
             "class": "logging.handlers.TimedRotatingFileHandler",
             "filename": f"{settings.BASE_DIR}/logs/firenze-api.log",
             "formatter": "verbose",
@@ -63,7 +61,7 @@ LOGGING_CONFIG = {
             "interval": 1,
         },
         "console": {
-            "level": settings.LOG_LEVEL,
+            "level": "DEBUG" if settings.DEBUG else settings.LOG_LEVEL,
             "class": "logging.StreamHandler",
             "formatter": "simple",
         },
@@ -71,8 +69,6 @@ LOGGING_CONFIG = {
     "loggers": {
         "firenze": {
             "handlers": ["file", "console"],
-            "level": settings.LOG_LEVEL,
-            "propagate": True,
         },
     },
 }
@@ -93,7 +89,7 @@ LOGGING_CONFIG_CLI = {
     },
     "handlers": {
         "cli": {
-            "level": settings.LOG_LEVEL,
+            "level": "DEBUG" if settings.DEBUG else settings.LOG_LEVEL,
             "class": "logging.handlers.TimedRotatingFileHandler",
             "filename": f"{settings.BASE_DIR}/logs/firenze-cli.log",
             "formatter": "verbose",
@@ -101,7 +97,7 @@ LOGGING_CONFIG_CLI = {
             "interval": 1,
         },
         "console": {
-            "level": settings.LOG_LEVEL,
+            "level": "DEBUG" if settings.DEBUG else settings.LOG_LEVEL,
             "class": "logging.StreamHandler",
             "formatter": "simple",
         },
@@ -109,8 +105,6 @@ LOGGING_CONFIG_CLI = {
     "loggers": {
         "firenze-cli": {
             "handlers": ["cli", "console"],
-            "level": settings.LOG_LEVEL,
-            "propagate": True,
         },
     },
 }

@@ -5,7 +5,7 @@ import peewee
 from typing import List, Any, Optional
 
 
-class PeeweeGetterDict(GetterDict):
+class PeeweeGetterDict(GetterDict):  # pragma: no cover
     def get(self, key: Any, default: Any = None):
         res = getattr(self._obj, key, default)
         if isinstance(res, peewee.ModelSelect):

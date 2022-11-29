@@ -1,7 +1,8 @@
 from fastapi import Request, HTTPException
 from sqlalchemy.orm import Session
 from slugify import slugify
-from firenze import models, schemas
+from firenze.models import sqla as models
+from firenze.models import pydantic as schemas
 from passlib.context import CryptContext
 import importlib
 import re
