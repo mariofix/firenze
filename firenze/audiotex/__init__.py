@@ -11,6 +11,8 @@ from peewee import fn, DoesNotExist
 from playhouse.shortcuts import model_to_dict
 import phonenumbers
 from typing import Any
+import string
+import secrets
 
 
 async def reset_db_state():
@@ -547,6 +549,9 @@ def pin_post(
     request: Request,
     uid=Security(loggedin_user, scopes=["audiotex"]),
 ):
+    if "pin" not in cust or cust.pin == 0 or not cust.pin:
+        cust["pin"] = "".join(secrets.choice(string.digits) for i in range(8))
+
     try:
         new = models.FTLatamClient.create(
             pin=cust.pin,

@@ -15,10 +15,19 @@ poetry install --with deploy
 - Que los audios los pueda subir ruurd desde Portal (#1)
 - Migrar tablas operativas (#2)
 
+## [1.0.4] - 2022-12-07
+### Changed
+- Pin se crea aca
+
+### SQL Querys en audiotex
+```sql
+ALTER TABLE `clientidlat` CHANGE `pin` `pin` INT(11) NULL DEFAULT NULL;
+```
+
 ## [1.0.3] - 2022-10-17
 ### Added
 - CLI User Managament
-
+ALTER TABLE `clientidlat` CHANGE `pin` `pin` INT(11) NULL DEFAULT NULL;
 ## [1.0.2] - 2022-10-14
 ### Added
 - Sumar saldo en FonotarotLatam
