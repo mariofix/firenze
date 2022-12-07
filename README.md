@@ -21,7 +21,7 @@ poetry install --with deploy
 
 ### SQL Querys en audiotex
 ```sql
-ALTER TABLE `clientidlat` CHANGE `pin` `pin` INT(11) NULL DEFAULT NULL;
+ALTER TABLE `clientidlat` CHANGE `pin` `pin` VARCHAR(8) NULL DEFAULT NULL;
 ```
 
 ## [1.0.3] - 2022-10-17

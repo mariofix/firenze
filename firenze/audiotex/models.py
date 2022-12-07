@@ -194,7 +194,7 @@ class FTLatamClient(BaseModel):
     nombres = TextField(null=True)
     correo = TextField(null=True)
     telefono = CharField(max_length=16, null=True)
-    pin = IntegerField(index=True)
+    pin = CharField(index=True, max_length=8)
     creditos = IntegerField(null=True)
 
     @classmethod

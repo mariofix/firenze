@@ -550,7 +550,7 @@ def pin_post(
     uid=Security(loggedin_user, scopes=["audiotex"]),
 ):
     if "pin" not in cust or cust.pin == 0 or not cust.pin:
-        cust_pin = "".join(secrets.choice(string.digits) for i in range(10))
+        cust_pin = "".join(secrets.choice(string.digits) for i in range(8))
     else:
         cust_pin = cust.pin
 
