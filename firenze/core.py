@@ -85,7 +85,9 @@ async def create_event(
     tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    if "application/json" in request.headers.get("content-type"):
+    if "content-type" in request.headers and "application/json" in request.headers.get(
+        "content-type"
+    ):
         data = await request.body()
     else:
         data = await request.form()
