@@ -45,18 +45,3 @@ class Event(BaseModel):
 class Message(BaseModel):
     detail: Optional[str]
     message: Optional[str]
-
-
-class NuevoFonotarotLatam(BaseModel):
-    nombres: Optional[str] = None
-    correo: str
-    telefono: Optional[str] = None
-    pin: int
-    creditos: int
-
-
-class FonotarotLatam(NuevoFonotarotLatam):
-    client_id: int
-
-    class Config:
-        orm_mode = True

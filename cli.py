@@ -1,20 +1,4 @@
-#!.venv/bin/python
-# cli.py
-"""
-Main wrapper for cli related inputs.
-
-This file runs the Typer application that supports:  
-- `users` - User Manager    
-- `services` - Services Manager  
-- `online-calls` - OnlineCalls Manager  
-- `dnc-search` - DNC Number Search  
-- `test` - Tests DB Connection
-
-
-```bash
-poetry run firenze test
-```
-"""
+#!/home/mariofix/proyectos/zvn-firenze/.venv/bin/python
 from firenze.cli import cli
 from firenze.config import settings
 import sentry_sdk

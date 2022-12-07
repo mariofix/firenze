@@ -16,7 +16,7 @@ class PeeweeConnectionState(peewee._ConnectionState):
         self._state.get()[name] = value
 
     def __getattr__(self, name):
-        return self._state.get()[name]  # pragma: no cover
+        return self._state.get()[name]
 
 
 conn = connect(settings.AUDIOTEX_DSN)

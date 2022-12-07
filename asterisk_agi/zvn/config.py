@@ -2,20 +2,20 @@ class config_audiotex:
     debug = True
 
     class database:
-        name = "zvn_audiotex_dev"
-        hostname = "zvn-dev-db1.cdfzcdggdpd5.sa-east-1.rds.amazonaws.com"
-        username = "zvn"
-        password = "zvn.r0t5y3"
+        name = ""
+        hostname = ""
+        username = ""
+        password = ""
 
 
 class config_portal:
     debug = True
 
     class database:
-        name = "zvn_portal_dev"
-        hostname = "zvn-dev-db1.cdfzcdggdpd5.sa-east-1.rds.amazonaws.com"
-        username = "zvn"
-        password = "zvn.r0t5y3"
+        name = ""
+        hostname = ""
+        username = ""
+        password = ""
 
 
 class config_cdr:
