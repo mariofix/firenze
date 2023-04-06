@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     SQLALCHEMY_DATABASE_URL: str
     DEBUG: bool = False
     LOG_LEVEL: str = "INFO"
-    VERSION: str = "1.0.5"
+    VERSION: str = "1.0.6"
     STATIC_DIR: str = "static"
     SENTRY_ENABLED: bool = False
     SENTRY_RELEASE: str = None
@@ -59,7 +59,7 @@ LOGGING_CONFIG = {
             "class": "logging.handlers.TimedRotatingFileHandler",
             "filename": f"{settings.BASE_DIR}/logs/firenze-api.log",
             "formatter": "verbose",
-            "when": "midnight",
+            "when": "W0",
             "interval": 1,
         },
         "console": {
