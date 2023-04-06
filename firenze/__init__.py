@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.middleware.cors import CORSMiddleware
 from firenze.config import settings, LOGGING_CONFIG
 from firenze.auth import authRouter, AdminAuth
 from firenze.core import coreRouter
@@ -24,6 +25,17 @@ def create_app():
     )
     logging.config.dictConfig(LOGGING_CONFIG)
     app.logger = logging.getLogger("firenze")
+    origins = [
+        "https://fonotarot.com",
+        "https://alotarot.cl",
+    ]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.ALLOWED_DOMAINS)
     # Static Folder
     app.mount(
