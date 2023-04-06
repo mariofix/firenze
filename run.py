@@ -6,7 +6,7 @@ from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
 if settings.SENTRY_ENABLED:
     sentry_sdk.init(
         dsn=settings.SENTRY_DSN,
-        traces_sample_rate=1.0,
+        traces_sample_rate=0.1,
         release=settings.SENTRY_RELEASE,
         environment=settings.SENTRY_ENVIRONMENT,
         request_bodies="always",

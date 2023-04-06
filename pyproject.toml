@@ -1,43 +1,43 @@
 [tool.poetry]
 name = "firenze"
-version = "1.0.4"
+version = "1.0.5"
 description = "Servicio de comunicacion y administracion para servicio Tatot"
 authors = ["Mario Hernandez <mariofix@pm.me>"]
 readme = "README.md"
 packages = [{include = "firenze"}]
 
 [tool.poetry.dependencies]
-python = "^3.10"
-fastapi = "^0.85.0"
-thankyou = "^0.0.1"
-PyMySQL = "^1.0.2"
-python-dotenv = "^0.21.0"
-requests = "^2.28.1"
-python-slugify = "^6.1.2"
-alembic = "^1.8.1"
-SQLAlchemy = "^1.4.39"
-peewee = "^3.15.1"
-bcrypt = "^4.0.0"
-uvicorn = {extras = ["standard"], version = "^0.18.2"}
-passlib = {extras = ["bcrypt"], version = "^1.7.4"}
-python-jose = {extras = ["cryptography"], version = "^3.3.0"}
-sentry-sdk = "^1.8.0"
-python-multipart = "^0.0.5"
-Jinja2 = "^3.1.2"
-pystrix = "^1.1.8"
-sqladmin = "^0.6.1"
-typer = {extras = ["all"], version = "^0.6.1"}
-mysqldb-wrapper = "^0.10.6"
-python-dateutil = "^2.8.2"
-fastapi-crudrouter = "^0.8.5"
-phonenumbers = "^8.12.57"
-sqlalchemy-repr = "^0.0.2"
+python = "^3.11"
+fastapi = "*"
+thankyou = "*"
+PyMySQL = "*"
+python-dotenv = "*"
+requests = "*"
+python-slugify = "*"
+alembic = "*"
+SQLAlchemy = "*"
+peewee = "*"
+bcrypt = "*"
+uvicorn = {extras = ["standard"], version = "*"}
+passlib = {extras = ["bcrypt"], version = "*"}
+python-jose = {extras = ["cryptography"], version = "*"}
+sentry-sdk = "*"
+python-multipart = "*"
+Jinja2 = "*"
+pystrix = "*"
+sqladmin = "*"
+typer = {extras = ["all"], version = "*"}
+mysqldb-wrapper = "*"
+python-dateutil = "*"
+fastapi-crudrouter = "*"
+phonenumbers = "*"
+sqlalchemy-repr = "*"
 
 [tool.poetry.group.deploy]
 optional = true
 
 [tool.poetry.group.deploy.dependencies]
-gunicorn = "^20.1.0"
+gunicorn = "*"
 
 [tool.poetry.group.dev]
 optional = true

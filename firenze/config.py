@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     SQLALCHEMY_DATABASE_URL: str
     DEBUG: bool = False
     LOG_LEVEL: str = "INFO"
-    VERSION: str = "1.0.4"
+    VERSION: str = "1.0.5"
     STATIC_DIR: str = "static"
     SENTRY_ENABLED: bool = False
     SENTRY_RELEASE: str = None

@@ -4,13 +4,12 @@ from sqlalchemy.sql.sqltypes import JSON
 from firenze.audiotex import models, schemas
 from firenze.schemas import Message
 from firenze.auth import loggedin_user
-from typing import List, Any, Optional
+from typing import Any, Optional
 from firenze.audiotex.database import db_state_default
 import enum
 from peewee import fn, DoesNotExist
 from playhouse.shortcuts import model_to_dict
 import phonenumbers
-from typing import Any
 import string
 import secrets
 
@@ -42,6 +41,41 @@ def lee_numero(numero: str, request: Any, pais: str = "CL") -> str:
 
 
 audiotexRouter = APIRouter(prefix="/audiotex", tags=["audiotex"])
+
+
+##################
+# Admin Stuff
+##################
+@audiotexRouter.get(
+    "/ejecutivos",
+    description="Lista ejecutivos conectados",
+    response_model=list[schemas.ConnectedOperators],
+    responses={404: {"model": Message}},
+    summary="Lista ejecutivos conectados",
+    dependencies=[Depends(get_db)],
+)
+def audiotex_connected_operators(
+    request: Request,
+    ejecutivo: Optional[str] = Query(None, max_length=16),
+):
+    operators = models.Operators.select().where(
+        ((models.Operators.loggedin == 1) & (models.Operators.type == 7))
+    )
+    connected = []
+    for op in operators:
+        connected.append(
+            schemas.ConnectedOperators(
+                nombre=op.name,
+                opcion=op.ast_option,
+                ingreso=op.loggedin,
+                disponible=op.available,
+                descripcion=op.descripcion,
+            )
+        )
+    request.app.logger.info(f"{len(connected)} operadores conectados.")
+    return connected
+
+
 ##################
 # Fonotarot Chile
 ##################

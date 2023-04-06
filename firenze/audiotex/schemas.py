@@ -40,3 +40,11 @@ class ClientIdLatam(BaseModel):
     creditos: int = 0
     correo: str = None
     telefonos: Optional[List[str]] = []
+
+
+class ConnectedOperators(BaseModel):
+    nombre: str
+    opcion: int
+    ingreso: bool
+    disponible: bool
+    descripcion: str

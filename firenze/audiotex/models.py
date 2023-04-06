@@ -32,6 +32,9 @@ class Operators(BaseModel):
     class Meta:
         table_name = "operators"
 
+    def __str__(self):
+        return self.operator
+
 
 class Services(BaseModel):
     ddi = CharField(max_length=16, primary_key=True)

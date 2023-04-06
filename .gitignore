@@ -3,6 +3,8 @@ poetry.lock
 *.db
 alembic.ini
 logs/*
+zvn-asterisk/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
