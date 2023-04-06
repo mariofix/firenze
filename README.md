@@ -15,6 +15,14 @@ poetry install --with deploy
 - Que los audios los pueda subir ruurd desde Portal (#1)
 - Migrar tablas operativas (#2)
 
+## [1.0.5] - 2023-04-06
+### Added
+- Endpoint /audiotex/ejecutivos para el plugin de wordpress
+
+### Changed
+- Algunos logger.error a logger.warning para que Sentry no se queje tanto
+
+
 ## [1.0.4] - 2022-12-07
 ### Changed
 - Pin se crea aca
