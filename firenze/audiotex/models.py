@@ -32,6 +32,9 @@ class Operators(BaseModel):
     class Meta:
         table_name = "operators"
 
+    def __str__(self):
+        return self.operator
+
 
 class Services(BaseModel):
     ddi = CharField(max_length=16, primary_key=True)
@@ -194,7 +197,7 @@ class FTLatamClient(BaseModel):
     nombres = TextField(null=True)
     correo = TextField(null=True)
     telefono = CharField(max_length=16, null=True)
-    pin = IntegerField(index=True)
+    pin = CharField(index=True, max_length=8)
     creditos = IntegerField(null=True)
 
     @classmethod

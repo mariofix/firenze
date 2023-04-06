@@ -36,7 +36,15 @@ class Credits(BaseModel):
 
 class ClientIdLatam(BaseModel):
     clientid: int = 0
-    pin: int = 0
+    pin: Optional[int] = None
     creditos: int = 0
     correo: str = None
     telefonos: Optional[List[str]] = []
+
+
+class ConnectedOperators(BaseModel):
+    nombre: str
+    opcion: int
+    ingreso: bool
+    disponible: bool
+    descripcion: str

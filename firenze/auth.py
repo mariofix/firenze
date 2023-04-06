@@ -102,7 +102,7 @@ async def loggedin_user(
             token, settings.SECRET_KEY, algorithms=[settings.SECRET_ALGO]
         )
     except JWTError as e:
-        request.app.logger.error(e)
+        request.app.logger.warning(e)
         raise HTTPException(
             status_code=401,
             detail="Could not validate credentials",
@@ -111,7 +111,7 @@ async def loggedin_user(
 
     token_user_id: int = payload.get("sub")
     if not token_user_id:
-        request.app.logger.error(f"{token_user_id=}")
+        request.app.logger.warning(f"{token_user_id=}")
         raise HTTPException(
             status_code=401,
             detail="Could not validate credentials",
@@ -119,7 +119,7 @@ async def loggedin_user(
         )
     user = crud.get_user(db, token_user_id)
     if not user:
-        request.app.logger.error(f"{user=}")
+        request.app.logger.warning(f"{user=}")
         raise HTTPException(
             status_code=401,
             detail="Could not validate credentials",
@@ -127,7 +127,7 @@ async def loggedin_user(
         )
 
     if not user.scopes:
-        request.app.logger.error(f"{user=} no tiene scopes definidos")
+        request.app.logger.warning(f"{user=} no tiene scopes definidos")
         raise HTTPException(
             status_code=401,
             detail="Could not validate credentials",
@@ -175,33 +175,33 @@ class AdminAuth(AuthenticationBackend):
     async def authenticate(self, request: Request) -> bool:
         token = request.session.get("token")
         if not token:
-            logger.error(f"{token=}")
+            logger.warning(f"{token=}")
             return False
         try:
             payload = jwt.decode(
                 token, settings.SECRET_KEY, algorithms=[settings.SECRET_ALGO]
             )
         except JWTError as e:
-            logger.error(e)
+            logger.warning(e)
             return False
 
         token_user_id: int = payload.get("sub")
         if not token_user_id:
-            logger.error(f"{token_user_id=}")
+            logger.warning(f"{token_user_id=}")
             return False
 
         db = SessionLocal()
         user: models.User = crud.get_user(db, token_user_id)
         if not user:
-            logger.error(f"{user=}")
+            logger.warning(f"{user=}")
             return False
 
         if not user.scopes:
-            request.app.logger.error(f"{user.scopes=}")
+            logger.warning(f"{user.scopes=}")
             return False
 
         if "admin" not in user.scopes:
-            logger.info(f"{user=} is not admin")
+            logger.warning(f"{user=} is not admin")
             return False
 
         return True
