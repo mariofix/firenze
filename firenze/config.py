@@ -1,5 +1,5 @@
 from typing import Any
-from pydantic import BaseSettings
+from pydantic import BaseSettings, HttpUrl
 from functools import lru_cache
 from typing import Set
 from pathlib import Path
@@ -9,10 +9,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 class Settings(BaseSettings):
     ENVIRONMENT: str = "production"
+    CORS_ORIGINS: list[HttpUrl] = ["http://nagini.local:8080"]
     SQLALCHEMY_DATABASE_URL: str
     DEBUG: bool = False
     LOG_LEVEL: str = "INFO"
-    VERSION: str = "1.0.6"
+    VERSION: str = "1.0.7"
     STATIC_DIR: str = "static"
     SENTRY_ENABLED: bool = False
     SENTRY_RELEASE: str = None
@@ -22,12 +23,13 @@ class Settings(BaseSettings):
     SECRET_ALGO: str = "HS256"
     SECRET_EXPIRES: int = 30
     AUDIOTEX_DSN: str = None
-    ALLOWED_DOMAINS: Set[str] = set()
+    ALLOWED_DOMAINS: list[str] = ["*.local"]
     API_PREFIX: str = ""
     BASE_DIR: Any = BASE_DIR
 
     class Config:
         env_file = f"{BASE_DIR}/.env"
+        env_file_encoding = "utf-8"
         case_sensitive = True
 
 

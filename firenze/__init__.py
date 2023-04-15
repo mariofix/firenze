@@ -12,6 +12,8 @@ from firenze.admin import register_admin
 from firenze.database import engine
 from sqladmin import Admin
 
+# from debug_toolbar.middleware import DebugToolbarMiddleware
+
 import logging
 
 
@@ -25,13 +27,11 @@ def create_app():
     )
     logging.config.dictConfig(LOGGING_CONFIG)
     app.logger = logging.getLogger("firenze")
-    origins = [
-        "https://fonotarot.com",
-        "https://alotarot.cl",
-    ]
+    print(f"{settings=}")
+    # app.add_middleware(DebugToolbarMiddleware)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=origins,
+        allow_origins=settings.CORS_ORIGINS,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
