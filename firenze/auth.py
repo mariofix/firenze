@@ -4,6 +4,7 @@ from fastapi.security import (
     OAuth2PasswordRequestForm,
     SecurityScopes,
 )
+from starlette.responses import RedirectResponse
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from sqladmin.authentication import AuthenticationBackend
@@ -168,40 +169,39 @@ class AdminAuth(AuthenticationBackend):
         return True
 
     async def logout(self, request: Request) -> bool:
-        logger.info("Goodbye")
         request.session.clear()
         return True
 
-    async def authenticate(self, request: Request) -> bool:
+    async def authenticate(self, request: Request) -> Optional[RedirectResponse]:
         token = request.session.get("token")
         if not token:
             logger.warning(f"{token=}")
-            return False
+            return RedirectResponse(request.url_for("admin:login"), status_code=302)
         try:
             payload = jwt.decode(
                 token, settings.SECRET_KEY, algorithms=[settings.SECRET_ALGO]
             )
         except JWTError as e:
             logger.warning(e)
-            return False
+            return RedirectResponse(request.url_for("admin:login"), status_code=302)
 
         token_user_id: int = payload.get("sub")
         if not token_user_id:
             logger.warning(f"{token_user_id=}")
-            return False
+            return RedirectResponse(request.url_for("admin:login"), status_code=302)
 
         db = SessionLocal()
         user: models.User = crud.get_user(db, token_user_id)
         if not user:
             logger.warning(f"{user=}")
-            return False
+            return RedirectResponse(request.url_for("admin:logout"), status_code=302)
 
         if not user.scopes:
             logger.warning(f"{user.scopes=}")
-            return False
+            return RedirectResponse(request.url_for("admin:logout"), status_code=302)
 
         if "admin" not in user.scopes:
             logger.warning(f"{user=} is not admin")
-            return False
+            return RedirectResponse(request.url_for("admin:logout"), status_code=302)
 
         return True

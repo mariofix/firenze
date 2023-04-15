@@ -1,6 +1,7 @@
 from firenze.config import LOGGING_CONFIG_CLI
+from firenze.database import engine, SessionLocal
 from firenze.models import OnlineCalls
-from sqlalchemy import delete, update
+from sqlalchemy import delete, update, select
 import logging.config
 import typer
 from rich.console import Console
@@ -49,12 +50,14 @@ def delete_online_call(
     """
     Deletes a record from OnlineCalls
     """
-    engine = ctx.obj.get("dbengine")
+    session = SessionLocal()
     try:
-        llamada = delete(OnlineCalls).where(
+        busca = select(OnlineCalls).where(
             OnlineCalls.service == service, OnlineCalls.ani == ani
         )
-        engine.execute(llamada)
+        llamada = session.scalars(busca).first()
+        session.delete(llamada)
+        session.commit()
     except Exception as e:
         logger.error(e)
         raise typer.Exit(code=1)
@@ -72,14 +75,15 @@ def update_online_call(
     """
     Updates the operator of a record in OnlineCalls
     """
-    engine = ctx.obj.get("dbengine")
+    session = SessionLocal()
     try:
-        llamada = (
-            update(OnlineCalls)
-            .where(OnlineCalls.service == service, OnlineCalls.ani == ani)
-            .values(operator=operator)
+        busca = select(OnlineCalls).where(
+            OnlineCalls.service == service, OnlineCalls.ani == ani
         )
-        engine.execute(llamada)
+        llamada = session.scalars(busca).first()
+        llamada.operator = operator
+
+        session.commit()
     except Exception as e:
         logger.error(e)
         raise typer.Exit(code=1)

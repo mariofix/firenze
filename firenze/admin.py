@@ -3,9 +3,9 @@ from sqladmin import ModelView
 
 
 class UserAdmin(ModelView, model=User):
-    column_list = [User.login, User.enabled, User.scopes]
-    column_default_sort = [(User.login, False)]
-    column_searchable_list = [User.email, User.scopes]
+    column_list = ["login", "enabled", "scopes"]
+    column_default_sort = [("login", False)]
+    column_searchable_list = ["email", "scopes"]
 
     form_widget_args = {
         "created_at": {

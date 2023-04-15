@@ -15,6 +15,11 @@ poetry install --with deploy
 - Que los audios los pueda subir ruurd desde Portal (#1)
 - Migrar tablas operativas (#2)
 
+## [1.0.7] - 2023-04-14
+### Changed
+- Bug en CLI
+- Bug en Auth
+
 ## [1.0.6] - 2023-04-06
 ### Added
 - CORS Middleware
