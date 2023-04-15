@@ -1,4 +1,12 @@
-from firenze.models import User, Event, Service, ServiceNumber, DoNotCall, OnlineCalls
+from firenze.models import (
+    User,
+    Event,
+    Service,
+    ServiceNumber,
+    DoNotCall,
+    OnlineCalls,
+    PostCallProcess,
+)
 from sqladmin import ModelView
 
 
@@ -18,9 +26,9 @@ class UserAdmin(ModelView, model=User):
 
 
 class EventAdmin(ModelView, model=Event):
-    column_list = [Event.id, Event.name, Event.verb, Event.created_at]
-    column_default_sort = [(Event.id, True)]
-    column_searchable_list = [Event.name, Event.ip, Event.verb, Event.data]
+    column_list = ["name", "verb", "created_at"]
+    column_default_sort = [("id", True)]
+    column_searchable_list = ["name", "ip", "verb", "data"]
 
     form_widget_args = {
         "created_at": {
@@ -103,6 +111,20 @@ class CallsAdmin(ModelView, model=OnlineCalls):
     ]
 
 
+class PostCallAdmin(ModelView, model=PostCallProcess):
+    column_list = ["service", "process_name", "client_id", "processed"]
+    column_default_sort = [("id", True)]
+
+    form_widget_args = {
+        "created_at": {
+            "readonly": True,
+        },
+        "modified_at": {
+            "readonly": True,
+        },
+    }
+
+
 def register_admin(the_app):
     the_app.sqladmin.add_view(UserAdmin)
     the_app.sqladmin.add_view(EventAdmin)
@@ -110,3 +132,4 @@ def register_admin(the_app):
     the_app.sqladmin.add_view(DIDAdmin)
     the_app.sqladmin.add_view(DNCAdmin)
     the_app.sqladmin.add_view(CallsAdmin)
+    the_app.sqladmin.add_view(PostCallAdmin)

@@ -7,6 +7,6 @@ from sqlalchemy_repr import RepresentableBase
 engine = create_engine(
     settings.SQLALCHEMY_DATABASE_URL, pool_recycle=1800, pool_pre_ping=True
 )
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = sessionmaker(autoflush=True, bind=engine)
 
 Base = declarative_base(cls=RepresentableBase)
