@@ -30,6 +30,7 @@ passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
 typer = {extras = ["all"], version = "^0.7.0"}
 fastapi-debug-toolbar = "^0.3.2"
+python-dateutil = "^2.8.2"
 
 [tool.poetry.group.deploy]
 optional = true

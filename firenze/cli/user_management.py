@@ -1,6 +1,7 @@
 from firenze.config import LOGGING_CONFIG_CLI
+from firenze.database import engine, SessionLocal
 from firenze.models import User
-from sqlalchemy import delete, update
+from sqlalchemy import delete, update, select
 import logging.config
 import typer
 from rich.console import Console
@@ -118,28 +119,30 @@ def update_user(
     """
     Update a current user
     """
-    session = ctx.obj.get("dbsession")
-    engine = ctx.obj.get("dbengine")
+    session = SessionLocal()
     logger = ctx.obj.get("logger")
     try:
-        usuario = update(User).where(User.id == user_id)
+        usuario = session.get(User, user_id)
+
         if enable:
-            usuario = usuario.values(enabled=True)
+            usuario = usuario.enabled = True
         if password:
-            usuario = usuario.values(password=password)
+            pwd_hash = pwd_context.hash(password)
+            usuario.password = pwd_hash
         if login:
-            usuario = usuario.values(login=login)
+            usuario.login = login
         if email:
-            usuario = usuario.values(email=email)
+            usuario.email = email
         if scopes:
-            usuario = usuario.values(scopes=scopes.split(","))
-        engine.execute(usuario)
+            usuario.scopes = scopes.split(",")
+        session.commit()
     except Exception as e:
         logger.error(e)
         raise typer.Exit(code=1)
     else:
         logger.info(f"Updated {user_id=}")
-    raise typer.Exit()
+        typer.echo(f"Updated {user_id=}")
+    raise typer.Exit(code=0)
 
 
 @app.command("delete")

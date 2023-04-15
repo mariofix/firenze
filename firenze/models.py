@@ -127,3 +127,21 @@ class OnlineCalls(Base, TimestampMixin):
 
     def __str__(self):
         return self.ani
+
+
+class PostCallProcess(Base, TimestampMixin):
+    __tablename__ = "post_call_process"
+
+    id = Column(Integer, primary_key=True)
+    service = Column(String(32), nullable=False)
+    process_name = Column(String(32), nullable=False)
+    parameters = Column(JSON, nullable=True, default=None)
+    client_id = Column(Integer, nullable=False)
+    processed = Column(Boolean, nullable=False, default=False)
+
+    __table_args__ = (
+        UniqueConstraint("service", "client_id", name="oc_unique_process"),
+    )
+
+    def __str__(self):
+        return self.id
