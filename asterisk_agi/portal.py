@@ -1,12 +1,13 @@
 #!/home/mariofix/proyectos/zvn-firenze/.venv/bin/python
-import pystrix
-import sys
-import sentry_sdk
-from zvn import config, logger
-from peewee import Model, IntegerField, CharField, DateTimeField, TextField
-import peewee
-from contextvars import ContextVar
 import datetime
+import sys
+from contextvars import ContextVar
+
+import peewee
+import pystrix
+import sentry_sdk
+from peewee import CharField, DateTimeField, IntegerField, Model, TextField
+from zvn import config, logger
 
 """
 sentry_sdk.init(

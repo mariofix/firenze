@@ -1,6 +1,8 @@
-import peewee
 from contextvars import ContextVar
+
+import peewee
 from playhouse.db_url import connect
+
 from firenze.config import settings
 
 db_state_default = {"closed": None, "conn": None, "ctx": None, "transactions": None}

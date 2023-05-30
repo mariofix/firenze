@@ -1,13 +1,17 @@
+from sqladmin import ModelView, action
+from starlette.requests import Request
+from starlette.responses import RedirectResponse, Response
+
 from firenze.models import (
-    User,
-    Event,
-    Service,
-    ServiceNumber,
     DoNotCall,
+    Event,
+    FonoTarotLatamClient,
     OnlineCalls,
     PostCallProcess,
+    Service,
+    ServiceNumber,
+    User,
 )
-from sqladmin import ModelView
 
 
 class UserAdmin(ModelView, model=User):
@@ -112,9 +116,73 @@ class CallsAdmin(ModelView, model=OnlineCalls):
 
 
 class PostCallAdmin(ModelView, model=PostCallProcess):
+    # https://wa.me/1XXXXXXXXXX
+    # sms:+19725551212?body=hello%20there
     column_list = ["service", "process_name", "client_id", "processed"]
     column_default_sort = [("id", True)]
 
+    @action(
+        name="SMS",
+        label="SMS",
+        add_in_detail=True,
+        add_in_list=False,
+    )
+    async def sms(self, request: Request) -> Response:
+        call_id = request.query_params.get("pks")
+        from urllib.parse import urlencode
+
+        from .database import SessionLocal
+
+        db = SessionLocal()
+        call_info = (
+            db.query(PostCallProcess).filter(PostCallProcess.id == call_id).first()
+        )
+        print(
+            f"sms:+56{call_info.parameters['destination']}?body={call_info.parameters['text']}"
+        )
+        return RedirectResponse(
+            f"sms:+56{call_info.parameters['destination']}?body={call_info.parameters['text']}"
+        )
+
+    @action(
+        name="Whastapp",
+        label="Whastapp",
+        add_in_detail=True,
+        add_in_list=False,
+    )
+    async def whatsapp(self, request: Request) -> Response:
+        call_id = request.query_params.get("pks")
+        from urllib.parse import urlencode
+
+        from .database import SessionLocal
+
+        db = SessionLocal()
+        call_info = (
+            db.query(PostCallProcess).filter(PostCallProcess.id == call_id).first()
+        )
+        print(
+            f"https://wa.me/56{call_info.parameters['destination']}?text={call_info.parameters['text']}"
+        )
+        return RedirectResponse(
+            f"https://wa.me/56{call_info.parameters['destination']}?text={call_info.parameters['text']}"
+        )
+
+    form_widget_args = {
+        "created_at": {
+            "readonly": True,
+        },
+        "modified_at": {
+            "readonly": True,
+        },
+    }
+
+
+class FonoTarotLatamAdmin(ModelView, model=FonoTarotLatamClient):
+    column_list = ["client_id", "email", "pin_code", "credits"]
+    name = "Fonotarot Latam"
+    name_plural = "Fonotarot Latam"
+    can_export = False
+    can_view_details = True
     form_widget_args = {
         "created_at": {
             "readonly": True,
@@ -133,3 +201,4 @@ def register_admin(the_app):
     the_app.sqladmin.add_view(DNCAdmin)
     the_app.sqladmin.add_view(CallsAdmin)
     the_app.sqladmin.add_view(PostCallAdmin)
+    the_app.sqladmin.add_view(FonoTarotLatamAdmin)

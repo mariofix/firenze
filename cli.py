@@ -1,7 +1,8 @@
 #!/home/mariofix/proyectos/zvn-firenze/.venv/bin/python
+import sentry_sdk
+
 from firenze.cli import cli
 from firenze.config import settings
-import sentry_sdk
 
 if settings.SENTRY_ENABLED:
     sentry_sdk.init(

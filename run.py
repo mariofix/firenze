@@ -1,7 +1,8 @@
-from firenze import create_app
-from firenze.config import settings
 import sentry_sdk
 from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
+
+from firenze import create_app
+from firenze.config import settings
 
 if settings.SENTRY_ENABLED:
     sentry_sdk.init(

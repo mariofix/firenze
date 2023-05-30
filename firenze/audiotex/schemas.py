@@ -1,8 +1,10 @@
-from firenze.database import Base
+from typing import Any, List, Optional
+
+import peewee
 from pydantic import BaseModel
 from pydantic.utils import GetterDict
-import peewee
-from typing import List, Any, Optional
+
+from firenze.database import Base
 
 
 class PeeweeGetterDict(GetterDict):

@@ -4,6 +4,7 @@ poetry.lock
 alembic.ini
 logs/*
 zvn-asterisk/*
+.vscode
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

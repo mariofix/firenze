@@ -1,7 +1,7 @@
-from pydantic import BaseModel
-from typing import Optional, Union, List
-
 import datetime
+from typing import List, Optional, Union
+
+from pydantic import BaseModel, Json, EmailStr
 
 
 class UserBase(BaseModel):
@@ -45,3 +45,22 @@ class Event(BaseModel):
 class Message(BaseModel):
     detail: Optional[str]
     message: Optional[str]
+
+
+class NewFonotarotLatam(BaseModel):
+    email: EmailStr
+    phone_number: Optional[str] = None
+    credits: Optional[int] = 0
+
+
+class UpdateFonotarotLatam(BaseModel):
+    credits: int
+
+
+class FonoTarotLatam(NewFonotarotLatam):
+    pin_code: int
+    client_id: int
+    full_name: Optional[str]
+
+    class Config:
+        orm_mode = True

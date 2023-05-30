@@ -1,22 +1,24 @@
-from fastapi import (
-    Depends,
-    APIRouter,
-    Request,
-    HTTPException,
-    BackgroundTasks,
-    Security,
-)
-from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, JSONResponse
-from sqlalchemy.orm import Session
-from thankyou import give_thanks
-from typing import List
-from firenze import crud, schemas, auth
-from firenze.models import Event
-from firenze.exceptions import GenericError, ProcessError
-from firenze.database import SessionLocal
 import datetime
 import json
+from typing import List
+
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    Request,
+    Security,
+)
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import Session
+from thankyou import give_thanks
+
+from firenze import auth, crud, schemas
+from firenze.database import SessionLocal
+from firenze.exceptions import GenericError, ProcessError
+from firenze.models import Event
 
 coreRouter = APIRouter()
 jinjaEngine = Jinja2Templates(directory="templates")

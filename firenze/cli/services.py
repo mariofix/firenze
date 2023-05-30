@@ -1,8 +1,10 @@
+import logging.config
+
+import typer
+
+from firenze.cli.utils import set_asterisk_var, verbose
 from firenze.config import LOGGING_CONFIG_CLI
 from firenze.models import ServiceNumber
-from firenze.cli.utils import verbose, set_asterisk_var
-import logging.config
-import typer
 
 logging.config.dictConfig(LOGGING_CONFIG_CLI)
 logger = logging.getLogger("firenze-cli")

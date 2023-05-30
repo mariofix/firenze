@@ -1,17 +1,19 @@
-from fastapi import APIRouter, HTTPException, Depends, Security, Query, Request
-from fastapi.responses import JSONResponse
-from sqlalchemy.sql.sqltypes import JSON
-from firenze.audiotex import models, schemas
-from firenze.schemas import Message
-from firenze.auth import loggedin_user
-from typing import Any, Optional
-from firenze.audiotex.database import db_state_default
 import enum
-from peewee import fn, DoesNotExist
-from playhouse.shortcuts import model_to_dict
-import phonenumbers
-import string
 import secrets
+import string
+from typing import Any, Optional
+
+import phonenumbers
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Security
+from fastapi.responses import JSONResponse
+from peewee import DoesNotExist, fn
+from playhouse.shortcuts import model_to_dict
+from sqlalchemy.sql.sqltypes import JSON
+
+from firenze.audiotex import models, schemas
+from firenze.audiotex.database import db_state_default
+from firenze.auth import loggedin_user
+from firenze.schemas import Message
 
 
 async def reset_db_state():
@@ -548,80 +550,80 @@ def at_phone_update(
 ##################
 # Fonotarot Latam
 ##################
-@audiotexRouter.get(
-    "/fonotarot-latam/client/{pin}",
-    description="Busca informacion del ClientID",
-    response_model=schemas.ClientIdLatam,
-    responses={404: {"model": Message}},
-    summary="Busca informacion del ClientID",
-    dependencies=[Depends(get_db)],
-    response_model_exclude_unset=True,
-)
-def ftl_clientid_search(
-    pin: int, request: Request, uid=Security(loggedin_user, scopes=["audiotex"])
-):
-    try:
-        cliente = models.FTLatamClient.busca(pin).get()
-    except DoesNotExist:
-        request.app.logger.warning(f"PIN {pin} no existe.")
-        raise HTTPException(status_code=404, detail=f"PIN {pin} no existe.")
-    else:
-        return model_to_dict(cliente)
+# @audiotexRouter.get(
+#     "/fonotarot-latam/client/{pin}",
+#     description="Busca informacion del ClientID",
+#     response_model=schemas.ClientIdLatam,
+#     responses={404: {"model": Message}},
+#     summary="Busca informacion del ClientID",
+#     dependencies=[Depends(get_db)],
+#     response_model_exclude_unset=True,
+# )
+# def ftl_clientid_search(
+#     pin: int, request: Request, uid=Security(loggedin_user, scopes=["audiotex"])
+# ):
+#     try:
+#         cliente = models.FTLatamClient.busca(pin).get()
+#     except DoesNotExist:
+#         request.app.logger.warning(f"PIN {pin} no existe.")
+#         raise HTTPException(status_code=404, detail=f"PIN {pin} no existe.")
+#     else:
+#         return model_to_dict(cliente)
 
 
-@audiotexRouter.post(
-    "/fonotarot-latam/client/",
-    description="Inserta un nuevo Cliente",
-    response_model=schemas.ClientIdLatam,
-    responses={409: {"model": Message}},
-    summary="Inserta un nuevo Cliente",
-    dependencies=[Depends(get_db)],
-    response_model_exclude_unset=True,
-)
-def pin_post(
-    cust: schemas.ClientIdLatam,
-    request: Request,
-    uid=Security(loggedin_user, scopes=["audiotex"]),
-):
-    if "pin" not in cust or cust.pin == 0 or not cust.pin:
-        cust_pin = "".join(secrets.choice(string.digits) for i in range(8))
-    else:
-        cust_pin = cust.pin
+# @audiotexRouter.post(
+#     "/fonotarot-latam/client/",
+#     description="Inserta un nuevo Cliente",
+#     response_model=schemas.ClientIdLatam,
+#     responses={409: {"model": Message}},
+#     summary="Inserta un nuevo Cliente",
+#     dependencies=[Depends(get_db)],
+#     response_model_exclude_unset=True,
+# )
+# def pin_post(
+#     cust: schemas.ClientIdLatam,
+#     request: Request,
+#     uid=Security(loggedin_user, scopes=["audiotex"]),
+# ):
+#     if "pin" not in cust or cust.pin == 0 or not cust.pin:
+#         cust_pin = "".join(secrets.choice(string.digits) for i in range(8))
+#     else:
+#         cust_pin = cust.pin
 
-    try:
-        new = models.FTLatamClient.create(
-            pin=cust_pin,
-            correo=cust.correo,
-            creditos=cust.creditos,
-        )
-        new.save()
-    except Exception as e:
-        request.app.logger.error(e)
-        raise HTTPException(status_code=409, detail=f"No se pudo insertar: {e}")
+#     try:
+#         new = models.FTLatamClient.create(
+#             pin=cust_pin,
+#             correo=cust.correo,
+#             creditos=cust.creditos,
+#         )
+#         new.save()
+#     except Exception as e:
+#         request.app.logger.error(e)
+#         raise HTTPException(status_code=409, detail=f"No se pudo insertar: {e}")
 
-    return model_to_dict(new)
+#     return model_to_dict(new)
 
 
-@audiotexRouter.post(
-    "/fonotarot-latam/credit/{clientid}/{segundos}",
-    description="Suma Saldo",
-    response_model=schemas.Credits,
-    responses={409: {"model": Message}, 500: {"model": Message}},
-    summary="Suma Saldo",
-    dependencies=[Depends(get_db)],
-    response_model_exclude_unset=True,
-)
-def ftl_agrega_saldo(
-    clientid: int,
-    segundos: int,
-    request: Request,
-    uid=Security(loggedin_user, scopes=["audiotex"]),
-):
-    try:
-        creditos = models.FTLatamClient.actualiza_creditos(clientid, segundos)
-    except Exception as e:
-        request.app.logger.error(e)
-        raise HTTPException(status_code=500, detail="No se pudo agregar los creditos.")
+# @audiotexRouter.post(
+#     "/fonotarot-latam/credit/{clientid}/{segundos}",
+#     description="Suma Saldo",
+#     response_model=schemas.Credits,
+#     responses={409: {"model": Message}, 500: {"model": Message}},
+#     summary="Suma Saldo",
+#     dependencies=[Depends(get_db)],
+#     response_model_exclude_unset=True,
+# )
+# def ftl_agrega_saldo(
+#     clientid: int,
+#     segundos: int,
+#     request: Request,
+#     uid=Security(loggedin_user, scopes=["audiotex"]),
+# ):
+#     try:
+#         creditos = models.FTLatamClient.actualiza_creditos(clientid, segundos)
+#     except Exception as e:
+#         request.app.logger.error(e)
+#         raise HTTPException(status_code=500, detail="No se pudo agregar los creditos.")
 
-    salida = {"creditos": creditos, "clientid": clientid}
-    return salida
+#     salida = {"creditos": creditos, "clientid": clientid}
+#     return salida

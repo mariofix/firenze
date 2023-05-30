@@ -1,20 +1,20 @@
-from fastapi import FastAPI, Depends
-from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.middleware.cors import CORSMiddleware
-from firenze.config import settings, LOGGING_CONFIG
-from firenze.auth import authRouter, AdminAuth
-from firenze.core import coreRouter
-from firenze.audiotex import audiotexRouter
+import logging
 
-# from firenze.services.fonotarot_latam import app as ftlRouter
-from firenze.admin import register_admin
-from firenze.database import engine
+from debug_toolbar.middleware import DebugToolbarMiddleware
+from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqladmin import Admin
 
-# from debug_toolbar.middleware import DebugToolbarMiddleware
+from firenze.admin import register_admin
+from firenze.audiotex import audiotexRouter
+from firenze.auth import AdminAuth, authRouter
+from firenze.config import LOGGING_CONFIG, settings
+from firenze.core import coreRouter
+from firenze.database import engine
 
-import logging
+from .tarot import tarotRouter
 
 
 def create_app():
@@ -62,7 +62,7 @@ def create_app():
     app.include_router(coreRouter)
 
     # Fonotarot Latam
-    # app.include_router(ftlRouter)
+    app.include_router(tarotRouter)
 
     # audiotex
     app.include_router(audiotexRouter)

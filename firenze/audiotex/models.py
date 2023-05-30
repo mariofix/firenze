@@ -1,6 +1,8 @@
-from peewee import Model, IntegerField, CharField, DateTimeField, TextField
-from firenze.audiotex.database import conn
 import datetime
+
+from peewee import CharField, DateTimeField, IntegerField, Model, TextField
+
+from firenze.audiotex.database import conn
 
 
 ########################

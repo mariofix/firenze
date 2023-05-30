@@ -1,13 +1,14 @@
-from firenze.config import LOGGING_CONFIG_CLI
-from firenze.database import engine, SessionLocal
-from firenze.models import OnlineCalls
-from sqlalchemy import delete, update, select
 import logging.config
+
 import typer
+from rich import box
 from rich.console import Console
 from rich.table import Table
-from rich import box
+from sqlalchemy import delete, select, update
 
+from firenze.config import LOGGING_CONFIG_CLI
+from firenze.database import SessionLocal, engine
+from firenze.models import OnlineCalls
 
 logging.config.dictConfig(LOGGING_CONFIG_CLI)
 logger = logging.getLogger("firenze-cli")

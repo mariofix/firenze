@@ -1,6 +1,6 @@
 [tool.poetry]
-name = "firenze"
-version = "1.0.7"
+name = "firenze-zvn"
+version = "1.0.8"
 description = "Servicio de comunicacion y administracion para servicio Tatot"
 authors = ["Mario Hernandez <mariofix@pm.me>"]
 readme = "README.md"
@@ -8,46 +8,57 @@ packages = [{include = "firenze"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
-fastapi = "^0.95.1"
-thankyou = "^0.0.1"
-pymysql = "^1.0.3"
-python-dotenv = "^1.0.0"
-requests = "^2.28.2"
-python-slugify = "^8.0.1"
-alembic = "^1.10.3"
-sqlalchemy = "^2.0.9"
-peewee = "^3.16.0"
-bcrypt = "^4.0.1"
-sentry-sdk = "^1.19.1"
-python-multipart = "^0.0.6"
-jinja2 = "^3.1.2"
-pystrix = "^1.2.0"
-sqladmin = "^0.10.1"
-phonenumbers = "^8.13.9"
-sqlalchemy-repr = "^0.1.0"
-uvicorn = {extras = ["standard"], version = "^0.21.1"}
-passlib = {extras = ["bcrypt"], version = "^1.7.4"}
-python-jose = {extras = ["cryptography"], version = "^3.3.0"}
-typer = {extras = ["all"], version = "^0.7.0"}
-fastapi-debug-toolbar = "^0.3.2"
-python-dateutil = "^2.8.2"
+fastapi = "^0.95.2"
+thankyou = "*"
+pymysql = "*"
+python-dotenv = "*"
+requests = "*"
+python-slugify = "*"
+alembic = "^1.11.1"
+sqlalchemy = "^2.0.15"
+peewee = "^3.16.2"
+bcrypt = "*"
+sentry-sdk = "*"
+python-multipart = "*"
+jinja2 = "*"
+pystrix = "*"
+sqladmin = "*"
+phonenumbers = "*"
+sqlalchemy-repr = "*"
+uvicorn = {extras = ["standard"], version = "*"}
+passlib = {extras = ["bcrypt"], version = "*"}
+python-jose = {extras = ["cryptography"], version = "*"}
+typer = {extras = ["all"], version = "*"}
+fastapi-debug-toolbar = "*"
+python-dateutil = "*"
+fastapi-crudrouter = "^0.8.6"
+pydantic = {extras = ["email"], version = "^1.10.8"}
 
 [tool.poetry.group.deploy]
 optional = true
 
 [tool.poetry.group.deploy.dependencies]
-gunicorn = "^20.1.0"
+gunicorn = "*"
 
 [tool.poetry.group.dev]
 optional = true
 
 [tool.poetry.group.dev.dependencies]
-black = "^23.3.0"
-pytest = "^7.3.1"
-coverage = "^7.2.3"
+black = "*"
+pytest = "*"
+coverage = "*"
+isort = "^5.12.0"
 
 [tool.poetry.scripts]
 firenze = "cli:cli"
+
+[tool.black]
+line_length = 88
+
+[tool.isort]
+profile = "black"
+skip_gitignore = true
+src_paths = ["firenze"]
 
 
 [build-system]

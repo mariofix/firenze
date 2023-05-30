@@ -1,20 +1,22 @@
-from fastapi import Depends, APIRouter, Request, HTTPException, Security
+import logging
+from datetime import datetime, timedelta
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Request, Security
 from fastapi.security import (
     OAuth2PasswordBearer,
     OAuth2PasswordRequestForm,
     SecurityScopes,
 )
-from starlette.responses import RedirectResponse
-from passlib.context import CryptContext
-from sqlalchemy.orm import Session
-from sqladmin.authentication import AuthenticationBackend
-from firenze.database import SessionLocal
-from firenze import crud, schemas, models
-from firenze.config import settings
 from jose import JWTError, jwt
-from datetime import datetime, timedelta
-from typing import Optional
-import logging
+from passlib.context import CryptContext
+from sqladmin.authentication import AuthenticationBackend
+from sqlalchemy.orm import Session
+from starlette.responses import RedirectResponse
+
+from firenze import crud, models, schemas
+from firenze.config import settings
+from firenze.database import SessionLocal
 
 logger = logging.getLogger("firenze")
 
