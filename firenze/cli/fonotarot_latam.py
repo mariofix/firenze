@@ -55,7 +55,8 @@ def use_credits(
     if not client:
         logger.warn(f"The {client_id=} does not exist.")
         raise typer.Abort()
-
-    client.credits = 100
+    new_credits = int(int(client.credits) - used_credits)
+    logger.info(f"{client_id=} {new_credits=}.")
+    client.credits = new_credits
     session.commit()
     raise typer.Exit(code=0)
