@@ -5,6 +5,7 @@ import typer
 from firenze.cli.utils import set_asterisk_var, verbose
 from firenze.config import LOGGING_CONFIG_CLI
 from firenze.models import ServiceNumber
+from .fonotarot_latam import app as ftlatam
 
 logging.config.dictConfig(LOGGING_CONFIG_CLI)
 logger = logging.getLogger("firenze-cli")
@@ -33,3 +34,6 @@ def search_did(
         set_asterisk_var(agi, "siguiente", "no-service")
         verbose(agi, f"The DID {did} is not registered.")
         raise typer.Exit(code=0)
+
+
+app.add_typer(ftlatam, name="fonotarot-latam", help="Fonotarot Latam Asterisk endpoints")
