@@ -38,3 +38,24 @@ def search_pin(
         set_asterisk_var(agi, "segundos", 0)
         verbose(agi, f"segundos=0")
         raise typer.Exit(code=1)
+
+@app.command("consumo")
+def use_credits(
+    ctx: typer.Context,
+    client_id: int = typer.Argument(..., help="Client ID"),
+    used_credits: int = typer.Argument(..., help="Used credits"),
+):
+    """
+    Deducts credits from clientid
+    """
+    session = ctx.obj.get("dbsession")
+    agi = ctx.obj.get("agi")
+
+    client = session.query(FonoTarotLatamClient).filter_by(client_id=client_id).first()
+    if not client:
+        logger.warn(f"The {client_id=} does not exist.")
+        raise typer.Abort()
+
+    client.credits = 100
+    session.commit()
+    raise typer.Exit(code=0)
