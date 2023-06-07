@@ -2,10 +2,9 @@ import logging.config
 
 import typer
 
-from .utils import set_asterisk_var, verbose
 from ..config import LOGGING_CONFIG_CLI
 from ..models import FonoTarotLatamClient
-
+from .utils import set_asterisk_var, verbose
 
 logging.config.dictConfig(LOGGING_CONFIG_CLI)
 logger = logging.getLogger("firenze-cli")

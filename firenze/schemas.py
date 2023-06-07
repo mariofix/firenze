@@ -1,7 +1,7 @@
 import datetime
 from typing import List, Optional, Union
 
-from pydantic import BaseModel, Json, EmailStr
+from pydantic import BaseModel, EmailStr, Json
 
 
 class UserBase(BaseModel):

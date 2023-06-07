@@ -2,6 +2,8 @@ import importlib
 import json
 import logging
 import re
+import secrets
+import string
 import time
 
 import requests
@@ -9,8 +11,7 @@ from fastapi import HTTPException, Request
 from passlib.context import CryptContext
 from slugify import slugify
 from sqlalchemy.orm import Session
-import secrets
-import string
+
 from firenze import models, schemas
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

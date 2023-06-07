@@ -1,5 +1,6 @@
 import datetime
 
+from fastapi import Depends
 from sqlalchemy import (
     Boolean,
     Column,
@@ -8,15 +9,16 @@ from sqlalchemy import (
     Integer,
     String,
     UniqueConstraint,
+    event,
     func,
     text,
-    event,
 )
 from sqlalchemy.dialects.mysql import JSON, LONGTEXT
-from sqlalchemy.orm import declarative_mixin, relationship, column_property
+from sqlalchemy.orm import column_property, declarative_mixin, relationship
+
 from .crud import generate_pin
 from .database import Base, SessionLocal
-from fastapi import Depends
+
 
 def get_db():
     db = SessionLocal()

@@ -17,6 +17,9 @@ poetry install --with deploy
 
 - Que los audios los pueda subir ruurd desde Portal (#1)
 - Migrar tablas operativas (#2)
+- Solucionar audios
+  - enter-pin.ulaw
+  - Saltarse audio de "sera revisado" en good-pin
 
 ### [1.0.8] - 2023-05-30
 
@@ -28,6 +31,7 @@ poetry install --with deploy
 
 - Fonotarot Latam as fastapi-crudrouter
 - Semantic URLs in Post Call
+- fonotarot-latam cli endpoints
 
 #### Removed
 

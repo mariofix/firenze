@@ -5,6 +5,7 @@ import typer
 from firenze.cli.utils import set_asterisk_var, verbose
 from firenze.config import LOGGING_CONFIG_CLI
 from firenze.models import ServiceNumber
+
 from .fonotarot_latam import app as ftlatam
 
 logging.config.dictConfig(LOGGING_CONFIG_CLI)
