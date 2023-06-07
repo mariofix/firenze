@@ -1,14 +1,18 @@
-from fastapi import Request, HTTPException
-from sqlalchemy.orm import Session
-from slugify import slugify
-from firenze import models, schemas
-from passlib.context import CryptContext
 import importlib
-import re
-import logging
-import time
 import json
+import logging
+import re
+import secrets
+import string
+import time
+
 import requests
+from fastapi import HTTPException, Request
+from passlib.context import CryptContext
+from slugify import slugify
+from sqlalchemy.orm import Session
+
+from firenze import models, schemas
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 logger = logging.getLogger("firenze")
@@ -70,3 +74,19 @@ def create_event(event_name: str, extra: str, data: str, request: Request, db: S
     db.refresh(event)
     logger.debug(f"Created {event=}")
     return event
+
+
+def check_pin(db: Session, pin) -> bool:
+    logger.debug(f"check_pin({pin})")
+    # return db.query(models.FonoTarotLatamClient).filter(models.FonoTarotLatamClient.pin_code == pin).exists()
+    return False
+
+def generate_pin() -> int:
+    from .core import get_db
+    db = get_db()
+    logger.debug(f"generate_pin()")
+    random_pin = int("".join(secrets.choice(string.digits) for i in range(8)))
+    if check_pin(db, random_pin):
+        raise Exception(f"{random_pin=} ya existe")
+    else:
+        return random_pin

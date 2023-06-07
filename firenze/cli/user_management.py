@@ -1,13 +1,15 @@
-from firenze.config import LOGGING_CONFIG_CLI
-from firenze.database import engine, SessionLocal
-from firenze.models import User
-from sqlalchemy import delete, update, select
 import logging.config
+
 import typer
+from passlib.context import CryptContext
+from rich import box
 from rich.console import Console
 from rich.table import Table
-from rich import box
-from passlib.context import CryptContext
+from sqlalchemy import delete, select, update
+
+from firenze.config import LOGGING_CONFIG_CLI
+from firenze.database import SessionLocal, engine
+from firenze.models import User
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 app = typer.Typer()

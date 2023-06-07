@@ -1,8 +1,10 @@
-from typing import Any
-from firenze.config import LOGGING_CONFIG_CLI
 import logging.config
-import typer
+from typing import Any
+
 import pystrix
+import typer
+
+from firenze.config import LOGGING_CONFIG_CLI
 
 logging.config.dictConfig(LOGGING_CONFIG_CLI)
 logger = logging.getLogger("firenze-cli")

@@ -1,19 +1,31 @@
-from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    DateTime,
-    func,
-    Boolean,
-    ForeignKey,
-    text,
-    UniqueConstraint,
-)
-from sqlalchemy.orm import relationship, declarative_mixin
-from sqlalchemy.dialects.mysql import LONGTEXT, JSON
-from firenze.database import Base
 import datetime
 
+from fastapi import Depends
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+    event,
+    func,
+    text,
+)
+from sqlalchemy.dialects.mysql import JSON, LONGTEXT
+from sqlalchemy.orm import column_property, declarative_mixin, relationship
+
+from .crud import generate_pin
+from .database import Base, SessionLocal
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 @declarative_mixin
 class TimestampMixin:
@@ -45,9 +57,6 @@ class User(Base, TimestampMixin):
     def __str__(self):
         return self.login
 
-    def __repr__(self):
-        return f"User({self.id=}, {self.login=}, {self.email=}, {self.enabled=})"
-
 
 class Event(Base, TimestampMixin):
     __tablename__ = "event"
@@ -62,11 +71,6 @@ class Event(Base, TimestampMixin):
 
     def __str__(self):
         return self.name
-
-    def __repr__(self):
-        return (
-            f"Event({self.id=}, {self.name=}, {self.verb=}, {self.url=}, {self.data=})"
-        )
 
 
 class Service(Base, TimestampMixin):
@@ -97,9 +101,6 @@ class ServiceNumber(Base, TimestampMixin):
 
     def __str__(self):
         return self.did
-
-    def __repr__(self):
-        return f"DID<{self.did=}, {self.active=}, {self.asterisk_context=}, {self.service_id=}>"
 
 
 class DoNotCall(Base, TimestampMixin):
@@ -145,3 +146,26 @@ class PostCallProcess(Base, TimestampMixin):
 
     def __str__(self):
         return self.id
+
+
+class FonoTarotLatamClient(Base, TimestampMixin):
+    __tablename__ = "fonotarot_latam"
+
+    client_id = Column(Integer, primary_key=True)
+    full_name = Column(String(128), nullable=True, default=None)
+    email = Column(String(512), nullable=False)
+    phone_number = Column(String(16), nullable=True, default=None)
+    pin_code = Column(String(8), index=True)
+    credits = Column(Integer, nullable=False, default=0)
+
+    __table_args__ = (UniqueConstraint("pin_code", "client_id", name="oc_unique_pin"),)
+
+    def __str__(self):
+        return self.client_id
+
+
+@event.listens_for(FonoTarotLatamClient, 'before_insert')
+def crea_pin(mapper, connection, target):
+    target.pin_code = generate_pin()
+    if not target.full_name:
+        target.full_name = target.email.split("@").pop(0)

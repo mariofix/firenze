@@ -1,11 +1,13 @@
-from firenze.database import engine, SessionLocal
-from firenze.config import LOGGING_CONFIG_CLI
-from firenze.models import DoNotCall
-from firenze.cli.utils import verbose, set_asterisk_var
-from firenze.cli import online_calls, services, user_management, post_call
-import typer
 import logging.config
+
 import pystrix
+import typer
+
+from firenze.cli import online_calls, post_call, services, user_management
+from firenze.cli.utils import set_asterisk_var, verbose
+from firenze.config import LOGGING_CONFIG_CLI
+from firenze.database import SessionLocal, engine
+from firenze.models import DoNotCall
 
 logging.config.dictConfig(LOGGING_CONFIG_CLI)
 logger = logging.getLogger("firenze-cli")
