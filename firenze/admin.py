@@ -118,7 +118,7 @@ class CallsAdmin(ModelView, model=OnlineCalls):
 class PostCallAdmin(ModelView, model=PostCallProcess):
     # https://wa.me/1XXXXXXXXXX
     # sms:+19725551212?body=hello%20there
-    column_list = ["service", "process_name", "client_id", "processed"]
+    column_list = ["service", "process_name", "client_id", "processed", "created_at"]
     column_default_sort = [("id", True)]
 
     @action(
@@ -138,10 +138,10 @@ class PostCallAdmin(ModelView, model=PostCallProcess):
             db.query(PostCallProcess).filter(PostCallProcess.id == call_id).first()
         )
         print(
-            f"sms:+56{call_info.parameters['destination']}?body={call_info.parameters['text']}"
+            f"sms:+{call_info.parameters['destination']}?body={call_info.parameters['text']}"
         )
         return RedirectResponse(
-            f"sms:+56{call_info.parameters['destination']}?body={call_info.parameters['text']}"
+            f"sms:+{call_info.parameters['destination']}?body={call_info.parameters['text']}"
         )
 
     @action(
@@ -161,10 +161,10 @@ class PostCallAdmin(ModelView, model=PostCallProcess):
             db.query(PostCallProcess).filter(PostCallProcess.id == call_id).first()
         )
         print(
-            f"https://wa.me/56{call_info.parameters['destination']}?text={call_info.parameters['text']}"
+            f"https://wa.me/{call_info.parameters['destination']}?text={call_info.parameters['text']}"
         )
         return RedirectResponse(
-            f"https://wa.me/56{call_info.parameters['destination']}?text={call_info.parameters['text']}"
+            f"https://wa.me/{call_info.parameters['destination']}?text={call_info.parameters['text']}"
         )
 
     form_widget_args = {
