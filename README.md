@@ -21,6 +21,20 @@ poetry install --with deploy
   - enter-pin.ulaw
   - Saltarse audio de "sera revisado" en good-pin
 
+### [2024.1.0] - 2023-12-27
+
+#### Added
+
+- SERVER-INSTALL.md
+
+#### Changed
+
+- New versions
+
+### [1.0.9]
+
+Missing
+
 ### [1.0.8] - 2023-05-30
 
 #### Changed

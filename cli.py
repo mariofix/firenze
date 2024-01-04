@@ -1,4 +1,4 @@
-#!/home/mariofix/proyectos/zvn-firenze/.venv/bin/python
+#!./.venv/bin/python
 import sentry_sdk
 
 from firenze.cli import cli
