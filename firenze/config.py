@@ -2,36 +2,27 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=f"{BASE_DIR}/.env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="ignore",
+    )
+
     ENVIRONMENT: str = "production"
-    CORS_ORIGINS: list[str] = ["*"]
     SQLALCHEMY_DATABASE_URL: str
-    REDIS_OM_URL: str
     DEBUG: bool = False
     LOG_LEVEL: str = "INFO"
-    VERSION: str = "2024.1.0"
-    STATIC_DIR: str = "static"
-    SENTRY_ENABLED: bool = False
-    SENTRY_RELEASE: str = None
-    SENTRY_DSN: str = None
-    SENTRY_ENVIRONMENT: str = None
+    VERSION: str = "2025.1.0"
     SECRET_KEY: str = "secret_key"
-    SECRET_ALGO: str = "HS256"
-    SECRET_EXPIRES: int = 30
-    AUDIOTEX_DSN: str = None
     ALLOWED_DOMAINS: list[str] = ["*.local"]
-    API_PREFIX: str = ""
     BASE_DIR: Any = BASE_DIR
-
-    class Config:
-        env_file = f"{BASE_DIR}/.env"
-        env_file_encoding = "utf-8"
-        case_sensitive = True
 
 
 @lru_cache()
