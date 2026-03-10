@@ -1,19 +1,20 @@
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Set
+from typing import Any
 
-from pydantic import BaseSettings, HttpUrl
+from pydantic_settings import BaseSettings
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 class Settings(BaseSettings):
     ENVIRONMENT: str = "production"
-    CORS_ORIGINS: list[HttpUrl] = ["http://tardis.local:8080"]
+    CORS_ORIGINS: list[str] = ["*"]
     SQLALCHEMY_DATABASE_URL: str
+    REDIS_OM_URL: str
     DEBUG: bool = False
     LOG_LEVEL: str = "INFO"
-    VERSION: str = "1.0.8"
+    VERSION: str = "2024.1.0"
     STATIC_DIR: str = "static"
     SENTRY_ENABLED: bool = False
     SENTRY_RELEASE: str = None
@@ -23,7 +24,7 @@ class Settings(BaseSettings):
     SECRET_ALGO: str = "HS256"
     SECRET_EXPIRES: int = 30
     AUDIOTEX_DSN: str = None
-    ALLOWED_DOMAINS: list[str] = ["*.local", "192.168.100.19"]
+    ALLOWED_DOMAINS: list[str] = ["*.local"]
     API_PREFIX: str = ""
     BASE_DIR: Any = BASE_DIR
 
