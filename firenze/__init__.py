@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from sqladmin import Admin
 
 from firenze.admin import register_admin
+from firenze.api.agi import agiRouter
 from firenze.audiotex import audiotexRouter
 from firenze.auth import AdminAuth, authRouter
 from firenze.config import LOGGING_CONFIG, settings
@@ -66,6 +67,9 @@ def create_app():
 
     # audiotex
     app.include_router(audiotexRouter)
+
+    # AGI endpoints (called by Asterisk dialplan via CURL)
+    app.include_router(agiRouter)
 
     # asterisk
     # app.include_router(asteriskRouter)
