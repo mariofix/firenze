@@ -5,8 +5,8 @@
 set -euo pipefail
 
 APP_DIR="/home/zvn/public_apps/new-firenze"
-SERVICE_NAME="firenze"
-SERVICE_FILE="firenze.service"
+SERVICE_NAME="new-firenze"
+SERVICE_FILE="new-firenze.service"
 SYSTEMD_DIR="/etc/systemd/system"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
