@@ -60,8 +60,8 @@ def delete_online_call(
         session.delete(llamada)
         session.commit()
     except Exception as e:
-        logger.error(e)
-        raise typer.Exit(code=1)
+        logger.warn(e)
+        raise typer.Exit(code=10)
     else:
         logger.debug(f"Deleted: {service=} AND {ani=}")
 
@@ -86,7 +86,7 @@ def update_online_call(
 
         session.commit()
     except Exception as e:
-        logger.error(e)
+        logger.warn(e)
         raise typer.Exit(code=1)
     else:
         logger.debug(f"Updated {service=} AND {ani=} with {operator=}")

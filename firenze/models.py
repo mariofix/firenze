@@ -27,6 +27,7 @@ def get_db():
     finally:
         db.close()
 
+
 @declarative_mixin
 class TimestampMixin:
     created_at = Column(
@@ -148,6 +149,42 @@ class PostCallProcess(Base, TimestampMixin):
         return self.id
 
 
+class Operator(Base, TimestampMixin):
+    __tablename__ = "operator"
+
+    id = Column(Integer, primary_key=True)
+    number = Column(Integer(), nullable=False, unique=True)
+    name = Column(String(64), nullable=False)
+    description = Column(LONGTEXT, nullable=True, default=None)
+    enable_valkey = Column(Boolean, default=True)
+    loggedin = Column(Boolean, default=False)
+    available = Column(Boolean, default=False)
+    lastcall = Column(DateTime(timezone=True))
+    option = Column(String(2), nullable=False, unique=True)
+    numbers = relationship("OperatorPhone", back_populates="operator")
+
+    def __str__(self):
+        return str(self.number)
+
+
+class OperatorPhone(Base, TimestampMixin):
+    __tablename__ = "operator_phone"
+
+    id = Column(Integer, primary_key=True)
+    number = Column(String(16), nullable=False)
+    enabled = Column(Boolean, default=True)
+    contact = Column(Boolean, default=False)
+    pin = Column(String(4), nullable=True)
+    operator_id = Column(
+        Integer,
+        ForeignKey("operator.id", ondelete="CASCADE", onupdate="CASCADE"),
+    )
+    operator = relationship("Operator", back_populates="numbers")
+
+    def __str__(self):
+        return str(self.number)
+
+
 class FonoTarotLatamClient(Base, TimestampMixin):
     __tablename__ = "fonotarot_latam"
 
@@ -164,7 +201,7 @@ class FonoTarotLatamClient(Base, TimestampMixin):
         return self.client_id
 
 
-@event.listens_for(FonoTarotLatamClient, 'before_insert')
+@event.listens_for(FonoTarotLatamClient, "before_insert")
 def crea_pin(mapper, connection, target):
     target.pin_code = generate_pin()
     if not target.full_name:

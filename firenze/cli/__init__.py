@@ -3,7 +3,7 @@ import logging.config
 import pystrix
 import typer
 
-from firenze.cli import online_calls, post_call, services, user_management
+from firenze.cli import online_calls, post_call, services, user_management, operators
 from firenze.cli.utils import set_asterisk_var, verbose
 from firenze.config import LOGGING_CONFIG_CLI
 from firenze.database import SessionLocal, engine
@@ -16,6 +16,7 @@ cli = typer.Typer()
 cli.add_typer(online_calls.app, name="online-calls", help="Manages the OnlineCalls")
 cli.add_typer(services.app, name="services", help="Queries the Services")
 cli.add_typer(user_management.app, name="users", help="User management")
+cli.add_typer(operators.app, name="operator", help="Operator management")
 cli.add_typer(post_call.app, name="post-call", help="Post Call Processes")
 
 
