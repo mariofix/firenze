@@ -1,0 +1,26 @@
+[Unit]
+Description=Firenze — AGI/API layer for Asterisk
+After=network.target mysql.service
+
+[Service]
+Type=notify
+User=zvn
+Group=zvn
+WorkingDirectory=/home/zvn/public_apps/new-firenze
+ExecStart=/home/zvn/public_apps/new-firenze/.venv/bin/gunicorn run:app \
+    --bind 10.0.0.3:9002 \
+    --name firenze \
+    --workers 1 \
+    --worker-class uvicorn.workers.UvicornWorker \
+    --forwarded-allow-ips=* \
+    --access-logfile /home/zvn/public_apps/new-firenze/logs/gunicorn-access.log \
+    --error-logfile /home/zvn/public_apps/new-firenze/logs/gunicorn-error.log
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=5
+PrivateTmp=true
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
