@@ -41,6 +41,11 @@ dev = ["pytest", "coverage", "ruff"]
 [project.scripts]
 firenze = "cli:cli"
 
+[tool.alembic]
+script_location = "alembic"
+prepend_sys_path = "."
+timezone = "America/Santiago"
+
 [tool.ruff]
 line-length = 88
 
