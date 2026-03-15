@@ -1,7 +1,7 @@
 import datetime
-from typing import List, Optional, Union
+from typing import List, Optional
 
-from pydantic import BaseModel, EmailStr, Json
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 
 class UserBase(BaseModel):
@@ -16,6 +16,8 @@ class UserCreate(UserBase):
 
 
 class User(UserBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     created_at: datetime.datetime
     modified_at: datetime.datetime
@@ -23,11 +25,10 @@ class User(UserBase):
     enabled: bool
     scopes: List[str] = None
 
-    class Config:
-        orm_mode = True
-
 
 class Event(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str
     ip: str
@@ -37,9 +38,6 @@ class Event(BaseModel):
     data: str
     created_at: datetime.datetime
     modified_at: datetime.datetime
-
-    class Config:
-        orm_mode = True
 
 
 class Message(BaseModel):
@@ -58,9 +56,8 @@ class UpdateFonotarotLatam(BaseModel):
 
 
 class FonoTarotLatam(NewFonotarotLatam):
+    model_config = ConfigDict(from_attributes=True)
+
     pin_code: int
     client_id: int
     full_name: Optional[str]
-
-    class Config:
-        orm_mode = True

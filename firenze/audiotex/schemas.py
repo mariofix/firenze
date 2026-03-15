@@ -1,27 +1,13 @@
-from typing import Any, List, Optional
+from typing import List, Optional
 
-import peewee
-from pydantic import BaseModel
-from pydantic.utils import GetterDict
-
-from firenze.database import Base
-
-
-class PeeweeGetterDict(GetterDict):
-    def get(self, key: Any, default: Any = None):
-        res = getattr(self._obj, key, default)
-        if isinstance(res, peewee.ModelSelect):
-            return list(res)
-        return res
+from pydantic import BaseModel, ConfigDict
 
 
 class PhoneModel(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     clientid: int
     ani: int
-
-    class Config:
-        orm_mode = True
-        getter_dict = PeeweeGetterDict
 
 
 class ClientId(BaseModel):
