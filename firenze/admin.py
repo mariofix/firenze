@@ -1,4 +1,4 @@
-from passlib.context import CryptContext
+import bcrypt
 from sqladmin import ModelView
 
 from firenze.models import (
@@ -13,8 +13,6 @@ from firenze.models import (
     ServiceNumber,
     User,
 )
-
-_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 _TIMESTAMP_EXCLUDED = ["created_at", "modified_at"]
 
@@ -186,7 +184,7 @@ class UserAdmin(ModelView, model=User):
 
     async def on_model_change(self, data, model, is_created, request):
         if data.get("password"):
-            data["password"] = _pwd_context.hash(data["password"])
+            data["password"] = bcrypt.hashpw(data["password"].encode("utf-8")[:72], bcrypt.gensalt()).decode("utf-8")
         elif is_created:
             raise ValueError("Password is required when creating a user")
 

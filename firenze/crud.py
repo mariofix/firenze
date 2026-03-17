@@ -6,15 +6,14 @@ import secrets
 import string
 import time
 
+import bcrypt
 import requests
 from fastapi import HTTPException, Request
-from passlib.context import CryptContext
 from slugify import slugify
 from sqlalchemy.orm import Session
 
 from firenze import models, schemas
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 logger = logging.getLogger("firenze")
 
 
@@ -34,7 +33,7 @@ def get_users(db: Session, skip: int = 0, limit: int = 100):
 
 
 def create_user(db: Session, user: schemas.UserCreate):
-    pwd_hash = pwd_context.hash(user.password)
+    pwd_hash = bcrypt.hashpw(user.password.encode("utf-8")[:72], bcrypt.gensalt()).decode("utf-8")
     db_user = models.User(
         email=user.email,
         login=user.login,
