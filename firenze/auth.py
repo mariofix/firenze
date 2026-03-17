@@ -67,7 +67,7 @@ def token(
     form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
 ):
     user = crud.get_user_by_login(db, form_data.username)
-    if (not user) or (not pwd_context.verify(form_data.password, user.password)):
+    if (not user) or (not pwd_context.verify(form_data.password.encode("utf-8")[:72], user.password)):
         raise HTTPException(
             status_code=401,
             detail="User not found or invalid password",
@@ -158,7 +158,7 @@ class AdminAuth(AuthenticationBackend):
         db = SessionLocal()
         user: models.User = crud.get_user_by_login(db, form["username"])
         logger.info(f"{user=}")
-        if (not user) or (not pwd_context.verify(form["password"], user.password)):
+        if (not user) or (not pwd_context.verify(form["password"].encode("utf-8")[:72], user.password)):
             logger.warning("User not found or invalid password")
             return False
         if user.enabled == 0:

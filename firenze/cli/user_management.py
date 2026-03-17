@@ -1,17 +1,25 @@
 import logging.config
+from typing import Optional
 
 import typer
 from passlib.context import CryptContext
 from rich import box
 from rich.console import Console
 from rich.table import Table
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete
 
 from firenze.config import LOGGING_CONFIG_CLI
-from firenze.database import SessionLocal, engine
+from firenze.database import SessionLocal
 from firenze.models import User
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def _hash_password(password: str) -> str:
+    """Hash a password, truncating to 72 bytes as required by bcrypt."""
+    return pwd_context.hash(password.encode("utf-8")[:72])
+
+
 app = typer.Typer()
 
 
@@ -85,7 +93,7 @@ def create_user(
     session = ctx.obj.get("dbsession")
     logger = ctx.obj.get("logger")
     try:
-        pwd_hash = pwd_context.hash(password)
+        pwd_hash = _hash_password(password)
         nuevo_usuario = User(
             login=login,
             email=email,
@@ -116,7 +124,7 @@ def update_user(
         None,
         help="New Password",
     ),
-    enable: bool = typer.Option(False, help="Enable/Disable"),
+    enable: Optional[bool] = typer.Option(None, help="Enable (true) or disable (false) the user"),
 ):
     """
     Update a current user
@@ -126,10 +134,10 @@ def update_user(
     try:
         usuario = session.get(User, user_id)
 
-        if enable:
-            usuario = usuario.enabled = True
+        if enable is not None:
+            usuario.enabled = enable
         if password:
-            pwd_hash = pwd_context.hash(password)
+            pwd_hash = _hash_password(password)
             usuario.password = pwd_hash
         if login:
             usuario.login = login
@@ -158,11 +166,11 @@ def delete_user(
     Cannot recover
 
     """
-    engine = ctx.obj.get("dbengine")
+    session = ctx.obj.get("dbsession")
     logger = ctx.obj.get("logger")
     try:
-        usuario = delete(User).where(User.id == user_id)
-        engine.execute(usuario)
+        session.execute(delete(User).where(User.id == user_id))
+        session.commit()
     except Exception as e:
         logger.error(e)
         raise typer.Exit(code=1)
