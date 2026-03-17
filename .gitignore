@@ -5,6 +5,7 @@ alembic.ini
 logs/*
 zvn-asterisk/*
 .vscode
+asterisk_config/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

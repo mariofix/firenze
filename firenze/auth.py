@@ -1,9 +1,9 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Security
 import bcrypt
+from fastapi import APIRouter, Depends, HTTPException, Request, Security
 from fastapi.security import (
     OAuth2PasswordBearer,
     OAuth2PasswordRequestForm,
@@ -17,6 +17,7 @@ from starlette.responses import RedirectResponse
 from firenze import crud, models, schemas
 from firenze.config import settings
 from firenze.database import SessionLocal
+from firenze.dependencies import get_db
 
 logger = logging.getLogger("firenze")
 
@@ -33,20 +34,12 @@ oauth2_scheme = OAuth2PasswordBearer(
 authRouter = APIRouter()
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=1)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=1)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(
         to_encode, settings.SECRET_KEY, algorithm=settings.SECRET_ALGO
@@ -81,7 +74,6 @@ def token(
         )
 
     access_token_expires = timedelta(minutes=settings.SECRET_EXPIRES)
-    # No se puede guardar un int en sub 🤷
     token_info = {"sub": str(user.id)}
     token = create_access_token(data=token_info, expires_delta=access_token_expires)
 

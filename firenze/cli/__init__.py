@@ -1,83 +1,34 @@
+"""Firenze CLI — admin and debug commands."""
+
+import logging
 import logging.config
 
-import pystrix
 import typer
 
-from firenze.cli import online_calls, post_call, services, user_management, operators
-from firenze.cli.utils import set_asterisk_var, verbose
+from firenze.cli import calls, dnc, did, operators, users
 from firenze.config import LOGGING_CONFIG_CLI
-from firenze.database import SessionLocal, engine
-from firenze.models import DoNotCall
+from firenze.database import SessionLocal
+from firenze.redis import get_redis
 
 logging.config.dictConfig(LOGGING_CONFIG_CLI)
 logger = logging.getLogger("firenze-cli")
 
-cli = typer.Typer()
-cli.add_typer(online_calls.app, name="online-calls", help="Manages the OnlineCalls")
-cli.add_typer(services.app, name="services", help="Queries the Services")
-cli.add_typer(user_management.app, name="users", help="User management")
-cli.add_typer(operators.app, name="operator", help="Operator management")
-cli.add_typer(post_call.app, name="post-call", help="Post Call Processes")
+cli = typer.Typer(help="Admin and debug CLI for Firenze.")
+cli.add_typer(users.app, name="users", help="Manage API users")
+cli.add_typer(operators.app, name="operator", help="Operator login, logout, and status")
+cli.add_typer(dnc.app, name="dnc", help="Do Not Call list")
+cli.add_typer(did.app, name="did", help="DID resolution")
+cli.add_typer(calls.app, name="calls", help="Online call tracking (debug)")
 
 
 @cli.callback()
-def main(
-    ctx: typer.Context,
-    agi: bool = typer.Option(True, help="Enable/Disable return via AGI."),
-):
-    """
-    Cli application to work with Firenze
-    """
+def main(ctx: typer.Context):
+    """Admin and debug CLI for Firenze."""
     ctx.ensure_object(dict)
-    ctx.obj["agi"] = pystrix.agi.AGI() if agi else False
     ctx.obj["dbsession"] = SessionLocal()
-    ctx.obj["dbengine"] = engine
     ctx.obj["logger"] = logger
-
-
-@cli.command()
-def test(ctx: typer.Context):
-    """
-    Returns DATETIME from MariDB Server
-    """
-    agi = ctx.obj.get("agi")
-    engine = ctx.obj.get("dbengine")
-    sql = "SELECT CURRENT_TIMESTAMP()"
-    logger.debug(f"{sql=}")
     try:
-        conn = engine.connect()
-        hora = conn.execute(sql)
-        hora_val = hora.fetchone()
-        server_time = hora_val[0].strftime("%Y-%m-%d %H:%M:%S")
-    except Exception as e:
-        logger.info(f"{agi=}")
-        logger.error(e)
-        raise typer.Exit(code=1)
-    else:
-        logger.info(f"{server_time=}")
-        verbose(agi, f"{server_time=}")
-        raise typer.Exit(code=0)
-
-
-@cli.command()
-def dnc_search(
-    ctx: typer.Context,
-    ani: str = typer.Argument(..., help="ANI to check, can be a number or a string"),
-):
-    """
-    Search the ANI against the Do Not Call list
-    """
-    agi = ctx.obj.get("agi")
-    session = ctx.obj.get("dbsession")
-    exists = session.query(DoNotCall).filter_by(ani=ani).first()
-    if exists:
-        logger.info(f"The number {ani} IS in the DoNotCall list.")
-        verbose(agi, f"The number {ani} IS in the DoNotCall list.")
-        set_asterisk_var(agi, "dnc", "YES")
-        raise typer.Exit(code=1)
-
-    logger.info(f"The number {ani} is NOT in the DoNotCall list.")
-    verbose(agi, f"The number {ani} is NOT in the DoNotCall list.")
-    set_asterisk_var(agi, "dnc", "NO")
-
-    raise typer.Exit(code=0)
+        ctx.obj["redis"] = get_redis()
+    except Exception:
+        logger.warning("Redis unavailable — operator state commands will skip Redis sync")
+        ctx.obj["redis"] = None

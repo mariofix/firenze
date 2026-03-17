@@ -25,22 +25,32 @@ Firenze doesn't know: how credits were purchased, payment providers, user passwo
 - [x] Alembic configured via `pyproject.toml`, reads DB URL from settings
 - [x] `services/dnc_service.py` — `check_dnc(db, ani) -> bool`
 - [x] `services/credit_service.py` — `compute_call_limit(seconds) -> {timeout, audio, minutes}`
+- [x] `services/did_service.py` — `resolve_did(db, did) -> str`
+- [x] `services/operator_service.py` — `login`, `logout`, `set_availability` backed by MySQL + Redis
+- [x] `redis/operator_state.py` — direct redis-py hash ops; graceful degradation when Redis is down
 - [x] `api/agi.py` — `GET /agi/dnc/{ani}`, `GET /agi/credits/limit?seconds=N`, `GET /agi/services/did/{did}`
 - [x] `admin.py` — sqladmin view for DNC list (searchable by ANI)
 - [x] Systemd service file + install script
+- [x] `models/` package — SQLAlchemy 2.0 `Mapped`/`mapped_column` style, split by domain
+- [x] `schemas/` package — Pydantic v2, split by domain
+- [x] passlib removed — direct `bcrypt` calls throughout (`auth.py`, `admin.py`, `crud.py`, CLI)
+- [x] `database.py` — removed deprecated `sqlalchemy.ext.declarative` import
+- [x] `get_db()` — single definition in `dependencies.py`; DB session leaks in `AdminAuth` fixed
+- [x] CLI rebuilt without pystrix — `users`, `operator`, `dnc`, `did`, `calls` command groups
+- [x] redis-om (`kvstore.py`) replaced by direct redis-py in `redis/operator_state.py`
+- [x] `services/operator_service.py` — `login_by_phone`, `logout_by_phone` (lookup via `OperatorPhone`)
+- [x] `dependencies.py` — `get_redis()` dependency with graceful degradation
+- [x] `api/agi.py` — `POST /agi/operators/by-phone/{ani}/login`, `POST /agi/operators/by-phone/{ani}/logout`
 
 ### In Progress / Next
 
-- [ ] `services/operator_service.py` — login/logout/select/release backed by MySQL + Redis
+- [ ] `/agi/operators/*` endpoints — menu, select, release (login/logout by phone done ✓)
 - [ ] `services/call_service.py` — online call tracking
-- [ ] `services/did_service.py` — DID → asterisk context resolution
-- [ ] `api/agi.py` — remaining AGI endpoints (operators, calls, client lookup, credit deduction)
-- [ ] Split `models.py` into `models/` directory (one file per domain)
-- [ ] Split `schemas.py` into `schemas/` directory
+- [ ] `/agi/calls/*` endpoints — insert, delete, update, lookup
+- [ ] `/agi/clients/*` endpoints — lookup by ANI/PIN, credit deduction
 - [ ] Unified `Client` model (replaces `FonoTarotLatamClient` + all Peewee client tables)
-- [ ] Replace `redis-om` (`kvstore.py`) with direct `redis-py` in `operator_service.py`
 - [ ] Remove `fastapi-crudrouter` (`tarot.py`)
-- [ ] Remove `pystrix` dependency (once all AGI CLI calls are replaced by CURL)
+- [ ] Remove `pystrix` from dependencies (only needed for AGI protocol; CURL approach doesn't use it)
 
 ### Planned (later phases)
 
@@ -52,40 +62,60 @@ Firenze doesn't know: how credits were purchased, payment providers, user passwo
 
 ## Current Module Structure
 
-Actual state on `new-architecture` branch (as of 2026-03-16):
+Actual state on `new-architecture` branch (as of 2026-03-17):
 
 ```
 firenze/
 ├── __init__.py              # create_app() — FastAPI factory
 ├── run.py                   # gunicorn/uvicorn entry point
-├── config.py                # pydantic-settings v2
-├── database.py              # engine, session factory, Base
+├── config.py                # pydantic-settings v2 (SECRET_ALGO, SECRET_EXPIRES, REDIS_URL added)
+├── database.py              # engine, session factory, Base (sqlalchemy.orm.declarative_base)
 ├── dependencies.py          # get_db() — single definition
-├── models.py                # all SQLAlchemy models (single file, to be split)
-├── schemas.py               # all Pydantic v2 schemas (single file, to be split)
-├── auth.py                  # JWT, OAuth2, AdminAuth for sqladmin
-├── crud.py                  # user + event CRUD helpers
-├── admin.py                 # sqladmin DNC view
+├── auth.py                  # JWT, OAuth2, AdminAuth for sqladmin (passlib removed, direct bcrypt)
+├── crud.py                  # user + event CRUD helpers (direct bcrypt)
+├── admin.py                 # sqladmin views (direct bcrypt)
 ├── core.py                  # legacy coreRouter (unused, to be removed)
-├── kvstore.py               # redis-om Operator HashModel (to be replaced)
+├── kvstore.py               # redis-om Operator HashModel (superseded by redis/, to be removed)
 ├── tarot.py                 # fastapi-crudrouter for FonoTarotLatamClient (to be removed)
 ├── exceptions.py            # GenericError, ProcessError, ConfigException
 │
+├── models/                  # ✅ SQLAlchemy 2.0 Mapped/mapped_column style, split by domain
+│   ├── __init__.py          # re-exports all models
+│   ├── base.py              # TimestampMixin
+│   ├── user.py              # User
+│   ├── service.py           # Service, ServiceNumber
+│   ├── operator.py          # Operator, OperatorPhone
+│   ├── call.py              # OnlineCalls, PostCallProcess
+│   ├── client.py            # FonoTarotLatamClient (unified Client planned)
+│   ├── dnc.py               # DoNotCall
+│   └── event.py             # Event
+│
+├── schemas/                 # ✅ Pydantic v2, split by domain
+│   ├── __init__.py          # re-exports all schemas
+│   ├── common.py            # Message
+│   ├── user.py              # UserBase, UserCreate, User
+│   └── client.py            # NewFonotarotLatam, UpdateFonotarotLatam, FonoTarotLatam
+│
 ├── services/
 │   ├── dnc_service.py       # ✅ check_dnc(db, ani) -> bool
-│   └── credit_service.py    # ✅ compute_call_limit(seconds) -> dict
+│   ├── credit_service.py    # ✅ compute_call_limit(seconds) -> dict
+│   ├── did_service.py       # ✅ resolve_did(db, did) -> str
+│   └── operator_service.py  # ✅ login, logout, set_availability (MySQL + Redis)
 │
 ├── api/
-│   └── agi.py               # ✅ /agi/dnc/{ani}, /agi/credits/limit
+│   └── agi.py               # ✅ /agi/dnc/{ani}, /agi/credits/limit, /agi/services/did/{did}
+│
+├── redis/                   # ✅ direct redis-py (replaces redis-om kvstore.py)
+│   ├── __init__.py          # get_redis() factory
+│   └── operator_state.py    # HSET/HGETALL firenze:operator:{number}; graceful on Redis down
 │
 ├── cli/
-│   ├── __init__.py          # Typer root + shared context (agi, db, logger)
-│   ├── operators.py         # login, logout, change_status, list, info (MySQL + Redis)
-│   ├── online_calls.py      # insert, delete, update, list
-│   ├── fonotarot_latam.py   # pin lookup, consumo (credit deduction)
-│   ├── post_call.py         # add post-call process records
-│   ├── services.py          # did lookup → asterisk context
-│   └── user_management.py   # search, create, update, delete API users
+│   ├── __init__.py          # Typer root + shared context (db, logger, redis); no pystrix
+│   ├── operators.py         # ✅ login, logout, change-status, list, info
+│   ├── users.py             # ✅ search, create, update, delete (API users)
+│   ├── dnc.py               # ✅ check, add, remove, list
+│   ├── did.py               # ✅ resolve
+│   └── calls.py             # ✅ list, clear
 │
 └── audiotex/                # legacy Peewee bridge (migration target, to be dropped)
     ├── database.py          # Peewee connection to AUDIOTEX_DSN
@@ -144,10 +174,11 @@ firenze/
 │
 ├── cli/                     # Typer CLI (admin/debug, NOT called by Asterisk)
 │   ├── __init__.py
-│   ├── services.py
-│   ├── online_calls.py
+│   ├── users.py
 │   ├── operators.py
-│   └── dnc.py
+│   ├── dnc.py
+│   ├── did.py
+│   └── calls.py
 │
 └── redis/                   # Redis/Valkey layer (replaces kvstore.py + redis-om)
     ├── __init__.py
@@ -209,14 +240,14 @@ Single 2GB Linode = one complete unit:
 | Cache/State | Redis/Valkey (direct redis-py, replacing redis-om) |
 | Admin | sqladmin |
 | CLI | Typer (admin/debug tool, no longer in the call hot path) |
-| Auth | JWT (python-jose) + bcrypt/passlib |
+| Auth | JWT (python-jose) + direct bcrypt (passlib removed) |
 
 ### To be removed
 
 - **Peewee** — legacy audiotex DB access, replaced by SQLAlchemy as migration completes
-- **pystrix** — only needed for AGI protocol; CURL approach doesn't need it
+- **pystrix** — only needed for AGI protocol; CURL approach doesn't need it; no longer imported
 - **fastapi-crudrouter** — used in `tarot.py`, drop when unified Client model is in place
-- **redis-om** — replace with direct redis-py in `operator_service.py`
+- **redis-om / kvstore.py** — superseded by `redis/operator_state.py` (direct redis-py)
 
 ---
 
@@ -1059,10 +1090,11 @@ same => n,Set(segundos=${JSON_DECODE(response,segundos)})
 
 ## Legacy Migration Path
 
-### Phase 1: Operator management ← next
-- Build `services/operator_service.py` backed by Operator model + Redis (direct redis-py)
-- Build `/agi/operators/*` endpoints in `api/agi.py`
-- Replace `${AUDIOTEX}` operator calls in dialplan with CURL calls
+### Phase 1: Operator management ← in progress
+- ✅ `services/operator_service.py` — login, logout, set_availability (MySQL + Redis)
+- ✅ `redis/operator_state.py` — direct redis-py with graceful degradation
+- [ ] `/agi/operators/*` endpoints in `api/agi.py` — menu, select, release, login/logout by phone
+- [ ] Replace `${AUDIOTEX}` operator calls in dialplan with CURL calls
 - Removes: redis-om (`kvstore.py`), pystrix dependency for operator commands
 
 ### Phase 2: Client/credit unification
@@ -1104,8 +1136,8 @@ same => n,Set(segundos=${JSON_DECODE(response,segundos)})
 | `tar_opt_XX` variables | Set in Asterisk, mapped in dialplan | Gone — mapping lives server-side |
 | `llama-tarotista` re-check | AGI call to verify availability | Gone — `/select` already verified |
 | ORM | SQLAlchemy + Peewee (dual) | SQLAlchemy only |
-| Redis client | redis-om (kvstore.py) | direct redis-py |
-| Business logic location | Scattered in routes, CLI, AGI scripts | Centralized in `services/` layer |
+| Redis client | redis-om (kvstore.py) | direct redis-py ✅ |
+| Business logic location | Scattered in routes, CLI, AGI scripts | Centralized in `services/` layer ✅ |
 | `get_db()` | Defined 4 times | Defined once in `dependencies.py` ✅ |
 | Client models | 5 separate tables across 2 databases | 1 unified Client table |
 | Service types | Hardcoded per-service logic | Pluggable via `service.auth_method` |

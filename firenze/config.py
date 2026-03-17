@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "secret_key"
     SECRET_ALGO: str = "HS256"
     SECRET_EXPIRES: int = 60
+    REDIS_URL: str = "redis://localhost:6379"
     ALLOWED_DOMAINS: list[str] = ["*.local"]
     BASE_DIR: Any = BASE_DIR
 
