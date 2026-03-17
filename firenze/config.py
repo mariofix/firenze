@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     VERSION: str = "2025.1.0"
     SECRET_KEY: str = "secret_key"
+    SECRET_ALGO: str = "HS256"
+    SECRET_EXPIRES: int = 60
     ALLOWED_DOMAINS: list[str] = ["*.local"]
     BASE_DIR: Any = BASE_DIR
 
