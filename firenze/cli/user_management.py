@@ -9,7 +9,6 @@ from rich.table import Table
 from sqlalchemy import delete
 
 from firenze.config import LOGGING_CONFIG_CLI
-from firenze.database import SessionLocal
 from firenze.models import User
 
 
@@ -127,7 +126,7 @@ def update_user(
     """
     Update a current user
     """
-    session = SessionLocal()
+    session = ctx.obj.get("dbsession")
     logger = ctx.obj.get("logger")
     try:
         usuario = session.get(User, user_id)

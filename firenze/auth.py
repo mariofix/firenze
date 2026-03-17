@@ -155,19 +155,22 @@ class AdminAuth(AuthenticationBackend):
     async def login(self, request: Request) -> bool:
         form = await request.form()
         db = SessionLocal()
-        user: models.User = crud.get_user_by_login(db, form["username"])
-        logger.info(f"{user=}")
-        if (not user) or (not bcrypt.checkpw(form["password"].encode("utf-8")[:72], user.password.encode("utf-8"))):
-            logger.warning("User not found or invalid password")
-            return False
-        if user.enabled == 0:
-            logger.warning("User disabled")
-            return False
-        access_token_expires = timedelta(minutes=settings.SECRET_EXPIRES)
-        token_info = {"sub": str(user.id)}
-        token = create_access_token(data=token_info, expires_delta=access_token_expires)
-        request.session.update({"token": token})
-        return True
+        try:
+            user: models.User = crud.get_user_by_login(db, form["username"])
+            logger.info(f"{user=}")
+            if (not user) or (not bcrypt.checkpw(form["password"].encode("utf-8")[:72], user.password.encode("utf-8"))):
+                logger.warning("User not found or invalid password")
+                return False
+            if user.enabled == 0:
+                logger.warning("User disabled")
+                return False
+            access_token_expires = timedelta(minutes=settings.SECRET_EXPIRES)
+            token_info = {"sub": str(user.id)}
+            token = create_access_token(data=token_info, expires_delta=access_token_expires)
+            request.session.update({"token": token})
+            return True
+        finally:
+            db.close()
 
     async def logout(self, request: Request) -> bool:
         request.session.clear()
@@ -192,17 +195,20 @@ class AdminAuth(AuthenticationBackend):
             return RedirectResponse(request.url_for("admin:login"), status_code=302)
 
         db = SessionLocal()
-        user: models.User = crud.get_user(db, token_user_id)
-        if not user:
-            logger.warning(f"{user=}")
-            return RedirectResponse(request.url_for("admin:logout"), status_code=302)
+        try:
+            user: models.User = crud.get_user(db, token_user_id)
+            if not user:
+                logger.warning(f"{user=}")
+                return RedirectResponse(request.url_for("admin:logout"), status_code=302)
 
-        if not user.scopes:
-            logger.warning(f"{user.scopes=}")
-            return RedirectResponse(request.url_for("admin:logout"), status_code=302)
+            if not user.scopes:
+                logger.warning(f"{user.scopes=}")
+                return RedirectResponse(request.url_for("admin:logout"), status_code=302)
 
-        if "admin" not in user.scopes:
-            logger.warning(f"{user=} is not admin")
-            return RedirectResponse(request.url_for("admin:logout"), status_code=302)
+            if "admin" not in user.scopes:
+                logger.warning(f"{user=} is not admin")
+                return RedirectResponse(request.url_for("admin:logout"), status_code=302)
 
-        return True
+            return True
+        finally:
+            db.close()
