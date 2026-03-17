@@ -3,13 +3,13 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Security
+import bcrypt
 from fastapi.security import (
     OAuth2PasswordBearer,
     OAuth2PasswordRequestForm,
     SecurityScopes,
 )
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from sqladmin.authentication import AuthenticationBackend
 from sqlalchemy.orm import Session
 from starlette.responses import RedirectResponse
@@ -20,7 +20,6 @@ from firenze.database import SessionLocal
 
 logger = logging.getLogger("firenze")
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="/token",
     scopes={
@@ -67,7 +66,7 @@ def token(
     form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
 ):
     user = crud.get_user_by_login(db, form_data.username)
-    if (not user) or (not pwd_context.verify(form_data.password.encode("utf-8")[:72], user.password)):
+    if (not user) or (not bcrypt.checkpw(form_data.password.encode("utf-8")[:72], user.password.encode("utf-8"))):
         raise HTTPException(
             status_code=401,
             detail="User not found or invalid password",
@@ -158,7 +157,7 @@ class AdminAuth(AuthenticationBackend):
         db = SessionLocal()
         user: models.User = crud.get_user_by_login(db, form["username"])
         logger.info(f"{user=}")
-        if (not user) or (not pwd_context.verify(form["password"].encode("utf-8")[:72], user.password)):
+        if (not user) or (not bcrypt.checkpw(form["password"].encode("utf-8")[:72], user.password.encode("utf-8"))):
             logger.warning("User not found or invalid password")
             return False
         if user.enabled == 0:

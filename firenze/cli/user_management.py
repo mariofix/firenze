@@ -1,8 +1,8 @@
 import logging.config
 from typing import Optional
 
+import bcrypt
 import typer
-from passlib.context import CryptContext
 from rich import box
 from rich.console import Console
 from rich.table import Table
@@ -12,12 +12,10 @@ from firenze.config import LOGGING_CONFIG_CLI
 from firenze.database import SessionLocal
 from firenze.models import User
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 
 def _hash_password(password: str) -> str:
     """Hash a password, truncating to 72 bytes as required by bcrypt."""
-    return pwd_context.hash(password.encode("utf-8")[:72])
+    return bcrypt.hashpw(password.encode("utf-8")[:72], bcrypt.gensalt()).decode("utf-8")
 
 
 app = typer.Typer()
