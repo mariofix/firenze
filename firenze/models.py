@@ -175,6 +175,7 @@ class OperatorPhone(Base, TimestampMixin):
     enabled = Column(Boolean, default=True)
     contact = Column(Boolean, default=False)
     pin = Column(String(4), nullable=True)
+    trunk = Column(String(32), nullable=True)
     operator_id = Column(
         Integer,
         ForeignKey("operator.id", ondelete="CASCADE", onupdate="CASCADE"),

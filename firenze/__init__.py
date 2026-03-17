@@ -2,9 +2,11 @@ import logging
 
 from fastapi import FastAPI
 from sqladmin import Admin
+from starlette.middleware.sessions import SessionMiddleware
 
 from firenze.admin import register_admin
 from firenze.api.agi import agiRouter
+from firenze.auth import AdminAuth
 from firenze.config import LOGGING_CONFIG, settings
 from firenze.database import engine
 
@@ -20,8 +22,17 @@ def create_app():
     logging.config.dictConfig(LOGGING_CONFIG)
     app.logger = logging.getLogger("firenze")
 
+    app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
+
     # sqladmin
-    admin = Admin(app, engine, base_url="/boss", title="Firenze Admin")
+    authentication_backend = AdminAuth(secret_key=settings.SECRET_KEY)
+    admin = Admin(
+        app,
+        engine,
+        base_url="/boss",
+        title="Firenze Admin",
+        authentication_backend=authentication_backend,
+    )
     register_admin(admin)
 
     # AGI endpoints (called by Asterisk dialplan via CURL)

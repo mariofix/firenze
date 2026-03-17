@@ -460,14 +460,15 @@ Operator:
   description: text (nullable)
   option: str(2) (unique)    # IVR digit(s) the caller presses
   loggedin: bool
+  enable_valkey: bool        # use Redis for state (vs MySQL-only)
   available: bool
   lastcall: datetime
-  trunk: str                 # preferred outbound trunk
   numbers: [OperatorPhone...]
 
 OperatorPhone:
   id: int (PK)
   number: str                # phone number to dial
+  trunk: str (nullable)      # outbound SIP trunk, e.g. "claro1", "didww-mia-out"
   enabled: bool
   contact: bool              # primary contact number
   pin: str(4) (nullable)
