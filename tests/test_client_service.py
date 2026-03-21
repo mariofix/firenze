@@ -20,28 +20,46 @@ def _make_service(id=1, slug="fonotarot-latam"):
     return svc
 
 
-def _make_client(client_id=100, pin="12345678", ani=None, credits=600):
+def _make_client(client_id=100, pin="12345678", credits=600):
     client = MagicMock()
     client.client_id = client_id
     client.pin = pin
-    client.ani = ani
     client.credits = credits
     return client
 
 
-def _mock_session_for_lookup(service=None, client=None):
-    """Mock session for lookup — uses .filter().first() chain."""
-    session = MagicMock()
-    # _get_service uses filter_by
-    svc_chain = MagicMock()
-    svc_chain.first.return_value = service
-    # lookup uses .filter() (with or_)
-    client_chain = MagicMock()
-    client_chain.first.return_value = client
+def _make_ani_row(client_id=100, service_id=1, ani="56912345678"):
+    row = MagicMock()
+    row.client_id = client_id
+    row.service_id = service_id
+    row.ani = ani
+    return row
 
-    query_mock = session.query.return_value
-    query_mock.filter_by.return_value = svc_chain
-    query_mock.filter.return_value = client_chain
+
+def _mock_session_for_lookup(service=None, client=None, ani_row=None):
+    """Mock session for lookup — all paths use filter_by().first()."""
+    session = MagicMock()
+
+    # Each call to session.query(X).filter_by(...).first() is a separate chain.
+    # We use side_effect on filter_by to return results in call order:
+    #   1st call: _get_service → service
+    #   2nd call: Client by pin → client (or None to trigger ANI path)
+    #   3rd call: ClientAni by ani → ani_row (ANI path only)
+    #   4th call: Client by client_id → client (ANI path only)
+    pin_result = client if (client and client.pin) else None
+    if ani_row:
+        # service → pin miss → ani_row hit → client
+        side_effects = [service, pin_result, ani_row, client]
+    elif client is None:
+        # service → pin miss → ani miss (not found)
+        side_effects = [service, None, None]
+    else:
+        # service → pin hit
+        side_effects = [service, client]
+
+    fb_chain = MagicMock()
+    fb_chain.first.side_effect = side_effects
+    session.query.return_value.filter_by.return_value = fb_chain
     return session
 
 
@@ -64,11 +82,12 @@ class TestLookup:
         assert result == {"clientid": 42, "segundos": 1800}
 
     def test_returns_clientid_and_credits_by_ani(self):
-        svc = _make_service()
-        client = _make_client(client_id=42, ani="56912345678", credits=900)
-        session = _mock_session_for_lookup(svc, client)
+        svc = _make_service(id=2, slug="fonotarot-cl")
+        client = _make_client(client_id=42, pin=None, credits=900)
+        ani_row = _make_ani_row(client_id=42, service_id=2, ani="56912345678")
+        session = _mock_session_for_lookup(svc, client, ani_row)
 
-        result = lookup(session, "fonotarot-latam", "56912345678")
+        result = lookup(session, "fonotarot-cl", "56912345678")
 
         assert result == {"clientid": 42, "segundos": 900}
 

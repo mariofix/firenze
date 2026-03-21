@@ -2,7 +2,7 @@ import secrets
 import string
 from typing import Optional
 
-from sqlalchemy import ForeignKey, Index, Integer, String, UniqueConstraint, event
+from sqlalchemy import ForeignKey, ForeignKeyConstraint, Index, Integer, String, UniqueConstraint, event
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from firenze.database import Base
@@ -18,9 +18,9 @@ class Client(Base, TimestampMixin):
     """Unified client model — one row per client per service.
 
     - ``client_id`` is the business-facing identifier, unique within a service.
-    - ``pin`` is always set for pin-auth services (generated on purchase).
-    - ``ani`` is set when the user registers their phone number.
-    - A client can be looked up by either PIN or ANI.
+    - ``pin`` is set for PIN-auth services (fonotarot-latam); lookup key at call time.
+    - ``phone_number`` is the profile contact number — not used for call routing.
+    - ANI-based lookup goes through ``ClientAni`` (supports multiple ANIs per client).
     """
 
     __tablename__ = "client"
@@ -31,18 +31,48 @@ class Client(Base, TimestampMixin):
     )
     client_id: Mapped[int] = mapped_column(Integer)
     pin: Mapped[Optional[str]] = mapped_column(String(8), default=None)
-    ani: Mapped[Optional[str]] = mapped_column(String(16), default=None)
     full_name: Mapped[Optional[str]] = mapped_column(String(128), default=None)
     email: Mapped[Optional[str]] = mapped_column(String(512), default=None)
     phone_number: Mapped[Optional[str]] = mapped_column(String(16), default=None)
     credits: Mapped[int] = mapped_column(Integer, default=0)
 
     service: Mapped[Optional["Service"]] = relationship()
+    anis: Mapped[list["ClientAni"]] = relationship(back_populates="client", cascade="all, delete-orphan")
 
     __table_args__ = (
         UniqueConstraint("service_id", "client_id", name="uq_client_service_clientid"),
         Index("ix_client_pin", "service_id", "pin"),
-        Index("ix_client_ani", "service_id", "ani"),
+    )
+
+
+class ClientAni(Base):
+    """Maps ANI (caller ID) to a client within a service.
+
+    - One client can have multiple ANIs (registered users with several phones).
+    - Anonymous clients have exactly one ANI row.
+    - ``UNIQUE(service_id, ani)`` is enforced at DB level — safe for direct DB writes.
+    - Composite FK ``(service_id, client_id)`` → ``Client`` prevents cross-service inserts.
+    """
+
+    __tablename__ = "client_ani"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    service_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    client_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    ani: Mapped[str] = mapped_column(String(16), nullable=False)
+
+    client: Mapped["Client"] = relationship(back_populates="anis")
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["service_id", "client_id"],
+            ["client.service_id", "client.client_id"],
+            ondelete="CASCADE",
+            onupdate="CASCADE",
+            name="fk_client_ani_composite",
+        ),
+        UniqueConstraint("service_id", "ani", name="uq_client_ani_service_ani"),
+        Index("ix_client_ani_lookup", "service_id", "ani"),
     )
 
     def __str__(self):

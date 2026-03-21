@@ -3,10 +3,9 @@
 Used by AGI endpoints — Asterisk dialplan calls these via CURL.
 """
 
-from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from firenze.models.client import Client
+from firenze.models.client import Client, ClientAni
 from firenze.models.service import Service
 
 
@@ -32,21 +31,22 @@ def _get_service(db: Session, slug: str) -> Service:
 def lookup(db: Session, service_slug: str, identifier: str) -> dict:
     """Look up a client by service slug and identifier (PIN or ANI).
 
-    Searches both ``pin`` and ``ani`` columns — a fonotarot-latam client
-    can authenticate via PIN (anonymous) or ANI (registered phone).
+    Tries PIN first (fonotarot-latam), then ANI via ``ClientAni`` (fonotarot-cl,
+    alotarot). A registered client may have multiple ANIs mapped to the same
+    ``client_id`` — all resolve to the same ``Client`` row.
 
     Returns dict with ``clientid`` and ``segundos`` matching the contract
     the Asterisk dialplan expects.
     """
     svc = _get_service(db, service_slug)
-    client = (
-        db.query(Client)
-        .filter(
-            Client.service_id == svc.id,
-            or_(Client.pin == identifier, Client.ani == identifier),
-        )
-        .first()
-    )
+
+    client = db.query(Client).filter_by(service_id=svc.id, pin=identifier).first()
+
+    if not client:
+        ani_row = db.query(ClientAni).filter_by(service_id=svc.id, ani=identifier).first()
+        if ani_row:
+            client = db.query(Client).filter_by(service_id=svc.id, client_id=ani_row.client_id).first()
+
     if not client:
         return {"clientid": 0, "segundos": 0}
     return {"clientid": client.client_id, "segundos": client.credits}
