@@ -14,6 +14,13 @@ from firenze.dependencies import get_db, get_redis
 from firenze.services.credit_service import compute_call_limit
 from firenze.services.did_service import resolve_did
 from firenze.services.dnc_service import check_dnc
+from firenze.services.client_service import (
+    ClientNotFound,
+    InsufficientCredits,
+    ServiceNotFound,
+)
+from firenze.services.client_service import deduct_credits as svc_deduct
+from firenze.services.client_service import lookup as svc_lookup
 from firenze.services.operator_service import OperatorNotFound
 from firenze.services.operator_service import login_by_phone, logout_by_phone
 
@@ -44,6 +51,44 @@ def agi_credit_limit(seconds: int = Query(..., description="Credit balance in se
     Replaces the 150-line limite-saldo dialplan ladder.
     """
     return compute_call_limit(seconds)
+
+
+@agiRouter.get("/clients/lookup")
+def agi_client_lookup(
+    service: str = Query(..., description="Service slug, e.g. fonotarot-latam"),
+    identifier: str = Query(..., description="Client identifier (ANI or PIN)"),
+    db: Session = Depends(get_db),
+):
+    """Look up a client by service and identifier.
+
+    Returns ``{clientid, segundos}`` — the contract the dialplan expects.
+    Returns ``{clientid: 0, segundos: 0}`` if not found (dialplan handles this).
+    """
+    try:
+        return svc_lookup(db, service, identifier)
+    except ServiceNotFound as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@agiRouter.post("/clients/{service}/{client_id}/deduct")
+def agi_client_deduct(
+    service: str,
+    client_id: int,
+    seconds: int = Query(..., description="Seconds to deduct"),
+    db: Session = Depends(get_db),
+):
+    """Deduct credits (seconds) from a client's balance.
+
+    Called from [llama-tarotista] hangup handler after a call ends.
+    """
+    try:
+        return svc_deduct(db, service, client_id, seconds)
+    except ServiceNotFound as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ClientNotFound as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except InsufficientCredits as e:
+        raise HTTPException(status_code=409, detail=str(e))
 
 
 @agiRouter.post("/operators/by-phone/{ani}/login")

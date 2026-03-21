@@ -1,5 +1,7 @@
 # Firenze — New Architecture
 
+> Migration task list: [tasks.md](tasks.md)
+
 ## Overview
 
 Firenze is the communications and Asterisk management layer for the FonoTarot platform. It handles call routing, operator management, credit tracking, and real-time call state. It does NOT handle payments, marketing, or public-facing UX — that's nuevo-fonotarot.
@@ -41,14 +43,17 @@ Firenze doesn't know: how credits were purchased, payment providers, user passwo
 - [x] `services/operator_service.py` — `login_by_phone`, `logout_by_phone` (lookup via `OperatorPhone`)
 - [x] `dependencies.py` — `get_redis()` dependency with graceful degradation
 - [x] `api/agi.py` — `POST /agi/operators/by-phone/{ani}/login`, `POST /agi/operators/by-phone/{ani}/logout`
+- [x] Unified `Client` model — per-service `client_id`, dual lookup via `pin` and `ani` columns, `credits`
+- [x] `services/client_service.py` — `lookup(db, slug, identifier)` searches both `pin` and `ani`; `deduct_credits(db, slug, client_id, seconds)`
+- [x] `api/agi.py` — `GET /agi/clients/lookup`, `POST /agi/clients/{service}/{client_id}/deduct`
+- [x] Alembic migration `f479283e23a2` — `client` table with FK → `service`, unique `(service_id, client_id)`
 
 ### In Progress / Next
 
+- [ ] Populate `client` table with FonoTarot Latam data (from `fonotarot_latam`)
 - [ ] `/agi/operators/*` endpoints — menu, select, release (login/logout by phone done ✓)
 - [ ] `services/call_service.py` — online call tracking
 - [ ] `/agi/calls/*` endpoints — insert, delete, update, lookup
-- [ ] `/agi/clients/*` endpoints — lookup by ANI/PIN, credit deduction
-- [ ] Unified `Client` model (replaces `FonoTarotLatamClient` + all Peewee client tables)
 - [ ] Remove `fastapi-crudrouter` (`tarot.py`)
 - [ ] Remove `pystrix` from dependencies (only needed for AGI protocol; CURL approach doesn't use it)
 
