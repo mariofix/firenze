@@ -109,7 +109,7 @@ def agi_client_lookup(
 def agi_client_deduct(
     service: str,
     client_id: int,
-    seconds: int = Query(..., description="Seconds to deduct"),
+    seconds: int = Form(..., description="Seconds to deduct"),
     db: Session = Depends(get_db),
 ):
     """Deduct credits (seconds) from a client's balance.
@@ -148,25 +148,28 @@ def agi_call_insert(
     return insert_call(db, service, ani, did, client_id, operator)
 
 
-@agiRouter.delete("/calls/online/{service}/{ani}")
-def agi_call_delete(service: str, ani: str, db: Session = Depends(get_db)):
+@agiRouter.post("/calls/online/{service}/{ani}/close")
+def agi_call_close(service: str, ani: str, db: Session = Depends(get_db)):
     """Delete an online call record.
 
     Idempotent — safe to call from multiple ``h`` handlers.
+    Called via ``POST /calls/online/{service}/{ani}/close`` with body ``_=1``
+    since Asterisk's CURL() only reliably supports GET and POST-with-body.
     """
     return delete_call(db, service, ani)
 
 
-@agiRouter.patch("/calls/online/{service}/{ani}")
-def agi_call_update_operator(
+@agiRouter.post("/calls/online/{service}/{ani}/assign")
+def agi_call_assign_operator(
     service: str,
     ani: str,
-    operator: int = Query(..., description="Operator number assigned to this call"),
+    operator: int = Form(..., description="Operator number assigned to this call"),
     db: Session = Depends(get_db),
 ):
     """Update the operator assigned to an active call.
 
     Called after ``[selecciona-operador]`` completes and before dialling.
+    Accepts ``operator`` as a form body field.
     """
     return update_call_operator(db, service, ani, operator)
 
