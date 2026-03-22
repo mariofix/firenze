@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379"
     ALLOWED_DOMAINS: list[str] = ["*.local"]
     BASE_DIR: Any = BASE_DIR
+    LEGACY_API_URL: str = "https://firenze.156.cl"
+    LEGACY_API_USER: str = ""
+    LEGACY_API_PASSWORD: str = ""
 
 
 @lru_cache()
