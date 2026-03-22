@@ -13,6 +13,8 @@ class Service(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255))
     slug: Mapped[str] = mapped_column(String(255), index=True)
+    auth_method: Mapped[str] = mapped_column(String(8), default="ani")
+    intro_audio: Mapped[str] = mapped_column(String(255), default="")
     numbers: Mapped[list["ServiceNumber"]] = relationship(back_populates="service")
 
     def __str__(self):

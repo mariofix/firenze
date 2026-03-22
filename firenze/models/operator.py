@@ -21,6 +21,7 @@ class Operator(Base, TimestampMixin):
     available: Mapped[bool] = mapped_column(default=False)
     lastcall: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(timezone=True))
     option: Mapped[str] = mapped_column(String(2), unique=True)
+    audio_file: Mapped[Optional[str]] = mapped_column(String(255), default=None)
     numbers: Mapped[list["OperatorPhone"]] = relationship(back_populates="operator")
 
     def __str__(self):

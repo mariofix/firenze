@@ -47,15 +47,23 @@ Firenze doesn't know: how credits were purchased, payment providers, user passwo
 - [x] `services/client_service.py` — `lookup(db, slug, identifier)` searches both `pin` and `ani`; `deduct_credits(db, slug, client_id, seconds)`
 - [x] `api/agi.py` — `GET /agi/clients/lookup`, `POST /agi/clients/{service}/{client_id}/deduct`
 - [x] Alembic migration `f479283e23a2` — `client` table with FK → `service`, unique `(service_id, client_id)`
+- [x] `Service.auth_method`, `Service.intro_audio` — drive unified dialplan context without per-service code
+- [x] `Operator.audio_file` — operator menu audio string, built server-side by `/agi/operators/menu`
+- [x] `services/operator_service.py` — `get_menu`, `select_operator` (atomic, FOR UPDATE), `release_operator`
+- [x] `services/call_service.py` — `insert_call`, `delete_call`, `update_call_operator`, `get_active_call`
+- [x] `api/agi.py` — full online call CRUD + operator menu/select/release endpoints
+- [x] Alembic migration `a8c5e1f2b9d3` — `service.auth_method`, `service.intro_audio`, `operator.audio_file`
 
 ### In Progress / Next
 
 - [ ] Populate `client` table with FonoTarot Latam data (from `fonotarot_latam`)
-- [ ] `/agi/operators/*` endpoints — menu, select, release (login/logout by phone done ✓)
-- [ ] `services/call_service.py` — online call tracking
-- [ ] `/agi/calls/*` endpoints — insert, delete, update, lookup
+- [ ] Migrate FonoTarot Chile + Alotarot clients into `Client`
 - [ ] Remove `fastapi-crudrouter` (`tarot.py`)
 - [ ] Remove `pystrix` from dependencies (only needed for AGI protocol; CURL approach doesn't use it)
+- [ ] Write `extensions_services.conf` — unified `[prepago-service]` dialplan context (CURL-based)
+- [ ] Update `[selecciona-servicio]` in `extensions_zvn.conf` to use CURL + new fields
+- [ ] Add `FIRENZE_API` global to `extensions.conf`, add `extensions_services.conf` include
+- [ ] Update `ServiceNumber.asterisk_context` in DB to `"prepago-service"` for new DIDs
 
 ### Planned (later phases)
 
@@ -341,28 +349,42 @@ same => n,Playback(${saldo_audio})
 
 ### Service/DID resolution ✅ implemented
 
+Returns full service config so the unified `[prepago-service]` context needs
+only one CURL call instead of multiple AGI spawns. `Service.auth_method` and
+`Service.intro_audio` drive branching and audio — no per-service dialplan code.
+
 ```
 GET /agi/services/did/{did}
 
-Response:
-  {"siguiente": "prepago-fonotarot-cl"}    # context to goto
-  {"siguiente": ""}                         # DID not found
+Response (found):
+  {
+    "siguiente":   "prepago-service",
+    "servicio":    "alotarot",
+    "auth_method": "ani",
+    "intro_audio": "zvn/intro-alotarot"
+  }
+
+Response (not found):
+  {"siguiente": "", "servicio": "", "auth_method": "", "intro_audio": ""}
 ```
 
-Dialplan — replace `Agi(${FIRENZE},services,did,${did})` in `[selecciona-servicio]`:
+Dialplan — `[selecciona-servicio]` in `extensions_zvn.conf`:
 
 ```ini
 [selecciona-servicio]
-exten => _X.,1,NoOp(Vamos a seleccionar el servicio)
+exten => _X.,1,NoOp(Seleccionando servicio para DID ${did})
  same => n,Set(AGIEXITONHANGUP=yes)
  same => n,Set(response=${CURL(${FIRENZE_API}/services/did/${did})})
  same => n,Set(siguiente=${JSON_DECODE(response,siguiente)})
+ same => n,Set(servicio=${JSON_DECODE(response,servicio)})
+ same => n,Set(auth_method=${JSON_DECODE(response,auth_method)})
+ same => n,Set(intro_audio=${JSON_DECODE(response,intro_audio)})
  same => n,GotoIf($["${siguiente}" = ""]?no-service,s,1:)
  same => n,Goto(${siguiente},s,1)
 exten => h,1,NoOp(Goodbye)
 ```
 
-### Client lookup — PIN and ANI (planned)
+### Client lookup — PIN and ANI ✅ implemented
 
 ```
 GET /agi/clients/lookup?service={slug}&identifier={ani_or_pin}
@@ -374,33 +396,35 @@ Response (not found):
   {"clientid": 0, "segundos": 0}
 ```
 
-### Credit deduction (planned)
+### Credit deduction ✅ implemented
 
 ```
-POST /agi/clients/{client_id}/deduct?seconds={n}&service={slug}
+POST /agi/clients/{service}/{client_id}/deduct?seconds={n}
 
 Response:
-  {"ok": true, "credits": 1200}
+  {"ok": true, "remaining": 1200}
 ```
 
-### Online calls (planned)
+### Online calls ✅ implemented
 
 ```
 POST /agi/calls/online
-  Body/params: service, ani, did, operator, client_id
+  Form body: service, ani, did, client_id, operator (default 0)
 Response: {"ok": true}
+Response (duplicate): {"ok": false, "reason": "call-already-active"}
 
 DELETE /agi/calls/online/{service}/{ani}
-Response: {"ok": true}
+Response: {"ok": true}   # idempotent
 
 PATCH /agi/calls/online/{service}/{ani}?operator={num}
 Response: {"ok": true}
+Response (not found): {"ok": false, "reason": "call-not-found"}
 
 GET /agi/calls/online/{service}/{ani}
 Response: {"llamada_activa": "true"} or {"llamada_activa": "false"}
 ```
 
-### Operator menu (planned)
+### Operator menu ✅ implemented
 
 ```
 GET /agi/operators/menu
@@ -412,11 +436,19 @@ Response:
   }
 ```
 
-### Operator select — atomic verify + mark busy (planned)
+`audio_str` is built from `Operator.audio_file`, ordered by `Operator.option`.
+Operators with no `audio_file` are counted but omitted from the audio string.
+
+### Operator select — atomic verify + mark busy ✅ implemented
+
+Uses `SELECT FOR UPDATE` to prevent two concurrent calls from grabbing the
+same operator. Random mode shuffles candidates and locks one at a time to
+minimise contention.
 
 ```
-POST /agi/operators/select?mode=option&selection=03
-POST /agi/operators/select?mode=random
+POST /agi/operators/select
+  Form body: mode=random
+  Form body: mode=option&selection=03
 
 Response (success):
   {
@@ -429,16 +461,18 @@ Response (success):
 
 Response (unavailable):
   {"ok": false, "reason": "operator-busy"}
+  {"ok": false, "reason": "no-operators"}
+  {"ok": false, "reason": "no-phone-configured"}
 ```
 
-### Operator release (planned)
+### Operator release ✅ implemented
 
 ```
 POST /agi/operators/{number}/release
 Response: {"ok": true}
 ```
 
-### Operator login/logout from dialplan (planned)
+### Operator login/logout from dialplan ✅ implemented
 
 ```
 POST /agi/operators/by-phone/{ani}/login

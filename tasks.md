@@ -10,9 +10,9 @@
 - [x] `redis/operator_state.py` — direct redis-py with graceful degradation
 - [x] `POST /agi/operators/by-phone/{ani}/login`
 - [x] `POST /agi/operators/by-phone/{ani}/logout`
-- [ ] `GET /agi/operators/menu` — available count + audio string
-- [ ] `POST /agi/operators/select` — atomic verify + mark busy (option or random mode)
-- [ ] `POST /agi/operators/{number}/release` — mark operator available again
+- [x] `GET /agi/operators/menu` — available count + audio string
+- [x] `POST /agi/operators/select` — atomic verify + mark busy (option or random mode)
+- [x] `POST /agi/operators/{number}/release` — mark operator available again
 - [ ] Replace `${AUDIOTEX}` operator calls in dialplan with CURL
 - [ ] Remove `pystrix` from dependencies
 
@@ -34,11 +34,11 @@
 
 ## Phase 3: Online call tracking
 
-- [ ] `services/call_service.py` — insert, delete, lookup active calls
-- [ ] `POST /agi/calls/online/{service}/{ani}`
-- [ ] `DELETE /agi/calls/online/{service}/{ani}`
-- [ ] `GET /agi/calls/online/{service}/{ani}`
-- [ ] `PATCH /agi/calls/online/{service}/{ani}?operator={num}`
+- [x] `services/call_service.py` — insert, delete, update operator, lookup active calls
+- [x] `POST /agi/calls/online` — insert (form body)
+- [x] `DELETE /agi/calls/online/{service}/{ani}`
+- [x] `GET /agi/calls/online/{service}/{ani}`
+- [x] `PATCH /agi/calls/online/{service}/{ani}?operator={num}`
 - [ ] Replace `${AUDIOTEX}` call tracking in dialplan with CURL
 - [ ] Remove legacy `clientespv` / `clientesonline` tables
 
@@ -56,7 +56,12 @@
 ## Phase 5: Dialplan cleanup
 
 - [x] `limite-saldo` ladder replaced by `GET /agi/credits/limit`
-- [ ] Consolidate ANI-based service contexts
+- [x] `Service.auth_method` + `Service.intro_audio` — service config in DB, not dialplan
+- [x] `Operator.audio_file` — operator menu audio built server-side
+- [ ] Write `extensions_services.conf` — unified `[prepago-service]` context (CURL-based)
+- [ ] Update `[selecciona-servicio]` in `extensions_zvn.conf` to CURL + new fields
+- [ ] Update `ServiceNumber.asterisk_context` in DB to `"prepago-service"` for new DIDs
+- [ ] Remove `extensions_alotarot.conf` and `extensions_fonotarot.conf` once all DIDs migrated
 - [x] `models/` package split by domain
 - [x] `schemas/` package split by domain
 - [ ] Remove `core.py` (unused legacy router)
