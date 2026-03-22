@@ -38,7 +38,10 @@ deploy = ["gunicorn"]
 dev = ["pytest", "coverage", "ruff"]
 
 [project.scripts]
-firenze = "cli:cli"
+firenze = "firenze.cli:cli"
+
+[tool.poetry]
+packages = [{include = "firenze"}]
 
 [tool.alembic]
 script_location = "alembic"

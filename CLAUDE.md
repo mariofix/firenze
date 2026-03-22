@@ -1,4 +1,9 @@
-# Global Claude Code Standards
+# Global Claude Code Standards for zvn-firenze
+
+
+## General
+- This is a complete refactor and code upgrade for the current project
+- tasks.md and new-architecture.md has the context needed for any new task
 
 ## Behavior
 - After every change, self-verify: check imports, lint mentally, confirm no regressions
@@ -33,6 +38,9 @@
 - You may NOT touch any branch outside `claude/*` — no commits, no merges, no rebases, no deletes
 - You may NOT merge into main under any circumstance — open a PR and stop
 - Read access to all branches is fine, write access is `claude/*` only
+- An exception is `new-architecture` which is the working branch for this project.
+- It is prefered not to work on this  `new-architecture` branch, rebases, commits, pulls, and merges are OK.
+- If the work requires modify files in the `new-architecture` branch without passing through `claude/` first, wait confirmation
 
 ## Testing
 - Run existing tests after any change that could affect behavior
