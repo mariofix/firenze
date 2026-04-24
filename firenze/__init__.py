@@ -1,53 +1,68 @@
+from decimal import Decimal
 import logging
+import logging.config
 
 from fastapi import FastAPI
 from sqladmin import Admin
 from starlette.middleware.sessions import SessionMiddleware
+from debug_toolbar.middleware import DebugToolbarMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
+
 
 from firenze.admin import register_admin
 from firenze.api.agi import agiRouter
 from firenze.auth import AdminAuth
-from firenze.config import LOGGING_CONFIG, settings
+from firenze.config import LOGGING_CONFIG, settings, Settings
 from firenze.database import engine
-
+from firenze.middleware import InternalOnlyMiddleware
+from .version import __version__
 
 def create_app():
     app = FastAPI(
         title="Firenze",
         description="Servicio de comunicacion y administracion para servicio Tatot",
-        version=settings.VERSION,
+        version=__version__,
         debug=settings.DEBUG,
-        docs_url="/office",
+        docs_url="/api-docs",
     )
     logging.config.dictConfig(LOGGING_CONFIG)
     app.logger = logging.getLogger("firenze")
 
     app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
+    app.add_middleware(DebugToolbarMiddleware, settings=[Settings()])
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.ALLOWED_DOMAINS)
+    app.add_middleware(
+        InternalOnlyMiddleware,
+        path_prefix=settings.AGI_PATH_PREFIX,
+        allowed_networks=settings.AGI_ALLOWED_NETWORKS,
+    )
+
 
     # sqladmin
     authentication_backend = AdminAuth(secret_key=settings.SECRET_KEY)
     admin = Admin(
         app,
         engine,
-        base_url="/boss",
         title="Firenze Admin",
         authentication_backend=authentication_backend,
     )
+
     register_admin(admin)
 
     # AGI endpoints (called by Asterisk dialplan via CURL)
     app.include_router(agiRouter)
+    
 
     @app.on_event("startup")
     async def startup():
         app.logger.info(
-            f"Starting ZVN-Firenze-{settings.VERSION}-{settings.ENVIRONMENT}"
+            f"Starting ZVN-Firenze-{__version__}-{settings.ENVIRONMENT}"
         )
 
     @app.on_event("shutdown")
     async def shutdown():
         app.logger.info(
-            f"Stopping ZVN-Firenze-{settings.VERSION}-{settings.ENVIRONMENT}"
+            f"Stopping ZVN-Firenze-{__version__}-{settings.ENVIRONMENT}"
         )
 
     return app

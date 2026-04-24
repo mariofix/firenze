@@ -31,24 +31,24 @@ def _get_service(db: Session, slug: str) -> Service:
 def lookup(db: Session, service_slug: str, identifier: str) -> dict:
     """Look up a client by service slug and identifier (PIN or ANI).
 
-    Tries PIN first (fonotarot-latam), then ANI via ``ClientAni`` (fonotarot-cl,
-    alotarot). A registered client may have multiple ANIs mapped to the same
-    ``client_id`` — all resolve to the same ``Client`` row.
+    len(identifier) == 6: PIN (phone numbers are never length 6)
+    else : ANI
 
     Returns dict with ``clientid`` and ``segundos`` matching the contract
     the Asterisk dialplan expects.
     """
     svc = _get_service(db, service_slug)
+    client = None
 
-    client = db.query(Client).filter_by(service_id=svc.id, pin=identifier).first()
+    if len(identifier) == 6:
+        client = db.query(Client).filter_by(service_id=svc.id, pin=identifier).first()
+    else:
+        client_ani = db.query(ClientAni).filter_by(service_id=svc.id, ani=identifier).first()
+        if client_ani:
+            client = db.query(Client).filter_by(service_id=svc.id, client_id=client_ani.client_id).first()
 
     if not client:
-        ani_row = db.query(ClientAni).filter_by(service_id=svc.id, ani=identifier).first()
-        if ani_row:
-            client = db.query(Client).filter_by(service_id=svc.id, client_id=ani_row.client_id).first()
-
-    if not client:
-        return {"clientid": 0, "segundos": 0}
+        return {"clientid": 0, "segundos": 0, "a": 1}
     return {"clientid": client.client_id, "segundos": client.credits}
 
 

@@ -16,15 +16,16 @@ class Settings(BaseSettings):
     )
 
     ENVIRONMENT: str = "production"
-    SQLALCHEMY_DATABASE_URL: str
-    DEBUG: bool = False
+    SQLALCHEMY_DATABASE_URL: str = ""
+    DEBUG: bool = True
     LOG_LEVEL: str = "INFO"
-    VERSION: str = "2025.1.0"
     SECRET_KEY: str = "secret_key"
-    SECRET_ALGO: str = "HS256"
-    SECRET_EXPIRES: int = 60
-    REDIS_URL: str = "redis://localhost:6379"
-    ALLOWED_DOMAINS: list[str] = ["*.local"]
+    REDIS_URL: str = "redis://zvn-lin3.local:6379"
+    REDIS_SOCKET_CONNECT_TIMEOUT: float = 2.0
+    REDIS_SOCKET_TIMEOUT: float = 2.0
+    ALLOWED_DOMAINS: list[str] = ["localhost", "tardis.local"]
+    AGI_PATH_PREFIX: str = "/agi"
+    AGI_ALLOWED_NETWORKS: list[str] = ["127.0.0.1/32"]
     BASE_DIR: Any = BASE_DIR
     LEGACY_API_URL: str = "https://firenze.156.cl"
     LEGACY_API_USER: str = ""

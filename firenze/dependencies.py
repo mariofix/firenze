@@ -1,11 +1,9 @@
-"""Shared FastAPI dependencies — single source of truth."""
+"""Shared FastAPI dependencies - single source of truth."""
 
-from typing import Optional
-
-import redis
-
-from firenze.config import settings
 from firenze.database import SessionLocal
+from firenze.redis import get_redis as get_redis
+
+__all__ = ["get_db", "get_redis"]
 
 
 def get_db():
@@ -15,13 +13,3 @@ def get_db():
         yield db
     finally:
         db.close()
-
-
-def get_redis() -> Optional[redis.Redis]:
-    """Return a Redis connection, or None if Redis is unreachable."""
-    try:
-        conn = redis.from_url(settings.REDIS_URL, decode_responses=True)
-        conn.ping()
-        return conn
-    except redis.RedisError:
-        return None
