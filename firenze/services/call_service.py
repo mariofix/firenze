@@ -1,13 +1,18 @@
-"""Online call tracking — insert, delete, update, and active-call lookup.
+"""Online call tracking - insert, delete, update, and active-call lookup.
 
-Both the API and CLI call these functions — no business logic lives in
-routers or CLI commands.
+Both the API and CLI call these functions - no business logic lives in
+routers or CLI commands. MySQL is the source of truth; Redis is a hot
+cache consumed by legacy PHP readers and dashboards.
 """
 
+from typing import Optional
+
+import redis
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from firenze.models.call import OnlineCalls
+from firenze.redis import call_state
 
 
 def insert_call(
@@ -17,12 +22,13 @@ def insert_call(
     did: str,
     client_id: int,
     operator: int = 0,
+    redis_conn: Optional[redis.Redis] = None,
 ) -> dict:
     """Insert an online call record.
 
     Returns ``{"ok": False, "reason": "call-already-active"}`` if a call for
     this ANI is already registered for the service (duplicate call protection).
-    Idempotent on the happy path — the unique constraint on ``(service, ani)``
+    Idempotent on the happy path - the unique constraint on ``(service, ani)``
     is the authority.
     """
     call = OnlineCalls(
@@ -34,24 +40,50 @@ def insert_call(
     except IntegrityError:
         db.rollback()
         return {"ok": False, "reason": "call-already-active"}
+    db.refresh(call)
+
+    if redis_conn is not None:
+        call_state.set_call(
+            redis_conn,
+            service,
+            ani,
+            did=did,
+            operator=operator,
+            client_id=client_id,
+            created_at=int(call.created_at.timestamp()) if call.created_at else None,
+        )
+
     return {"ok": True}
 
 
-def delete_call(db: Session, service: str, ani: str) -> dict:
+def delete_call(
+    db: Session,
+    service: str,
+    ani: str,
+    redis_conn: Optional[redis.Redis] = None,
+) -> dict:
     """Delete an online call record.
 
-    Idempotent — no error if the record does not exist (covers cases where
+    Idempotent - no error if the record does not exist (covers cases where
     the dialplan h-handler fires even if insert never ran).
     """
     call = db.query(OnlineCalls).filter_by(service=service, ani=ani).first()
     if call:
         db.delete(call)
         db.commit()
+
+    if redis_conn is not None:
+        call_state.delete_call(redis_conn, service, ani)
+
     return {"ok": True}
 
 
 def update_call_operator(
-    db: Session, service: str, ani: str, operator: int
+    db: Session,
+    service: str,
+    ani: str,
+    operator: int,
+    redis_conn: Optional[redis.Redis] = None,
 ) -> dict:
     """Update the assigned operator number on an active call record.
 
@@ -63,6 +95,10 @@ def update_call_operator(
         return {"ok": False, "reason": "call-not-found"}
     call.operator = operator
     db.commit()
+
+    if redis_conn is not None:
+        call_state.update_operator(redis_conn, service, ani, operator)
+
     return {"ok": True}
 
 

@@ -6,6 +6,7 @@ from rich.console import Console
 from rich.table import Table
 
 from firenze.models import OnlineCalls
+from firenze.services.call_service import delete_call
 
 app = typer.Typer()
 
@@ -51,13 +52,16 @@ def clear_calls(
     service: str = typer.Argument(None, help="Clear only this service (all if omitted)"),
     confirm: bool = typer.Option(False, "--yes", help="Skip confirmation"),
 ):
-    """Clear stale online call records."""
+    """Clear stale online call records from MySQL and Redis."""
     session = ctx.obj.get("dbsession")
+    redis_conn = ctx.obj.get("redis")
+
     query = session.query(OnlineCalls)
     if service:
         query = query.filter_by(service=service)
 
-    count = query.count()
+    calls = query.all()
+    count = len(calls)
     if count == 0:
         typer.echo("No online calls to clear")
         return
@@ -66,6 +70,7 @@ def clear_calls(
     if not confirm:
         typer.confirm(f"Delete {label}?", abort=True)
 
-    query.delete()
-    session.commit()
+    for call in calls:
+        delete_call(session, call.service, call.ani, redis_conn)
+
     typer.echo(f"Cleared {label}")

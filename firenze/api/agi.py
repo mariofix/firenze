@@ -140,24 +140,30 @@ def agi_call_insert(
     client_id: int = Form(...),
     operator: int = Form(default=0),
     db: Session = Depends(get_db),
+    redis_conn: Optional[redis.Redis] = Depends(get_redis),
 ):
     """Insert an online call record.
 
     Called from ``[auth-ani]`` / ``[auth-pin]`` after auth and credit checks pass.
     Returns ``{"ok": false, "reason": "call-already-active"}`` on duplicate.
     """
-    return insert_call(db, service, ani, did, client_id, operator)
+    return insert_call(db, service, ani, did, client_id, operator, redis_conn)
 
 
 @agiRouter.post("/calls/online/{service}/{ani}/close")
-def agi_call_close(service: str, ani: str, db: Session = Depends(get_db)):
+def agi_call_close(
+    service: str,
+    ani: str,
+    db: Session = Depends(get_db),
+    redis_conn: Optional[redis.Redis] = Depends(get_redis),
+):
     """Delete an online call record.
 
     Idempotent — safe to call from multiple ``h`` handlers.
     Called via ``POST /calls/online/{service}/{ani}/close`` with body ``_=1``
     since Asterisk's CURL() only reliably supports GET and POST-with-body.
     """
-    return delete_call(db, service, ani)
+    return delete_call(db, service, ani, redis_conn)
 
 
 @agiRouter.post("/calls/online/{service}/{ani}/assign")
@@ -166,13 +172,14 @@ def agi_call_assign_operator(
     ani: str,
     operator: int = Form(..., description="Operator number assigned to this call"),
     db: Session = Depends(get_db),
+    redis_conn: Optional[redis.Redis] = Depends(get_redis),
 ):
     """Update the operator assigned to an active call.
 
     Called after ``[selecciona-operador]`` completes and before dialling.
     Accepts ``operator`` as a form body field.
     """
-    return update_call_operator(db, service, ani, operator)
+    return update_call_operator(db, service, ani, operator, redis_conn)
 
 
 @agiRouter.get("/calls/online/{service}/{ani}")

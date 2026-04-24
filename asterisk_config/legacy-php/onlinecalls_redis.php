@@ -62,18 +62,19 @@ function get_online_calls($redis, $service) {
     $calls   = [];
     $cursor  = null;
 
-    do {
-        [$cursor, $keys] = $redis->scan($cursor, ['match' => $pattern, 'count' => 100]);
+    // Skip empty SCAN replies internally so the loop below only sees real batches.
+    $redis->setOption(Redis::OPT_SCAN, Redis::SCAN_RETRY);
+
+    while (($keys = $redis->scan($cursor, $pattern, 100)) !== false) {
         foreach ($keys as $key) {
             $data = $redis->hGetAll($key);
             if (!empty($data)) {
-                // Extract ani from key: firenze:call:{service}:{ani}
                 $parts = explode(':', $key, 4);
                 $ani   = $parts[3] ?? '';
                 $calls[] = array_merge(['service' => $service, 'ani' => $ani], $data);
             }
         }
-    } while ($cursor !== 0 && $cursor !== '0');
+    }
 
     return $calls;
 }
