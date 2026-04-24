@@ -5,7 +5,7 @@ import logging.config
 
 import typer
 
-from firenze.cli import calls, dnc, did, migration, operators, users
+from firenze.cli import calls, dnc, did, migration, operators, users, fastapi
 from firenze.config import LOGGING_CONFIG_CLI
 from firenze.database import SessionLocal
 from firenze.redis import get_redis
@@ -20,6 +20,7 @@ cli.add_typer(dnc.app, name="dnc", help="Do Not Call list")
 cli.add_typer(did.app, name="did", help="DID resolution")
 cli.add_typer(calls.app, name="calls", help="Online call tracking (debug)")
 cli.add_typer(migration.app, name="migration", help="Migrate data from the legacy Firenze API")
+cli.add_typer(fastapi.app, name="fastapi", help="various tools for fastapi")
 
 
 @cli.callback()

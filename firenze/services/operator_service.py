@@ -132,6 +132,16 @@ def get_menu(
     }
 
 
+def info_operator(db: Session, number: Optional[int] = None, ani: Optional[str] = None) -> Operator:
+    """Get information from an operator
+    """
+    if number:
+        op = _get_operator(db, number)
+    elif ani:
+        op = _get_operator_by_phone(db, ani)
+    return op
+
+
 def select_operator(
     db: Session,
     mode: str,

@@ -32,6 +32,7 @@ from firenze.services.operator_service import get_menu as svc_get_menu
 from firenze.services.operator_service import login_by_phone, logout_by_phone
 from firenze.services.operator_service import release_operator as svc_release
 from firenze.services.operator_service import select_operator as svc_select
+from firenze.services.operator_service import info_operator as svc_operator
 
 agiRouter = APIRouter(prefix="/agi", tags=["agi"])
 
@@ -183,6 +184,7 @@ def agi_call_get(service: str, ani: str, db: Session = Depends(get_db)):
     return get_active_call(db, service, ani)
 
 
+
 # ---------------------------------------------------------------------------
 # Operator selection
 # ---------------------------------------------------------------------------
@@ -228,6 +230,24 @@ def agi_operator_select(
         reason  — "operator-busy" | "no-operators" | "no-phone-configured"
     """
     return svc_select(db, mode=mode, selection=selection, redis_conn=redis_conn)
+
+# ---------------------------------------------------------------------------
+# Operator info
+# ---------------------------------------------------------------------------
+
+@agiRouter.post("/operators/{ani}")
+def agi_operator_info(
+    ani: str,
+    db: Session = Depends(get_db),
+    redis_conn: Optional[redis.Redis] = Depends(get_redis),
+):
+    """Find operator info
+    """
+    try:
+        op = svc_operator(db, ani)
+    except OperatorNotFound as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return op
 
 
 @agiRouter.post("/operators/{number}/release")
