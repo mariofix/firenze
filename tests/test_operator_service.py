@@ -8,6 +8,7 @@ from firenze.services.operator_service import (
     OperatorNotFound,
     login,
     logout,
+    release_operator,
     set_availability,
 )
 
@@ -158,7 +159,7 @@ class TestSetAvailability:
         set_availability(session, 1001, True, redis_conn)
 
         mock_state.set_state.assert_called_once_with(
-            redis_conn, 1001, loggedin=True, available=True
+            redis_conn, 1001, loggedin=True, available=True, lastcall=None
         )
 
     @patch("firenze.services.operator_service.operator_state")
@@ -171,5 +172,31 @@ class TestSetAvailability:
         set_availability(session, 1001, False, redis_conn)
 
         mock_state.set_state.assert_called_once_with(
-            redis_conn, 1001, loggedin=True, available=False
+            redis_conn, 1001, loggedin=True, available=False, lastcall=None
+        )
+
+
+class TestReleaseOperator:
+    @patch("firenze.services.operator_service.time")
+    @patch("firenze.services.operator_service.operator_state")
+    def test_stamps_lastcall_on_release(self, mock_state, mock_time):
+        mock_time.time.return_value = 1_700_000_000.5
+        mock_state.get_state.return_value = {
+            "loggedin": True,
+            "available": False,
+            "lastcall": 0,
+        }
+        op = _make_operator(enable_valkey=True, loggedin=True, available=False)
+        session = _mock_session(op)
+        redis_conn = MagicMock()
+
+        release_operator(session, 1001, redis_conn)
+
+        assert op.available is True
+        mock_state.set_state.assert_called_once_with(
+            redis_conn,
+            1001,
+            loggedin=True,
+            available=True,
+            lastcall=1_700_000_000,
         )

@@ -32,6 +32,15 @@ class TestSetState:
             mapping={"loggedin": 0, "available": 0, "lastcall": 12345},
         )
 
+    def test_omits_lastcall_when_none_to_preserve_existing(self):
+        conn = MagicMock()
+        set_state(conn, 1001, loggedin=True, available=False, lastcall=None)
+
+        conn.hset.assert_called_once_with(
+            "firenze:operator:1001",
+            mapping={"loggedin": 1, "available": 0},
+        )
+
 
 class TestGetState:
     def test_returns_parsed_dict(self):
@@ -50,6 +59,13 @@ class TestGetState:
         conn.hgetall.return_value = {}
 
         assert get_state(conn, 9999) is None
+
+    def test_defaults_lastcall_to_zero_when_field_missing(self):
+        conn = MagicMock()
+        conn.hgetall.return_value = {"loggedin": "1", "available": "1"}
+
+        result = get_state(conn, 1001)
+        assert result == {"loggedin": True, "available": True, "lastcall": 0}
 
     def test_returns_none_when_redis_unavailable(self):
         conn = MagicMock()

@@ -25,21 +25,22 @@ def set_state(
     *,
     loggedin: bool,
     available: bool,
-    lastcall: int = 0,
+    lastcall: Optional[int] = None,
 ) -> None:
     """Write operator state to Redis and reset the 24h TTL.
 
-    Silently logs and returns if Redis is unreachable.
+    When ``lastcall`` is ``None`` the field is omitted from the write so
+    callers that only toggle login/availability do not clobber the existing
+    last-activity timestamp. Silently logs and returns if Redis is unreachable.
     """
+    mapping = {
+        "loggedin": int(loggedin),
+        "available": int(available),
+    }
+    if lastcall is not None:
+        mapping["lastcall"] = lastcall
     try:
-        conn.hset(
-            _key(number),
-            mapping={
-                "loggedin": int(loggedin),
-                "available": int(available),
-                "lastcall": lastcall,
-            },
-        )
+        conn.hset(_key(number), mapping=mapping)
         conn.expire(_key(number), _TTL)
     except redis.RedisError as exc:
         _log.warning("Redis unavailable — operator state not persisted: %s", exc)
@@ -57,5 +58,5 @@ def get_state(conn: redis.Redis, number: int) -> Optional[dict]:
     return {
         "loggedin": bool(int(data["loggedin"])),
         "available": bool(int(data["available"])),
-        "lastcall": int(data["lastcall"]),
+        "lastcall": int(data.get("lastcall", 0)),
     }

@@ -5,6 +5,7 @@ routers or CLI commands.
 """
 
 import secrets
+import time
 from typing import Optional
 
 import redis
@@ -203,7 +204,11 @@ def select_operator(
 
     if redis_conn and op.enable_valkey:
         operator_state.set_state(
-            redis_conn, op.number, loggedin=True, available=False
+            redis_conn,
+            op.number,
+            loggedin=True,
+            available=False,
+            lastcall=int(time.time()),
         )
 
     phone = next((p for p in op.numbers if p.contact and p.enabled), None)
@@ -226,10 +231,16 @@ def release_operator(
 ) -> Operator:
     """Mark operator as available again after a call ends.
 
-    Thin wrapper around ``set_availability`` — exists so the AGI endpoint
-    has a clear, intent-named function to call.
+    Stamps ``lastcall`` in Redis so we can see when the operator last wrapped
+    up a call (used for "forgot to logout" detection and activity reports).
     """
-    return set_availability(db, number, available=True, redis_conn=redis_conn)
+    return set_availability(
+        db,
+        number,
+        available=True,
+        redis_conn=redis_conn,
+        lastcall=int(time.time()),
+    )
 
 
 def set_availability(
@@ -237,8 +248,13 @@ def set_availability(
     number: int,
     available: bool,
     redis_conn: Optional[redis.Redis] = None,
+    lastcall: Optional[int] = None,
 ) -> Operator:
-    """Toggle availability without changing login state."""
+    """Toggle availability without changing login state.
+
+    When ``lastcall`` is provided it is written to Redis; otherwise the
+    existing timestamp is preserved by ``operator_state.set_state``.
+    """
     op = _get_operator(db, number)
     op.available = available
     db.commit()
@@ -248,7 +264,11 @@ def set_availability(
         current = operator_state.get_state(redis_conn, op.number)
         loggedin = current["loggedin"] if current else op.loggedin
         operator_state.set_state(
-            redis_conn, op.number, loggedin=loggedin, available=available
+            redis_conn,
+            op.number,
+            loggedin=loggedin,
+            available=available,
+            lastcall=lastcall,
         )
 
     return op

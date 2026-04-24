@@ -35,7 +35,7 @@ dependencies = [
 
 [project.optional-dependencies]
 deploy = ["gunicorn"]
-dev = ["pytest", "coverage", "ruff"]
+dev = ["pytest", "coverage", "ruff", "httpx"]
 
 [project.scripts]
 firenze = "firenze.cli:cli"
