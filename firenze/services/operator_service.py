@@ -6,6 +6,7 @@ routers or CLI commands.
 
 import secrets
 import time
+import datetime
 from typing import Optional
 
 import redis
@@ -136,6 +137,7 @@ def get_menu(
 def info_operator(db: Session, number: Optional[int] = None, ani: Optional[str] = None) -> Operator:
     """Get information from an operator
     """
+    op = None
     if number:
         op = _get_operator(db, number)
     elif ani:
@@ -257,6 +259,7 @@ def set_availability(
     """
     op = _get_operator(db, number)
     op.available = available
+    op.lastcall = datetime.datetime.now()
     db.commit()
     db.refresh(op)
 
