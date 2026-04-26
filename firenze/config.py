@@ -17,7 +17,7 @@ class Settings(BaseSettings):
 
     ENVIRONMENT: str = "production"
     SQLALCHEMY_DATABASE_URL: str = ""
-    DEBUG: bool = True
+    DEBUG: bool = False
     LOG_LEVEL: str = "INFO"
     SECRET_KEY: str = "secret_key"
     REDIS_URL: str = "redis://zvn-lin3.local:6379"

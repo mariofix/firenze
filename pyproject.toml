@@ -61,3 +61,8 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["firenze"]
+
+[dependency-groups]
+dev = [
+    "fastapi-debug-toolbar (>=0.6.3,<0.7.0)"
+]
