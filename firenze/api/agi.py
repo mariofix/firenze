@@ -239,19 +239,127 @@ def agi_operator_select(
 # Operator info
 # ---------------------------------------------------------------------------
 
-@agiRouter.post("/operators/{ani}")
-def agi_operator_info(
+@agiRouter.get("/operators/by-option/{option}")
+def agi_operator_info_by_option(
+    option: str,
+    db: Session = Depends(get_db),
+    redis_conn: Optional[redis.Redis] = Depends(get_redis),
+):
+    """Translate an IVR menu digit into the operator's contact info.
+
+    Used by the dialplan after the caller picks an operator from the menu
+    played by ``/operators/menu``. The dialplan needs the operator's
+    internal number (to pass to ``/operators/select``), name (for logs and
+    CDR), phone (for ``Dial()``), and trunk (for the outbound channel
+    technology). This endpoint provides all four in one round-trip and
+    does NOT claim the operator -- the atomic claim happens later via
+    ``/operators/select``.
+
+    The split exists because there is typically a 5-10 second window
+    between menu render and Dial (caller hears options, picks one, audio
+    finishes). Claiming on selection would lock an operator for that
+    entire window even if the call is later abandoned. Claiming
+    just-before-Dial keeps operators free for as long as possible at the
+    cost of a small race window that ``/operators/select`` resolves with
+    ``SELECT FOR UPDATE``.
+
+    Path param:
+        option: the menu digit the caller pressed, e.g. "1" or "01".
+                Zero-padded internally; both forms work.
+
+    Response on success:
+        ok                : true
+        operador_numero   : operator's internal number (string,
+                            pass to ``/operators/select`` as ``selection``)
+        operador_nombre   : operator's display name
+        operador_telefono : operator's contact phone number for Dial()
+        operador_trunk    : SIP trunk to dial via, may be empty string
+        loggedin          : true/false, whether the operator is logged in
+                            (advisory: real claim is in ``/operators/select``)
+        available         : true/false, whether the operator is currently free
+                            (advisory: real claim is in ``/operators/select``)
+
+    Response on failure:
+        ok      : false
+        reason  : "not-found"           - no operator has this option digit
+                  "no-phone-configured" - operator exists but has no
+                                          enabled contact phone to Dial()
+    """
+    try:
+        op = svc_operator(db, option=option)
+    except OperatorNotFound:
+        return {"ok": False, "reason": "not-found"}
+
+    phone = next((p for p in op.numbers if p.contact and p.enabled), None)
+    if not phone:
+        return {"ok": False, "reason": "no-phone-configured"}
+
+    return {
+        "ok": True,
+        "operador_numero": str(op.number),
+        "operador_nombre": op.name,
+        "operador_telefono": phone.number,
+        "operador_trunk": phone.trunk or "",
+        "loggedin": op.loggedin,
+        "available": op.available,
+    }
+
+
+@agiRouter.get("/operators/by-ani/{ani}")
+def agi_operator_info_by_ani(
     ani: str,
     db: Session = Depends(get_db),
     redis_conn: Optional[redis.Redis] = Depends(get_redis),
 ):
-    """Find operator info
+    """Look up an operator by one of their registered phone numbers (ANI).
+
+    Used when the caller's phone number itself identifies the operator,
+    e.g. an operator dialing in from their own line. Matches against
+    ``OperatorPhone.number`` where ``enabled=True``.
+
+    Returns the same flat shape as ``/operators/by-option/{option}`` so
+    the dialplan can ``JSON_DECODE`` the same field names regardless of
+    which lookup it used. The ``operador_telefono`` field is the
+    operator's contact phone (the one flagged ``contact=True`` and
+    ``enabled=True``), which may differ from the inbound ANI -- the ANI
+    is just the identifier, the contact phone is what you ``Dial()``.
+
+    Path param:
+        ani: phone number in the format stored on ``OperatorPhone.number``.
+
+    Response on success:
+        ok                : true
+        operador_numero   : operator's internal number (string)
+        operador_nombre   : operator's display name
+        operador_telefono : operator's contact phone for Dial()
+        operador_trunk    : SIP trunk to dial via, may be empty string
+        loggedin          : true/false, whether the operator is logged in
+        available         : true/false, whether the operator is currently free
+
+    Response on failure:
+        ok      : false
+        reason  : "not-found"           - no enabled phone matches the ANI
+                  "no-phone-configured" - operator exists but has no
+                                          enabled contact phone to Dial()
     """
     try:
-        op = svc_operator(db, ani)
-    except OperatorNotFound as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    return op
+        op = svc_operator(db, ani=ani)
+    except OperatorNotFound:
+        return {"ok": False, "reason": "not-found"}
+
+    phone = next((p for p in op.numbers if p.contact and p.enabled), None)
+    if not phone:
+        return {"ok": False, "reason": "no-phone-configured"}
+
+    return {
+        "ok": True,
+        "operador_numero": str(op.number),
+        "operador_nombre": op.name,
+        "operador_telefono": phone.number,
+        "operador_trunk": phone.trunk or "",
+        "loggedin": op.loggedin,
+        "available": op.available,
+    }
 
 
 @agiRouter.post("/operators/{number}/release")

@@ -10,6 +10,7 @@ import datetime
 from typing import Optional
 
 import redis
+from sqlalchemy import Integer, cast
 from sqlalchemy.orm import Session
 
 from firenze.models import Operator
@@ -45,6 +46,22 @@ def _get_operator_by_phone(db: Session, ani: str) -> Operator:
     if not phone or not phone.operator:
         raise OperatorNotFound(f"No operator found for phone {ani}")
     return phone.operator
+
+
+def _get_operator_by_option(db: Session, option: str) -> Operator:
+    """Look up an operator by their IVR menu option digit.
+
+    ``Operator.option`` is stored as a 2-character zero-padded string
+    ('01' through '99'), matching the legacy ``ast_option`` field. The
+    dialplan typically reads a single digit from the caller, so we
+    zero-pad the input here to be forgiving: both '1' and '01' resolve
+    to the same operator.
+    """
+    normalized = option.zfill(2)
+    op = db.query(Operator).filter_by(option=normalized).first()
+    if not op:
+        raise OperatorNotFound(f"No operator with option {option}")
+    return op
 
 
 def login(
@@ -112,36 +129,57 @@ def get_menu(
     """
     operators = (
         db.query(Operator)
-        .filter_by(loggedin=True)
-        .order_by(Operator.option)
+        .filter_by(loggedin=True, available=True)
         .all()
     )
+    operators.sort(key=lambda op: int(op.option))
 
-    available = []
-    for op in operators:
-        if redis_conn and op.enable_valkey:
-            state = operator_state.get_state(redis_conn, op.number)
-            is_available = state["available"] if state else op.available
-        else:
-            is_available = op.available
-        if is_available:
-            available.append(op)
-
-    audio_parts = [op.audio_file for op in available if op.audio_file]
+    audio_parts = [op.audio_file for op in operators if op.audio_file]
     return {
-        "disponibles": len(available),
+        "disponibles": len(operators),
         "audio_str": "&".join(audio_parts),
     }
 
 
-def info_operator(db: Session, number: Optional[int] = None, ani: Optional[str] = None) -> Operator:
-    """Get information from an operator
+def info_operator(
+    db: Session,
+    number: Optional[int] = None,
+    ani: Optional[str] = None,
+    option: Optional[str] = None,
+) -> Operator:
+    """Look up an operator by one of three identifiers.
+
+    Exactly one of ``number``, ``ani``, or ``option`` should be provided.
+    They are tried in that order, so if more than one is passed the first
+    non-empty wins.
+
+    Args:
+        number: the operator's internal number (e.g. 1001). Used by the
+            admin panel and CLI tools.
+        ani: a phone number registered to the operator (in any format
+            stored on ``OperatorPhone.number``). Used by the
+            ``[tarotista-login]`` flow that identifies the operator by
+            the line they are calling from.
+        option: the IVR menu digit the caller pressed (e.g. "1" or "01").
+            Used by the dialplan after the caller picks an operator from
+            the menu rendered by ``/operators/menu``. Zero-padded
+            internally; both "1" and "01" resolve to the same operator.
+
+    Returns:
+        The matching ``Operator`` ORM object, or ``None`` if no
+        identifier was provided.
+
+    Raises:
+        OperatorNotFound: if the provided identifier doesn't match any
+            operator.
     """
     op = None
     if number:
         op = _get_operator(db, number)
     elif ani:
         op = _get_operator_by_phone(db, ani)
+    elif option:
+        op = _get_operator_by_option(db, option)
     return op
 
 
@@ -164,9 +202,17 @@ def select_operator(
     if no suitable operator is available.
     """
     if mode == "option":
+        try:
+            selection_int = int(selection)
+        except (TypeError, ValueError):
+            return {"ok": False, "reason": "operator-busy"}
         op = (
             db.query(Operator)
-            .filter_by(option=selection, loggedin=True, available=True)
+            .filter(
+                cast(Operator.option, Integer) == selection_int,
+                Operator.loggedin.is_(True),
+                Operator.available.is_(True),
+            )
             .with_for_update()
             .first()
         )
@@ -259,7 +305,8 @@ def set_availability(
     """
     op = _get_operator(db, number)
     op.available = available
-    op.lastcall = datetime.datetime.now()
+    if available:
+        op.lastcall = datetime.datetime.now()
     db.commit()
     db.refresh(op)
 

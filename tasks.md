@@ -70,7 +70,8 @@ dialplan is migrated piece by piece:
 - `POST /agi/operators/{number}/release`
 - `POST /agi/operators/by-phone/{ani}/login`
 - `POST /agi/operators/by-phone/{ani}/logout`
-- `POST /agi/operators/{ani}` (info)
+- `GET  /agi/operators/by-ani/{ani}` (info, lookup by phone number)
+- `GET  /agi/operators/by-option/{option}` (info, lookup by IVR menu digit)
 
 ### Redis layer
 

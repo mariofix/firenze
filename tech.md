@@ -239,7 +239,35 @@ Stamps `lastcall` in Redis so "forgot to logout" detection has a signal.
 ```
 POST /agi/operators/by-phone/{ani}/login   -> {"ok": true}
 POST /agi/operators/by-phone/{ani}/logout  -> {"ok": true}
-POST /agi/operators/{ani}                  -> operator info (JSON)
+```
+
+### Operator info (lookup, no claim)
+
+Read-only lookups used between `/operators/menu` and `/operators/select`.
+The dialplan plays the menu, the caller picks an option, the dialplan
+calls one of these to translate the input into the operator's contact
+info, then later calls `/operators/select` to atomically claim. Splitting
+lookup from claim keeps operators free during the 5-10s menu/audio
+window; the atomic `SELECT FOR UPDATE` in `/operators/select` resolves
+the resulting race. `loggedin` and `available` in the response are
+advisory only - trust `/operators/select` for the real claim.
+
+```
+GET /agi/operators/by-option/{option}     (option: "1" or "01", zero-padded internally)
+GET /agi/operators/by-ani/{ani}           (ani: phone number registered to operator)
+
+success (same shape from both):
+-> {"ok": true,
+    "operador_numero":   "1001",
+    "operador_nombre":   "Maria",
+    "operador_telefono": "56912345678",
+    "operador_trunk":    "claro1",
+    "loggedin":          true,
+    "available":         true}
+
+failure:
+-> {"ok": false, "reason": "not-found"}
+-> {"ok": false, "reason": "no-phone-configured"}
 ```
 
 ## Redis / Valkey

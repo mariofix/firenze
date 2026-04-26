@@ -11,10 +11,25 @@ from firenze.models import (
     Service,
     ServiceNumber,
     User,
+    Client,
+    ClientAni
 )
 
 _TIMESTAMP_EXCLUDED = ["created_at", "modified_at"]
 
+class ClientAdmin(ModelView, model=Client):
+    name = "Client"
+    name_plural = "Clients"
+    form_excluded_columns = _TIMESTAMP_EXCLUDED
+    column_searchable_list = [Client.client_id]
+    column_list = [Client.client_id, Client.email, Client.service]
+
+class ClientAniAdmin(ModelView, model=ClientAni):
+    name = "Client ANI"
+    name_plural = "Client ANIs"
+    form_excluded_columns = _TIMESTAMP_EXCLUDED
+    column_searchable_list = [ClientAni.ani, ClientAni.client]
+    column_list = [ClientAni.client_id, ClientAni.ani]
 
 class DNCAdmin(ModelView, model=DoNotCall):
     column_list = [DoNotCall.ani, DoNotCall.reason, DoNotCall.created_at]
@@ -70,7 +85,11 @@ class OperatorAdmin(ModelView, model=Operator):
     ]
     column_searchable_list = [Operator.name]
     column_sortable_list = [Operator.number, Operator.lastcall, Operator.loggedin]
-    form_excluded_columns = _TIMESTAMP_EXCLUDED
+    form_excluded_columns = _TIMESTAMP_EXCLUDED + [
+        "loggedin",
+        "available",
+        "lastcall",
+    ]
     name = "Operator"
     name_plural = "Operators"
     form_args = {
@@ -79,9 +98,6 @@ class OperatorAdmin(ModelView, model=Operator):
         "description": {"description": "Internal notes about this operator (optional)"},
         "option": {"description": "1-2 digit code the caller presses to select this operator, e.g. 01"},
         "enable_valkey": {"description": "Use Redis/Valkey for real-time availability state (recommended)"},
-        "loggedin": {"description": "Whether the operator is currently logged in"},
-        "available": {"description": "Whether the operator is available to receive calls"},
-        "lastcall": {"description": "Timestamp of last call received"},
     }
 
 
@@ -185,3 +201,6 @@ def register_admin(admin):
     admin.add_view(PostCallProcessAdmin)
     admin.add_view(UserAdmin)
     admin.add_view(EventAdmin)
+    admin.add_view(ClientAdmin)
+    admin.add_view(ClientAniAdmin)
+
