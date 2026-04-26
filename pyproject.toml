@@ -28,6 +28,7 @@ dependencies = [
   "bcrypt>=4.3",
   "python-jose (>=3.5.0,<4.0.0)",
   "gunicorn (>=25.3.0,<26.0.0)",
+  "redis (>=7.4.0,<8.0.0)",
 ]
 
 [project.scripts]

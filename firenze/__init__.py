@@ -39,12 +39,13 @@ def create_app():
 
 
     # sqladmin
-    authentication_backend = AdminAuth(secret_key=settings.SECRET_KEY)
+    # authentication_backend = AdminAuth(secret_key=settings.SECRET_KEY)
+    # rewrite using something else
     admin = Admin(
         app,
         engine,
         title="Firenze Admin",
-        authentication_backend=authentication_backend,
+        
     )
 
     register_admin(admin)
