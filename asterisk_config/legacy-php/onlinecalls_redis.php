@@ -92,14 +92,22 @@ function is_call_active($redis, $service, $ani) {
 }
 
 
-// --- example usage (remove before integrating) ---
 if (php_sapi_name() === 'cli') {
+    require_once __DIR__ . '/vendor/autoload.php';
+    $cli = new League\CLImate\CLImate();
+
+    $service = $argv[1] ?? (getenv('SERVICE') ?: 'fonotarot-cl');
+
     $redis = get_redis_connection($redis_host, $redis_port, $redis_db);
 
-    $service = 'alotarot';
+    $cli->backgroundMagenta()->white()->bold()->out(" :: redis firenze ({$service}) :: ");
 
-    echo "=== active calls for {$service} ===\n";
-    foreach (get_online_calls($redis, $service) as $call) {
-        echo implode(' | ', $call) . "\n";
+    $calls = get_online_calls($redis, $service);
+    $cli->br()->cyan()->bold()->out("active calls for {$service}");
+    if (empty($calls)) {
+        $cli->dim()->out('  (none)');
+    } else {
+        $cli->table($calls);
     }
+    $cli->br();
 }

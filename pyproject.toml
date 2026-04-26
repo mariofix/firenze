@@ -1,40 +1,29 @@
 [project]
 name = "firenze"
-version = "2026.4.0"
+version = "2026.4.1"
 description = "Servicio de comunicacion y administracion para servicio Tatot"
-authors = [{ name = "Mario Hernandez", email = "mariofix@pm.me" }]
 readme = "README.md"
+authors = [{ name = "Mario Hernandez", email = "mariofix@proton.me" }]
 requires-python = ">=3.14"
 dependencies = [
-  "pymysql>=1.1.2",
-  "python-dotenv>=1.0",
-  "requests>=2.32",
-  "python-slugify>=8.0.4",
   "alembic>=1.18.4",
-  "sqlalchemy>=2.0.48",
-  "peewee>=3.17",
-  "bcrypt>=4.3",
-  "python-multipart>=0.0.20",
+  "fastapi[all]>=0.136.1",
+  "itsdangerous>=2.2.0",
   "jinja2>=3.1.6",
-  "pystrix>=1.2.0",
-  "sqladmin>=0.23.0",
-  "phonenumbers>=8.13.52",
+  "phonenumbers>=9.0.28",
+  "pydantic-settings>=2.14.0",
+  "pydantic[email]>=2.13.3",
+  "pymysql>=1.1.2",
+  "python-dotenv>=1.2.2",
+  "python-multipart>=0.0.26",
+  "python-slugify>=8.0.4",
+  "requests>=2.33.1",
+  "sqladmin>=0.25.0",
   "sqlalchemy-repr>=0.1.0",
-  "uvicorn[standard]>=0.34.0",
-  "python-jose[cryptography]>=3.3.0",
-  "typer>=0.15.2",
-  "python-dateutil>=2.9",
-  "pydantic[email]>=2.12.5",
-  "pydantic-settings>=2.13.1",
-  "fastapi>=0.115.11",
-  "itsdangerous>=2.2",
-  "redis>=5.3.0",
-  "fastapi-cli>=0.0.7",
+  "typer>=0.24.2",
+  "uvicorn[standard]>=0.46.0",
+  "valkey>=6.1.1",
 ]
-
-[project.optional-dependencies]
-deploy = ["gunicorn"]
-dev = ["pytest", "coverage", "ruff", "httpx", "fastapi-debug-toolbar"]
 
 [project.scripts]
 firenze = "firenze.cli:cli"
@@ -48,7 +37,7 @@ prepend_sys_path = "."
 timezone = "America/Santiago"
 
 [tool.ruff]
-line-length = 88
+line-length = 119
 
 [build-system]
 requires = ["hatchling"]
@@ -56,4 +45,3 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["firenze"]
-

@@ -4,7 +4,6 @@ from sqladmin import ModelView
 from firenze.models import (
     DoNotCall,
     Event,
-    FonoTarotLatamClient,
     OnlineCalls,
     Operator,
     OperatorPhone,
@@ -107,30 +106,6 @@ class OperatorPhoneAdmin(ModelView, model=OperatorPhone):
     }
 
 
-class FonoTarotLatamClientAdmin(ModelView, model=FonoTarotLatamClient):
-    column_list = [
-        FonoTarotLatamClient.client_id,
-        FonoTarotLatamClient.full_name,
-        FonoTarotLatamClient.email,
-        FonoTarotLatamClient.pin_code,
-        FonoTarotLatamClient.credits,
-    ]
-    column_searchable_list = [
-        FonoTarotLatamClient.email,
-        FonoTarotLatamClient.pin_code,
-        FonoTarotLatamClient.full_name,
-    ]
-    column_sortable_list = [FonoTarotLatamClient.credits, FonoTarotLatamClient.client_id]
-    form_excluded_columns = _TIMESTAMP_EXCLUDED + ["pin_code"]
-    name = "FonoTarot Latam Client"
-    name_plural = "FonoTarot Latam Clients"
-    form_args = {
-        "full_name": {"description": "Client display name (auto-filled from email if blank)"},
-        "email": {"description": "Client email address — used as login identifier"},
-        "phone_number": {"description": "Client phone number in E.164 format (optional)"},
-        "credits": {"description": "Balance in seconds, e.g. 1800 = 30 minutes"},
-    }
-
 
 class OnlineCallsAdmin(ModelView, model=OnlineCalls):
     column_list = [
@@ -206,7 +181,6 @@ def register_admin(admin):
     admin.add_view(ServiceNumberAdmin)
     admin.add_view(OperatorAdmin)
     admin.add_view(OperatorPhoneAdmin)
-    admin.add_view(FonoTarotLatamClientAdmin)
     admin.add_view(OnlineCallsAdmin)
     admin.add_view(PostCallProcessAdmin)
     admin.add_view(UserAdmin)

@@ -11,7 +11,7 @@
 
 $db_host = getenv('DB_HOST') ?: '127.0.0.1';
 $db_port = getenv('DB_PORT') ?: '3306';
-$db_name = getenv('DB_NAME') ?: 'firenze';
+$db_name = getenv('DB_NAME') ?: 'zvn_firenze';
 $db_user = getenv('DB_USER') ?: 'firenze';
 $db_pass = getenv('DB_PASS') ?: '';
 
@@ -87,17 +87,28 @@ function get_call_counts($pdo) {
 }
 
 
-// --- example usage (remove before integrating) ---
 if (php_sapi_name() === 'cli') {
+    require_once __DIR__ . '/vendor/autoload.php';
+    $cli = new League\CLImate\CLImate();
+
     $pdo = get_db_connection($db_host, $db_port, $db_name, $db_user, $db_pass);
 
-    echo "=== all calls ===\n";
-    foreach (get_online_calls($pdo) as $call) {
-        echo implode(' | ', $call) . "\n";
+    $cli->backgroundBlue()->white()->bold()->out(' :: firenze (mariadb / ' . $db_name . ') :: ');
+
+    $calls = get_online_calls($pdo);
+    $cli->br()->cyan()->bold()->out('active calls');
+    if (empty($calls)) {
+        $cli->dim()->out('  (none)');
+    } else {
+        $cli->table($calls);
     }
 
-    echo "\n=== counts per service ===\n";
-    foreach (get_call_counts($pdo) as $row) {
-        echo "{$row['service']}: {$row['total']}\n";
+    $counts = get_call_counts($pdo);
+    $cli->br()->cyan()->bold()->out('counts per service');
+    if (empty($counts)) {
+        $cli->dim()->out('  (none)');
+    } else {
+        $cli->table($counts);
     }
+    $cli->br();
 }
