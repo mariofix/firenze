@@ -1,12 +1,17 @@
 """Client lookup and credit management.
 
-Used by AGI endpoints — Asterisk dialplan calls these via CURL.
+Used by AGI endpoints - Asterisk dialplan calls these via CURL.
 """
+
+import logging
 
 from sqlalchemy.orm import Session
 
 from firenze.models.client import Client, ClientAni
 from firenze.models.service import Service
+from firenze.services.notifications import notify
+
+logger = logging.getLogger("firenze")
 
 
 class ClientNotFound(Exception):
@@ -14,10 +19,6 @@ class ClientNotFound(Exception):
 
 
 class ServiceNotFound(Exception):
-    pass
-
-
-class InsufficientCredits(Exception):
     pass
 
 
@@ -48,7 +49,7 @@ def lookup(db: Session, service_slug: str, identifier: str) -> dict:
             client = db.query(Client).filter_by(service_id=svc.id, client_id=client_ani.client_id).first()
 
     if not client:
-        return {"clientid": 0, "segundos": 0, "a": 1}
+        return {"clientid": 0, "segundos": 0}
     return {"clientid": client.client_id, "segundos": client.credits}
 
 
@@ -65,11 +66,28 @@ def deduct_credits(db: Session, service_slug: str, client_id: int, seconds: int)
     )
     if not client:
         raise ClientNotFound(f"Client {client_id} not found in service '{service_slug}'")
-    if client.credits < seconds:
-        raise InsufficientCredits(
-            f"Client {client_id} has {client.credits}s, needs {seconds}s"
+    if client.credits <= 0:
+        # Per-client one-call-at-a-time enforcement upstream should make this
+        # unreachable. If we land here, the customer made a call without
+        # credits - log loudly and notify, but don't fail the deduction.
+        logger.warning(f"deduct_credits called with no balance: {service_slug=} {client_id=} {seconds=} {credits=}")
+        notify(
+            subject=f"[firenze] deduct on zero balance: client {client_id}",
+            body=(
+                f"deduct_credits was called for a client with no credits.\n\n"
+                f"service: {service_slug}\n"
+                f"client_id: {client_id}\n"
+                f"seconds requested: {seconds}\n"
+                f"current credits: {client.credits}\n\n"
+                f"This should be unreachable - the per-client call lock upstream "
+                f"is supposed to prevent a second call from starting. Investigate."
+            ),
         )
+        return {"ok": True, "remaining": 0, "before": client.credits}
+    before_call = client.credits
     client.credits -= seconds
+    if client.credits < 0:
+        client.credits = 0
     db.commit()
     db.refresh(client)
-    return {"ok": True, "remaining": client.credits}
+    return {"ok": True, "remaining": client.credits, "before": before_call}

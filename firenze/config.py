@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     LEGACY_API_URL: str = "https://firenze.156.cl"
     LEGACY_API_USER: str = ""
     LEGACY_API_PASSWORD: str = ""
+    DALEKS_URL: str = ""
+    DALEKS_FROM: str = ""
+    DALEKS_TO: str = ""
+    DALEKS_SMTP_ACCOUNT: str = ""
 
 
 @lru_cache()

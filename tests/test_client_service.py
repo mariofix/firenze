@@ -1,12 +1,11 @@
-"""Tests for firenze.services.client_service — client lookup and credit deduction."""
+"""Tests for firenze.services.client_service - client lookup and credit deduction."""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from firenze.services.client_service import (
     ClientNotFound,
-    InsufficientCredits,
     ServiceNotFound,
     deduct_credits,
     lookup,
@@ -116,7 +115,7 @@ class TestDeductCredits:
 
         assert client.credits == 700
         session.commit.assert_called_once()
-        assert result == {"ok": True, "remaining": 700}
+        assert result == {"ok": True, "remaining": 700, "before": 1000}
 
     def test_deduct_exact_balance(self):
         svc = _make_service()
@@ -126,15 +125,30 @@ class TestDeductCredits:
         result = deduct_credits(session, "fonotarot-latam", 100, 500)
 
         assert client.credits == 0
-        assert result == {"ok": True, "remaining": 0}
+        assert result == {"ok": True, "remaining": 0, "before": 500}
 
-    def test_raises_insufficient_credits(self):
+    def test_overdraft_clamps_to_zero(self):
         svc = _make_service()
         client = _make_client(credits=100)
         session = _mock_session_for_deduct(svc, client)
 
-        with pytest.raises(InsufficientCredits):
-            deduct_credits(session, "fonotarot-latam", 100, 500)
+        result = deduct_credits(session, "fonotarot-latam", 100, 500)
+
+        assert client.credits == 0
+        session.commit.assert_called_once()
+        assert result == {"ok": True, "remaining": 0, "before": 100}
+
+    def test_zero_balance_notifies_and_returns_ok(self):
+        svc = _make_service()
+        client = _make_client(credits=0)
+        session = _mock_session_for_deduct(svc, client)
+
+        with patch("firenze.services.client_service.notify") as mock_notify:
+            result = deduct_credits(session, "fonotarot-latam", 100, 300)
+
+        mock_notify.assert_called_once()
+        session.commit.assert_not_called()
+        assert result == {"ok": True, "remaining": 0, "before": 0}
 
     def test_raises_client_not_found(self):
         svc = _make_service()

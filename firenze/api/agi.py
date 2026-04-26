@@ -19,7 +19,6 @@ from firenze.services.call_service import (
 )
 from firenze.services.client_service import (
     ClientNotFound,
-    InsufficientCredits,
     ServiceNotFound,
 )
 from firenze.services.client_service import deduct_credits as svc_deduct
@@ -123,8 +122,6 @@ def agi_client_deduct(
         raise HTTPException(status_code=404, detail=str(e))
     except ClientNotFound as e:
         raise HTTPException(status_code=404, detail=str(e))
-    except InsufficientCredits as e:
-        raise HTTPException(status_code=409, detail=str(e))
 
 
 # ---------------------------------------------------------------------------

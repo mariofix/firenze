@@ -7,6 +7,7 @@ authors = [{ name = "Mario Hernandez", email = "mariofix@proton.me" }]
 requires-python = ">=3.14"
 dependencies = [
   "alembic>=1.18.4",
+  "daleks[contrib] @ git+https://github.com/mariofix/daleks.git",
   "fastapi[all]>=0.136.1",
   "itsdangerous>=2.2.0",
   "jinja2>=3.1.6",

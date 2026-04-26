@@ -1,10 +1,10 @@
 # Proyecto Firenze
 
-Servicio de comunicacion y administracion para servicio Tatot  
-Asterisk 18  
+Servicio de comunicacion y administracion para servicio Tatot
+Asterisk 18
 Python 3.10
-FastAPI  
-SQLAdmin  
+FastAPI
+SQLAdmin
 Typer
 
 ## Instalacion
