@@ -5,6 +5,7 @@ routers or CLI commands. MySQL is the source of truth; Redis is a hot
 cache consumed by legacy PHP readers and dashboards.
 """
 
+import logging
 from typing import Optional
 
 import redis
@@ -13,6 +14,8 @@ from sqlalchemy.orm import Session
 
 from firenze.models.call import OnlineCalls
 from firenze.redis import call_state
+
+logger = logging.getLogger("firenze")
 
 
 def insert_call(
@@ -37,8 +40,16 @@ def insert_call(
     db.add(call)
     try:
         db.commit()
-    except IntegrityError:
+    except IntegrityError as exc:
         db.rollback()
+        logger.warning(
+            "insert_call: IntegrityError (likely duplicate active call) for service=%r ani=%r did=%r client_id=%s: %s",
+            service,
+            ani,
+            did,
+            client_id,
+            exc,
+        )
         return {"ok": False, "reason": "call-already-active"}
     db.refresh(call)
 
@@ -92,6 +103,12 @@ def update_call_operator(
     """
     call = db.query(OnlineCalls).filter_by(service=service, ani=ani).first()
     if not call:
+        logger.warning(
+            "update_call_operator: no active OnlineCalls row for service=%r ani=%r (operator=%s)",
+            service,
+            ani,
+            operator,
+        )
         return {"ok": False, "reason": "call-not-found"}
     call.operator = operator
     db.commit()

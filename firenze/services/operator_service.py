@@ -4,6 +4,7 @@ Both the API and CLI call these functions — no business logic lives in
 routers or CLI commands.
 """
 
+import logging
 import secrets
 import time
 import datetime
@@ -16,6 +17,8 @@ from sqlalchemy.orm import Session
 from firenze.models import Operator
 from firenze.models.operator import OperatorPhone
 from firenze.redis import operator_state
+
+logger = logging.getLogger("firenze")
 
 
 class OperatorNotFound(Exception):
@@ -33,6 +36,7 @@ class OperatorNoPhone(Exception):
 def _get_operator(db: Session, number: int) -> Operator:
     op = db.query(Operator).filter_by(number=number).first()
     if not op:
+        logger.warning("_get_operator: no operator with number=%r", number)
         raise OperatorNotFound(f"Operator {number} not found")
     return op
 
@@ -43,7 +47,18 @@ def _get_operator_by_phone(db: Session, ani: str) -> Operator:
         .filter_by(number=ani, enabled=True)
         .first()
     )
-    if not phone or not phone.operator:
+    if not phone:
+        logger.warning(
+            "_get_operator_by_phone: no enabled OperatorPhone with number=%r",
+            ani,
+        )
+        raise OperatorNotFound(f"No operator found for phone {ani}")
+    if not phone.operator:
+        logger.warning(
+            "_get_operator_by_phone: OperatorPhone id=%s number=%r has no linked operator",
+            phone.id,
+            ani,
+        )
         raise OperatorNotFound(f"No operator found for phone {ani}")
     return phone.operator
 
@@ -51,15 +66,30 @@ def _get_operator_by_phone(db: Session, ani: str) -> Operator:
 def _get_operator_by_option(db: Session, option: str) -> Operator:
     """Look up an operator by their IVR menu option digit.
 
-    ``Operator.option`` is stored as a 2-character zero-padded string
-    ('01' through '99'), matching the legacy ``ast_option`` field. The
-    dialplan typically reads a single digit from the caller, so we
-    zero-pad the input here to be forgiving: both '1' and '01' resolve
-    to the same operator.
+    ``Operator.option`` is a ``String(2)`` column but values are stored
+    without leading zeros ('1', '2', ..., '99'). The dialplan may send
+    either '1' or '01', so we compare numerically: cast both the column
+    and the input to int. Matches ``select_operator``'s behavior.
     """
-    normalized = option.zfill(2)
-    op = db.query(Operator).filter_by(option=normalized).first()
+    try:
+        option_int = int(option)
+    except (TypeError, ValueError):
+        logger.warning(
+            "_get_operator_by_option: non-numeric option=%r",
+            option,
+        )
+        raise OperatorNotFound(f"No operator with option {option}")
+    op = (
+        db.query(Operator)
+        .filter(cast(Operator.option, Integer) == option_int)
+        .first()
+    )
     if not op:
+        logger.warning(
+            "_get_operator_by_option: no operator with option=%d (raw input=%r)",
+            option_int,
+            option,
+        )
         raise OperatorNotFound(f"No operator with option {option}")
     return op
 
@@ -204,8 +234,13 @@ def select_operator(
     if mode == "option":
         try:
             selection_int = int(selection)
-        except (TypeError, ValueError):
-            return {"ok": False, "reason": "operator-busy"}
+        except (TypeError, ValueError) as exc:
+            logger.error(
+                "select_operator: invalid selection=%r for mode=option (%s)",
+                selection,
+                exc,
+            )
+            return {"ok": False, "reason": "invalid-selection"}
         op = (
             db.query(Operator)
             .filter(
@@ -217,6 +252,10 @@ def select_operator(
             .first()
         )
         if not op:
+            logger.warning(
+                "select_operator: no available operator with option=%r (loggedin=True, available=True)",
+                selection_int,
+            )
             return {"ok": False, "reason": "operator-busy"}
     else:
         # Get candidates without lock first to avoid locking the whole table.
@@ -227,6 +266,9 @@ def select_operator(
             .all()
         ]
         if not candidate_numbers:
+            logger.warning(
+                "select_operator: no candidates (no operator has loggedin=True AND available=True)"
+            )
             return {"ok": False, "reason": "no-operators"}
 
         remaining = list(candidate_numbers)
@@ -245,6 +287,10 @@ def select_operator(
                 break
 
         if not op:
+            logger.warning(
+                "select_operator: all %d candidates lost the race (became unavailable between query and lock)",
+                len(candidate_numbers),
+            )
             return {"ok": False, "reason": "no-operators"}
 
     op.available = False
@@ -261,6 +307,11 @@ def select_operator(
 
     phone = next((p for p in op.numbers if p.contact and p.enabled), None)
     if not phone:
+        logger.error(
+            "select_operator: operator number=%s option=%r has no contact+enabled OperatorPhone; rolling availability back",
+            op.number,
+            op.option,
+        )
         op.available = True
         db.commit()
         return {"ok": False, "reason": "no-phone-configured"}

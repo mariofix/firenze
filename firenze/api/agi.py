@@ -4,6 +4,7 @@ These return flat JSON dicts with the exact variable names the dialplan expects.
 No JWT auth — protected by binding to localhost / LAN only.
 """
 
+import logging
 from typing import Optional
 
 import redis
@@ -11,6 +12,8 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from firenze.dependencies import get_db, get_redis
+
+logger = logging.getLogger("firenze")
 from firenze.services.call_service import (
     delete_call,
     get_active_call,
@@ -102,6 +105,12 @@ def agi_client_lookup(
     try:
         return svc_lookup(db, service, identifier)
     except ServiceNotFound as e:
+        logger.warning(
+            "agi_client_lookup: ServiceNotFound for service=%r identifier=%r: %s",
+            service,
+            identifier,
+            e,
+        )
         raise HTTPException(status_code=404, detail=str(e))
 
 
@@ -119,8 +128,22 @@ def agi_client_deduct(
     try:
         return svc_deduct(db, service, client_id, seconds)
     except ServiceNotFound as e:
+        logger.warning(
+            "agi_client_deduct: ServiceNotFound for service=%r client_id=%s seconds=%s: %s",
+            service,
+            client_id,
+            seconds,
+            e,
+        )
         raise HTTPException(status_code=404, detail=str(e))
     except ClientNotFound as e:
+        logger.warning(
+            "agi_client_deduct: ClientNotFound for service=%r client_id=%s seconds=%s: %s",
+            service,
+            client_id,
+            seconds,
+            e,
+        )
         raise HTTPException(status_code=404, detail=str(e))
 
 
@@ -265,7 +288,8 @@ def agi_operator_info_by_option(
 
     Path param:
         option: the menu digit the caller pressed, e.g. "1" or "01".
-                Zero-padded internally; both forms work.
+                Compared numerically; both forms work regardless of how
+                the column is stored.
 
     Response on success:
         ok                : true
@@ -287,11 +311,22 @@ def agi_operator_info_by_option(
     """
     try:
         op = svc_operator(db, option=option)
-    except OperatorNotFound:
+    except OperatorNotFound as e:
+        logger.warning(
+            "agi_operator_info_by_option: OperatorNotFound for option=%r: %s",
+            option,
+            e,
+        )
         return {"ok": False, "reason": "not-found"}
 
     phone = next((p for p in op.numbers if p.contact and p.enabled), None)
     if not phone:
+        logger.warning(
+            "agi_operator_info_by_option: operator number=%s option=%r has no contact+enabled OperatorPhone (numbers=%d)",
+            op.number,
+            option,
+            len(op.numbers),
+        )
         return {"ok": False, "reason": "no-phone-configured"}
 
     return {
@@ -344,11 +379,22 @@ def agi_operator_info_by_ani(
     """
     try:
         op = svc_operator(db, ani=ani)
-    except OperatorNotFound:
+    except OperatorNotFound as e:
+        logger.warning(
+            "agi_operator_info_by_ani: OperatorNotFound for ani=%r: %s",
+            ani,
+            e,
+        )
         return {"ok": False, "reason": "not-found"}
 
     phone = next((p for p in op.numbers if p.contact and p.enabled), None)
     if not phone:
+        logger.warning(
+            "agi_operator_info_by_ani: operator number=%s ani=%r has no contact+enabled OperatorPhone (numbers=%d)",
+            op.number,
+            ani,
+            len(op.numbers),
+        )
         return {"ok": False, "reason": "no-phone-configured"}
 
     return {
@@ -376,6 +422,11 @@ def agi_operator_release(
     try:
         svc_release(db, number, redis_conn)
     except OperatorNotFound as e:
+        logger.warning(
+            "agi_operator_release: OperatorNotFound for number=%s: %s",
+            number,
+            e,
+        )
         raise HTTPException(status_code=404, detail=str(e))
     return {"ok": True}
 
@@ -398,6 +449,11 @@ def agi_operator_login(
     try:
         login_by_phone(db, ani, redis_conn)
     except OperatorNotFound as e:
+        logger.warning(
+            "agi_operator_login: OperatorNotFound for ani=%r: %s",
+            ani,
+            e,
+        )
         raise HTTPException(status_code=404, detail=str(e))
     return {"ok": True}
 
@@ -415,5 +471,10 @@ def agi_operator_logout(
     try:
         logout_by_phone(db, ani, redis_conn)
     except OperatorNotFound as e:
+        logger.warning(
+            "agi_operator_logout: OperatorNotFound for ani=%r: %s",
+            ani,
+            e,
+        )
         raise HTTPException(status_code=404, detail=str(e))
     return {"ok": True}
