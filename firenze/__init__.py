@@ -11,6 +11,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from firenze.admin import register_admin
 from firenze.api.agi import agiRouter
+from firenze.api.payments import paymentsRouter
 from firenze.auth import AdminAuth
 from firenze.config import LOGGING_CONFIG, settings, Settings
 from firenze.database import engine
@@ -52,7 +53,10 @@ def create_app():
 
     # AGI endpoints (called by Asterisk dialplan via CURL)
     app.include_router(agiRouter)
-    
+
+    # Payment / storefront endpoints (called by nuevo-fonotarot)
+    app.include_router(paymentsRouter)
+
 
     @app.on_event("startup")
     async def startup():
