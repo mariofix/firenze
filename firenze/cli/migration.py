@@ -56,7 +56,9 @@ def _get_token(base_url: str, username: str, password: str) -> str:
     return resp.json()["access_token"]
 
 
-def _fetch_client(base_url: str, token: str, service_slug: str, client_id: int) -> dict | None:
+def _fetch_client(
+    base_url: str, token: str, service_slug: str, client_id: int
+) -> dict | None:
     """Fetch one client from the legacy API. Returns None if not found."""
     resp = requests.get(
         f"{base_url}/audiotex/{service_slug}/client/{client_id}",
@@ -68,20 +70,26 @@ def _fetch_client(base_url: str, token: str, service_slug: str, client_id: int) 
     resp.raise_for_status()
     return resp.json()
 
+
+
+
 @app.command("update-phones")
-def update_phones(ctx: typer.Context, dry_run: bool = typer.Option(False, "--dry-run", help="Show what would happen without writing")):
+def update_phones(
+    ctx: typer.Context,
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show what would happen without writing"
+    ),
+):
     """Fin the most used ANI in ClientAni to fill client.phone_number
 
     Examples:
         firenze migration update-phones --dry-run
     """
-    
+
     db = ctx.obj["dbsession"]
     stmt = (
         select(
-            ClientAni.client_id,
-            func.count(ClientAni.ani).label("total"),
-            ClientAni.ani
+            ClientAni.client_id, func.count(ClientAni.ani).label("total"), ClientAni.ani
         )
         .where(ClientAni.service_id == 2)
         .group_by(ClientAni.client_id)
@@ -90,20 +98,21 @@ def update_phones(ctx: typer.Context, dry_run: bool = typer.Option(False, "--dry
 
     # Execute
     results = db.execute(stmt).all()
-    
-    
+
     for ani in results:
         if ani[1] == 1:
-            client = db.query(Client).filter_by(service_id=2, client_id=ani[0], phone_number=None).first()
+            client = (
+                db.query(Client)
+                .filter_by(service_id=2, client_id=ani[0], phone_number=None)
+                .first()
+            )
             print(f"ANI: {ani[2]} - Client: {client}")
             if client:
-                client.phone_number=ani[2]
+                client.phone_number = ani[2]
                 db.flush()
                 db.commit()
                 print(f"{client=}")
-                
 
-            
 
 @app.command("clients")
 def migrate_clients(
@@ -112,7 +121,9 @@ def migrate_clients(
     client_specs: list[str] = typer.Argument(
         ..., help="Client IDs: '42', '10-34', or mixed e.g. '10-34 55 67'"
     ),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would happen without writing"),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show what would happen without writing"
+    ),
 ):
     """Migrate clients from the legacy Firenze API into the new DB.
 
@@ -126,18 +137,26 @@ def migrate_clients(
     """
     db = ctx.obj["dbsession"]
 
-
     svc = db.query(Service).filter_by(slug=service.value).first()
     if not svc:
-        typer.echo(f"Service '{service.value}' not found in DB - run migrations first.", err=True)
+        typer.echo(
+            f"Service '{service.value}' not found in DB - run migrations first.",
+            err=True,
+        )
         raise typer.Exit(1)
 
     if not settings.LEGACY_API_USER or not settings.LEGACY_API_PASSWORD:
-        typer.echo("LEGACY_API_USER and LEGACY_API_PASSWORD must be set in .env", err=True)
+        typer.echo(
+            "LEGACY_API_USER and LEGACY_API_PASSWORD must be set in .env", err=True
+        )
         raise typer.Exit(1)
 
     try:
-        token = _get_token(settings.LEGACY_API_URL, settings.LEGACY_API_USER, settings.LEGACY_API_PASSWORD)
+        token = _get_token(
+            settings.LEGACY_API_URL,
+            settings.LEGACY_API_USER,
+            settings.LEGACY_API_PASSWORD,
+        )
     except requests.HTTPError as e:
         typer.echo(f"Authentication failed: {e}", err=True)
         raise typer.Exit(1)
@@ -155,7 +174,7 @@ def migrate_clients(
     table.add_column("ANIs", justify="right")
     table.add_column("status")
 
-    with Live(table, console=console, refresh_per_second=8):
+    with Live(table, console=console, refresh_per_second=8, vertical_overflow="visible"):
         for cid in client_ids:
             try:
                 data = _fetch_client(settings.LEGACY_API_URL, token, service.value, cid)
@@ -169,19 +188,32 @@ def migrate_clients(
                 counts["not_found"] += 1
                 continue
 
-            existing = db.query(Client).filter_by(service_id=svc.id, client_id=cid).first()
+            existing = (
+                db.query(Client).filter_by(service_id=svc.id, client_id=cid).first()
+            )
             if existing:
+                updated = False
+                if not dry_run:
+                    if existing.credits != data.get("creditos", 0):
+                        existing.credits = data.get("creditos", 0)
+                        db.flush()
+                        db.commit()
+                        updated = True
+
                 table.add_row(
                     str(cid),
                     data.get("correo", ""),
                     str(data.get("creditos", 0)),
                     str(len(data.get("telefonos", []))),
-                    "[yellow]skipped (exists)[/yellow]",
+                    f"[yellow]skipped (exists)[/yellow][green]{updated=}[/green]",
                 )
+
                 counts["skipped"] += 1
                 continue
 
-            phones: list[str] = list(dict.fromkeys(data.get("telefonos", [])))  # deduplicate, preserve order
+            phones: list[str] = list(
+                dict.fromkeys(data.get("telefonos", []))
+            )  # deduplicate, preserve order
 
             if not dry_run:
                 try:
@@ -196,13 +228,23 @@ def migrate_clients(
 
                     for ani in phones:
                         # Skip ANIs already registered to another client in this service
-                        if not db.query(ClientAni).filter_by(service_id=svc.id, ani=ani).first():
+                        if (
+                            not db.query(ClientAni)
+                            .filter_by(service_id=svc.id, ani=ani)
+                            .first()
+                        ):
                             db.add(ClientAni(service_id=svc.id, client_id=cid, ani=ani))
 
                     db.commit()
                 except Exception as e:
                     db.rollback()
-                    table.add_row(str(cid), data.get("correo", ""), "-", "-", f"[red]db error: {e}[/red]")
+                    table.add_row(
+                        str(cid),
+                        data.get("correo", ""),
+                        "-",
+                        "-",
+                        f"[red]db error: {e}[/red]",
+                    )
                     counts["error"] += 1
                     continue
 
@@ -224,6 +266,7 @@ def migrate_clients(
 # ---------------------------------------------------------------------------
 # ANI audit helpers
 # ---------------------------------------------------------------------------
+
 
 def _suspicious_digits(ani: str) -> str:
     """Return a warning string if the ANI has 4+ consecutive identical digits."""
@@ -278,11 +321,21 @@ def _analyze_ani(ani: str) -> tuple[str | None, str, str]:
 @app.command("check-anis")
 def check_anis(
     ctx: typer.Context,
-    service: Optional[str] = typer.Option(None, "--service", "-s", help="Filter by service slug"),
-    client_id: Optional[int] = typer.Option(None, "--client-id", "-c", help="Filter by client_id"),
-    ani_filter: Optional[str] = typer.Option(None, "--ani", "-a", help="Filter by exact ANI value"),
-    fix: bool = typer.Option(False, "--fix", help="Apply fixable corrections to the DB"),
-    all_records: bool = typer.Option(False, "--all", help="Scan all ANI records (use with caution)"),
+    service: Optional[str] = typer.Option(
+        None, "--service", "-s", help="Filter by service slug"
+    ),
+    client_id: Optional[int] = typer.Option(
+        None, "--client-id", "-c", help="Filter by client_id"
+    ),
+    ani_filter: Optional[str] = typer.Option(
+        None, "--ani", "-a", help="Filter by exact ANI value"
+    ),
+    fix: bool = typer.Option(
+        False, "--fix", help="Apply fixable corrections to the DB"
+    ),
+    all_records: bool = typer.Option(
+        False, "--all", help="Scan all ANI records (use with caution)"
+    ),
 ):
     """Audit and optionally fix ANI records in client_ani.
 
@@ -338,9 +391,16 @@ def check_anis(
     table.add_column("suggested fix")
     table.add_column("diagnosis")
 
-    counts = {"ok": 0, "fixable": 0, "fixed": 0, "suspicious": 0, "leave_alone": 0, "error": 0}
+    counts = {
+        "ok": 0,
+        "fixable": 0,
+        "fixed": 0,
+        "suspicious": 0,
+        "leave_alone": 0,
+        "error": 0,
+    }
 
-    with Live(table, console=console, refresh_per_second=8):
+    with Live(table, console=console, refresh_per_second=8, vertical_overflow="visible"):
         for row in rows:
             suggested, fix_reason, warning = _analyze_ani(row.ani)
 
@@ -369,7 +429,11 @@ def check_anis(
                 # Check the target ANI isn't already taken by another row in this service
                 conflict = (
                     db.query(ClientAni)
-                    .filter(ClientAni.service_id == row.service_id, ClientAni.ani == suggested, ClientAni.id != row.id)
+                    .filter(
+                        ClientAni.service_id == row.service_id,
+                        ClientAni.ani == suggested,
+                        ClientAni.id != row.id,
+                    )
                     .first()
                 )
                 if conflict:
@@ -498,18 +562,34 @@ WHERE c.service_id = :service_id
 @app.command("sync-portal")
 def sync_portal(
     ctx: typer.Context,
-    service: str = typer.Option("fonotarot-cl", "--service", "-s", help="Target service slug"),
+    service: str = typer.Option(
+        "fonotarot-cl", "--service", "-s", help="Target service slug"
+    ),
     portal_service_id: int = typer.Option(
-        1, "--portal-service-id", help="zvn_portal.zvn_cliente.servicio_id to source from"
+        1,
+        "--portal-service-id",
+        help="zvn_portal.zvn_cliente.servicio_id to source from",
     ),
-    portal_db: str = typer.Option(_PORTAL_DB, "--portal-db", help="Schema name of the Django portal DB"),
+    portal_db: str = typer.Option(
+        _PORTAL_DB, "--portal-db", help="Schema name of the Django portal DB"
+    ),
     fill_only: bool = typer.Option(
-        False, "--fill-only", help="Only update rows where the target field is NULL or empty"
+        False,
+        "--fill-only",
+        help="Only update rows where the target field is NULL or empty",
     ),
-    skip_email: bool = typer.Option(False, "--skip-email", help="Don't touch the email column"),
-    skip_name: bool = typer.Option(False, "--skip-name", help="Don't touch the full_name column"),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Preview the diff, don't write"),
-    sample: int = typer.Option(15, "--sample", help="Rows to show in the dry-run preview"),
+    skip_email: bool = typer.Option(
+        False, "--skip-email", help="Don't touch the email column"
+    ),
+    skip_name: bool = typer.Option(
+        False, "--skip-name", help="Don't touch the full_name column"
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Preview the diff, don't write"
+    ),
+    sample: int = typer.Option(
+        15, "--sample", help="Rows to show in the dry-run preview"
+    ),
 ):
     """Backfill ``client.email`` and ``client.full_name`` from the zvn_portal Django DB.
 
@@ -536,9 +616,13 @@ def sync_portal(
 
     params = {"service_id": svc.id, "portal_service_id": portal_service_id}
     email_fill_preview = "AND (c.email IS NULL OR c.email = '')" if fill_only else ""
-    name_fill_preview = "AND (c.full_name IS NULL OR c.full_name = '')" if fill_only else ""
+    name_fill_preview = (
+        "AND (c.full_name IS NULL OR c.full_name = '')" if fill_only else ""
+    )
     email_fill_update = "AND (c.email IS NULL OR c.email = '')" if fill_only else ""
-    name_fill_update = "AND (c.full_name IS NULL OR c.full_name = '')" if fill_only else ""
+    name_fill_update = (
+        "AND (c.full_name IS NULL OR c.full_name = '')" if fill_only else ""
+    )
 
     label_bits = []
     if dry_run:
@@ -553,12 +637,16 @@ def sync_portal(
     )
 
     if not skip_email:
-        sql_preview = _EMAIL_PREVIEW_SQL.format(portal=portal_db, fill_clause=email_fill_preview)
+        sql_preview = _EMAIL_PREVIEW_SQL.format(
+            portal=portal_db, fill_clause=email_fill_preview
+        )
         rows = db.execute(text(sql_preview), params).fetchall()
         _render_preview("email", rows, sample)
 
         if not dry_run and rows:
-            sql_update = _EMAIL_UPDATE_SQL.format(portal=portal_db, fill_clause=email_fill_update)
+            sql_update = _EMAIL_UPDATE_SQL.format(
+                portal=portal_db, fill_clause=email_fill_update
+            )
             result = db.execute(text(sql_update), params)
             db.commit()
             typer.echo(f"  email: updated {result.rowcount} row(s).")
@@ -566,12 +654,16 @@ def sync_portal(
             typer.echo(f"  email: would update {len(rows)} row(s).")
 
     if not skip_name:
-        sql_preview = _NAME_PREVIEW_SQL.format(portal=portal_db, fill_clause=name_fill_preview)
+        sql_preview = _NAME_PREVIEW_SQL.format(
+            portal=portal_db, fill_clause=name_fill_preview
+        )
         rows = db.execute(text(sql_preview), params).fetchall()
         _render_preview("full_name", rows, sample)
 
         if not dry_run and rows:
-            sql_update = _NAME_UPDATE_SQL.format(portal=portal_db, fill_clause=name_fill_update)
+            sql_update = _NAME_UPDATE_SQL.format(
+                portal=portal_db, fill_clause=name_fill_update
+            )
             result = db.execute(text(sql_update), params)
             db.commit()
             typer.echo(f"  full_name: updated {result.rowcount} row(s).")
@@ -585,11 +677,15 @@ def _render_preview(field: str, rows: list, sample: int) -> None:
         typer.echo(f"  {field}: nothing to change.")
         return
 
-    table = Table(title=f"{field}: {len(rows)} change(s), showing up to {sample}", box=box.ASCII2)
+    table = Table(
+        title=f"{field}: {len(rows)} change(s), showing up to {sample}", box=box.ASCII2
+    )
     table.add_column("client_id", style="cyan", justify="right")
     table.add_column(f"current {field}")
     table.add_column(f"portal {field}")
     for row in rows[:sample]:
         client_id, current, incoming = row
-        table.add_row(str(client_id), "" if current is None else str(current), str(incoming))
+        table.add_row(
+            str(client_id), "" if current is None else str(current), str(incoming)
+        )
     console.print(table)
