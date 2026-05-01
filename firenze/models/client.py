@@ -44,6 +44,9 @@ class Client(Base, TimestampMixin):
         Index("ix_client_pin", "service_id", "pin"),
     )
 
+    def __str__(self):
+        return f"<Client: {self.id=}, {self.service_id=}, {self.client_id=} >"
+
 
 class ClientAni(Base):
     """Maps ANI (caller ID) to a client within a service.

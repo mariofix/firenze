@@ -10,7 +10,7 @@ from rich import box
 from rich.console import Console
 from rich.live import Live
 from rich.table import Table
-from sqlalchemy import text
+from sqlalchemy import func, select, text
 
 from firenze.config import settings
 from firenze.models.client import Client, ClientAni
@@ -68,6 +68,42 @@ def _fetch_client(base_url: str, token: str, service_slug: str, client_id: int) 
     resp.raise_for_status()
     return resp.json()
 
+@app.command("update-phones")
+def update_phones(ctx: typer.Context, dry_run: bool = typer.Option(False, "--dry-run", help="Show what would happen without writing")):
+    """Fin the most used ANI in ClientAni to fill client.phone_number
+
+    Examples:
+        firenze migration update-phones --dry-run
+    """
+    
+    db = ctx.obj["dbsession"]
+    stmt = (
+        select(
+            ClientAni.client_id,
+            func.count(ClientAni.ani).label("total"),
+            ClientAni.ani
+        )
+        .where(ClientAni.service_id == 2)
+        .group_by(ClientAni.client_id)
+        .order_by(ClientAni.client_id)
+    )
+
+    # Execute
+    results = db.execute(stmt).all()
+    
+    
+    for ani in results:
+        if ani[1] == 1:
+            client = db.query(Client).filter_by(service_id=2, client_id=ani[0], phone_number=None).first()
+            print(f"ANI: {ani[2]} - Client: {client}")
+            if client:
+                client.phone_number=ani[2]
+                db.flush()
+                db.commit()
+                print(f"{client=}")
+                
+
+            
 
 @app.command("clients")
 def migrate_clients(
@@ -89,6 +125,7 @@ def migrate_clients(
         firenze migration clients fonotarot-cl 10-34 55 67
     """
     db = ctx.obj["dbsession"]
+
 
     svc = db.query(Service).filter_by(slug=service.value).first()
     if not svc:
