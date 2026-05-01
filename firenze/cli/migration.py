@@ -471,6 +471,160 @@ def check_anis(
         f"errors: {counts['error']}"
     )
 
+@app.command("check-phones")
+def check_phones(
+    ctx: typer.Context,
+    service: Optional[str] = typer.Option(
+        None, "--service", "-s", help="Filter by service slug"
+    ),
+    client_id: Optional[int] = typer.Option(
+        None, "--client-id", "-c", help="Filter by client_id"
+    ),
+    ani_filter: Optional[str] = typer.Option(
+        None, "--ani", "-a", help="Filter by exact ANI value"
+    ),
+    fix: bool = typer.Option(
+        False, "--fix", help="Apply fixable corrections to the DB"
+    ),
+    all_records: bool = typer.Option(
+        False, "--all", help="Scan all ANI records (use with caution)"
+    ),
+):
+    """Audit and optionally fix ANI records in client_ani.
+
+    Detects: double 56 prefix, missing 56 prefix, suspicious digit patterns,
+    and known leave-alone values (zeros, test numbers).
+
+    Examples:
+
+        firenze migration check-anis --service fonotarot-cl
+
+        firenze migration check-anis --client-id 42
+
+        firenze migration check-anis --ani 5656912345678 --fix
+
+        firenze migration check-anis --all
+    """
+    db = ctx.obj["dbsession"]
+
+    if not any([service, client_id, ani_filter, all_records]):
+        typer.echo(
+            "Provide at least one filter (--service, --client-id, --ani) or --all",
+            err=True,
+        )
+        raise typer.Exit(1)
+
+    query = db.query(Client)
+
+    if service:
+        svc = db.query(Service).filter_by(slug=service).first()
+        if not svc:
+            typer.echo(f"Service '{service}' not found in DB", err=True)
+            raise typer.Exit(1)
+        query = query.filter(Client.service_id == svc.id)
+
+    if client_id is not None:
+        query = query.filter(Client.client_id == client_id)
+
+    if ani_filter:
+        query = query.filter(Client.phone_number == ani_filter)
+
+    rows: list[ClientAni] = query.all()
+
+    if not rows:
+        typer.echo("No ANI records matched the filter.")
+        raise typer.Exit(0)
+
+    label = " [DRY RUN]" if not fix else " [FIX MODE]"
+    table = Table(title=f"ANI Audit{label}", box=box.ASCII2)
+    table.add_column("id", style="cyan", justify="right")
+    table.add_column("svc_id", justify="right")
+    table.add_column("client_id", justify="right")
+    table.add_column("current ANI")
+    table.add_column("suggested fix")
+    table.add_column("diagnosis")
+
+    counts = {
+        "ok": 0,
+        "fixable": 0,
+        "fixed": 0,
+        "suspicious": 0,
+        "leave_alone": 0,
+        "error": 0,
+    }
+
+    with Live(table, console=console, refresh_per_second=8, vertical_overflow="visible"):
+        for row in rows:
+            if row.phone_number:
+                suggested, fix_reason, warning = _analyze_ani(row.phone_number)
+
+                if "leave-alone" in warning:
+                    diag = f"[dim]{warning}[/dim]"
+                    suggested_str = "-"
+                    counts["leave_alone"] += 1
+                elif fix_reason and warning:
+                    diag = f"[yellow]{fix_reason} + {warning}[/yellow]"
+                    suggested_str = suggested or "-"
+                    counts["fixable"] += 1
+                elif fix_reason:
+                    diag = f"[blue]{fix_reason}[/blue]"
+                    suggested_str = suggested or "-"
+                    counts["fixable"] += 1
+                elif warning:
+                    diag = f"[yellow]suspicious: {warning}[/yellow]"
+                    suggested_str = "-"
+                    counts["suspicious"] += 1
+                else:
+                    diag = "[green]ok[/green]"
+                    suggested_str = "-"
+                    counts["ok"] += 1
+
+                if fix and suggested and fix_reason and "leave-alone" not in warning:
+                    # Check the target ANI isn't already taken by another row in this service
+                    conflict = (
+                        db.query(Client)
+                        .filter(
+                            Client.service_id == row.service_id,
+                            Client.phone_number == suggested,
+                            Client.id != row.id,
+                        )
+                        .first()
+                    )
+                    if conflict:
+                        diag = f"[red]conflict: {suggested} already exists (id={conflict.id})[/red]"
+                        suggested_str = suggested
+                        counts["error"] += 1
+                    else:
+                        try:
+                            row.phone_number = suggested
+                            db.commit()
+                            diag = f"[green]fixed: {fix_reason}[/green]"
+                            suggested_str = suggested
+                            counts["fixed"] += 1
+                        except Exception as e:
+                            db.rollback()
+                            diag = f"[red]db error: {e}[/red]"
+                            counts["error"] += 1
+
+                table.add_row(
+                    str(row.id),
+                    str(row.service_id),
+                    str(row.client_id),
+                    row.phone_number,
+                    suggested_str,
+                    diag,
+                )
+
+    typer.echo(
+        f"\nTotal: {len(rows)}: "
+        f"ok: {counts['ok']}, "
+        f"fixable: {counts['fixable']}, "
+        f"fixed: {counts['fixed']}, "
+        f"suspicious: {counts['suspicious']}, "
+        f"leave-alone: {counts['leave_alone']}, "
+        f"errors: {counts['error']}"
+    )
+
 
 # ---------------------------------------------------------------------------
 # Backfill email + full_name from the legacy zvn_portal Django DB
