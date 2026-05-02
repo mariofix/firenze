@@ -328,15 +328,21 @@ def agi_operator_info_by_option(
             len(op.numbers),
         )
         return {"ok": False, "reason": "no-phone-configured"}
-
+        
+    ok_status = True
+    ok_meessage = None
+    if op.available == 0 or op.loggedin == 0:
+        ok_status = False
+        ok_meessage = f"{operator.loggedin=} {operator.available=}"
     return {
-        "ok": True,
+        "ok": ok_status,
         "operador_numero": str(op.number),
         "operador_nombre": op.name,
         "operador_telefono": phone.number,
         "operador_trunk": phone.trunk or "",
         "loggedin": op.loggedin,
         "available": op.available,
+        "reason": ok_meessage,
     }
 
 
