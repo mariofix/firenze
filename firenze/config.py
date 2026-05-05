@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     REDIS_SOCKET_CONNECT_TIMEOUT: float = 2.0
     REDIS_SOCKET_TIMEOUT: float = 2.0
     ALLOWED_DOMAINS: list[str] = ["localhost", "tardis.local"]
+    CORS_ORIGINS: list[str] = ["https://nuevo.fonotarot.com"]
     AGI_PATH_PREFIX: str = "/agi"
     AGI_ALLOWED_NETWORKS: list[str] = ["127.0.0.1/32"]
     BASE_DIR: Any = BASE_DIR

@@ -4,6 +4,7 @@ from decimal import Decimal
 
 from debug_toolbar.middleware import DebugToolbarMiddleware
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqladmin import Admin
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
@@ -31,6 +32,13 @@ def create_app():
     logging.config.dictConfig(LOGGING_CONFIG)
     app.logger = logging.getLogger("firenze")
 
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.CORS_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
     app.add_middleware(DebugToolbarMiddleware, settings=[Settings()])
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.ALLOWED_DOMAINS)
