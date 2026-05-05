@@ -19,7 +19,9 @@ class Settings(BaseSettings):
     SQLALCHEMY_DATABASE_URL: str = ""
     DEBUG: bool = False
     LOG_LEVEL: str = "INFO"
-    SECRET_KEY: str = "secret_key"
+    SECRET_KEY: str = "CHANGE-ME-this-is-a-dev-only-default-key-replace-in-production"
+    SECRET_ALGO: str = "HS256"
+    SECRET_EXPIRES: int = 30  # minutes
     REDIS_URL: str = "redis://zvn-lin3.local:6379"
     REDIS_SOCKET_CONNECT_TIMEOUT: float = 2.0
     REDIS_SOCKET_TIMEOUT: float = 2.0

@@ -16,7 +16,9 @@ app = typer.Typer()
 
 def _hash_password(password: str) -> str:
     """Hash a password, truncating to 72 bytes as required by bcrypt."""
-    return bcrypt.hashpw(password.encode("utf-8")[:72], bcrypt.gensalt()).decode("utf-8")
+    return bcrypt.hashpw(password.encode("utf-8")[:72], bcrypt.gensalt()).decode(
+        "utf-8"
+    )
 
 
 @app.command("search")
@@ -33,7 +35,7 @@ def search_user(
         users = users.filter(User.login == login)
     if email:
         users = users.filter(User.email == email)
-    if id:
+    if id is not None:
         users = users.filter(User.id == id)
     users = users.all()
 
@@ -75,7 +77,7 @@ def create_user(
             login=login,
             email=email,
             password=_hash_password(password),
-            scopes=scopes.split(","),
+            scopes=[s.strip() for s in scopes.split(",")],
             enabled=enabled,
         )
         session.add(user)
@@ -94,7 +96,10 @@ def update_user(
     login: str = typer.Option(None, help="New username"),
     email: str = typer.Option(None, help="New email"),
     scopes: str = typer.Option(None, help="New scopes (comma separated)"),
-    password: str = typer.Option(None, help="New password"),
+    password: str = typer.Option(
+        None,
+        help="New password (avoid passing on command line; use change-password instead)",
+    ),
     enable: Optional[bool] = typer.Option(None, help="Enable or disable"),
 ):
     """Update an existing user."""
@@ -114,10 +119,37 @@ def update_user(
     if email:
         user.email = email
     if scopes:
-        user.scopes = scopes.split(",")
+        user.scopes = [s.strip() for s in scopes.split(",")]
 
     session.commit()
     typer.echo(f"Updated user {user_id}")
+
+
+@app.command("change-password")
+def change_password(
+    ctx: typer.Context,
+    user_id: int = typer.Argument(..., help="User ID"),
+    password: str = typer.Option(
+        ...,
+        prompt="New password",
+        hide_input=True,
+        confirmation_prompt="Confirm new password",
+    ),
+):
+    """Change a user's password (prompts securely, never echoed)."""
+    session = ctx.obj.get("dbsession")
+    logger = ctx.obj.get("logger")
+    user = session.get(User, user_id)
+    if not user:
+        typer.echo(f"User {user_id} not found", err=True)
+        raise typer.Exit(code=1)
+    try:
+        user.password = _hash_password(password)
+        session.commit()
+        typer.echo(f"Password updated for user {user_id}")
+    except Exception as e:
+        logger.error(e)
+        raise typer.Exit(code=1)
 
 
 @app.command("delete")

@@ -40,7 +40,9 @@ def _next_client_id(db: Session, service_id: int) -> int:
     should move to a per-service sequence table or be replaced by using the
     surrogate PK as the business identifier.
     """
-    current = db.query(func.max(Client.client_id)).filter_by(service_id=service_id).scalar()
+    current = (
+        db.query(func.max(Client.client_id)).filter_by(service_id=service_id).scalar()
+    )
     return (current or 0) + 1
 
 
@@ -71,14 +73,20 @@ def search_client(
             return client
 
     if phone:
-        client = db.query(Client).filter_by(service_id=svc.id, phone_number=phone).first()
+        client = (
+            db.query(Client).filter_by(service_id=svc.id, phone_number=phone).first()
+        )
         if client:
             return client
 
     if ani:
         ani_row = db.query(ClientAni).filter_by(service_id=svc.id, ani=ani).first()
         if ani_row:
-            return db.query(Client).filter_by(service_id=svc.id, client_id=ani_row.client_id).first()
+            return (
+                db.query(Client)
+                .filter_by(service_id=svc.id, client_id=ani_row.client_id)
+                .first()
+            )
 
     return None
 
@@ -110,9 +118,13 @@ def apply_purchase(
     created = False
 
     if client_id is not None:
-        client = db.query(Client).filter_by(service_id=svc.id, client_id=client_id).first()
+        client = (
+            db.query(Client).filter_by(service_id=svc.id, client_id=client_id).first()
+        )
         if not client:
-            raise ClientNotFound(f"Client {client_id} not found in service '{service_slug}'")
+            raise ClientNotFound(
+                f"Client {client_id} not found in service '{service_slug}'"
+            )
         before = client.credits
         client.credits = before + credits
     else:
@@ -194,12 +206,18 @@ def update_client(
     svc = _get_service(db, service_slug)
     client = db.query(Client).filter_by(service_id=svc.id, client_id=client_id).first()
     if not client:
-        raise ClientNotFound(f"Client {client_id} not found in service '{service_slug}'")
+        raise ClientNotFound(
+            f"Client {client_id} not found in service '{service_slug}'"
+        )
 
     if pin is not None and pin != client.pin:
         collision = (
             db.query(Client)
-            .filter(Client.service_id == svc.id, Client.pin == pin, Client.client_id != client_id)
+            .filter(
+                Client.service_id == svc.id,
+                Client.pin == pin,
+                Client.client_id != client_id,
+            )
             .first()
         )
         if collision:
@@ -232,9 +250,7 @@ def update_client(
             )
             if existing_for_client is None:
                 taken = (
-                    db.query(ClientAni)
-                    .filter_by(service_id=svc.id, ani=phone)
-                    .first()
+                    db.query(ClientAni).filter_by(service_id=svc.id, ani=phone).first()
                 )
                 if taken is None:
                     db.add(ClientAni(service_id=svc.id, client_id=client_id, ani=phone))

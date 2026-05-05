@@ -1,5 +1,4 @@
-"""Public endpoints
-"""
+"""Public endpoints"""
 
 import logging
 
@@ -7,13 +6,14 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from firenze.dependencies import get_db
+from firenze.models.operator import Operator
 from firenze.schemas import Message
 from firenze.schemas.operators import ConnectedOperators
-from firenze.models.operator import Operator
 
 logger = logging.getLogger("firenze")
 
 publicRouter = APIRouter(prefix="/api/v1/public", tags=["public"])
+
 
 @publicRouter.get(
     "/ejecutivos",

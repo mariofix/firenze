@@ -7,7 +7,14 @@ tops up).
 
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    field_validator,
+    model_validator,
+)
 
 PHONE_ERASE_SENTINEL = "::EMPTY::"
 
@@ -39,19 +46,35 @@ class PurchaseRequest(BaseModel):
 
     model_config = ConfigDict(str_strip_whitespace=True)
 
-    service: str = Field(..., min_length=1, description="Service slug, e.g. fonotarot-cl")
-    credits: int = Field(..., gt=0, description="Seconds of airtime to add to the balance")
-    client_id: Optional[int] = Field(default=None, description="Existing client_id; omit to create")
+    service: str = Field(
+        ..., min_length=1, description="Service slug, e.g. fonotarot-cl"
+    )
+    credits: int = Field(
+        ..., gt=0, description="Seconds of airtime to add to the balance"
+    )
+    client_id: Optional[int] = Field(
+        default=None, description="Existing client_id; omit to create"
+    )
     email: Optional[EmailStr] = None
     full_name: Optional[str] = Field(default=None, max_length=128)
     phone_number: Optional[str] = Field(default=None, max_length=16)
-    ani: Optional[str] = Field(default=None, max_length=16, description="Caller-ID to register against the client")
-    transaction_id: Optional[str] = Field(default=None, max_length=128, description="Payment-system reference, logged for traceability")
+    ani: Optional[str] = Field(
+        default=None,
+        max_length=16,
+        description="Caller-ID to register against the client",
+    )
+    transaction_id: Optional[str] = Field(
+        default=None,
+        max_length=128,
+        description="Payment-system reference, logged for traceability",
+    )
 
     @model_validator(mode="after")
     def _require_email_when_creating(self) -> "PurchaseRequest":
         if self.client_id is None and not self.email:
-            raise ValueError("email is required when client_id is omitted (creating a new client)")
+            raise ValueError(
+                "email is required when client_id is omitted (creating a new client)"
+            )
         return self
 
 

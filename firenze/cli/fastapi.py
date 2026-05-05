@@ -22,7 +22,9 @@ def _should_redact(name: str) -> bool:
 
 @app.command("routes")
 def routes(
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show response model and tags"),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Show response model and tags"
+    ),
 ):
     """Show all registered routes in the FastAPI app."""
     application = create_app()
@@ -34,13 +36,15 @@ def routes(
         methods = ", ".join(sorted(route.methods - {"HEAD", "OPTIONS"}))
         if not methods:
             continue
-        items.append({
-            "methods": methods,
-            "path": route.path,
-            "name": route.name or "",
-            "tags": ", ".join(getattr(route, "tags", []) or []),
-            "response_model": getattr(route, "response_model", None),
-        })
+        items.append(
+            {
+                "methods": methods,
+                "path": route.path,
+                "name": route.name or "",
+                "tags": ", ".join(getattr(route, "tags", []) or []),
+                "response_model": getattr(route, "response_model", None),
+            }
+        )
 
     items.sort(key=lambda r: r["path"])
 
@@ -67,7 +71,9 @@ def routes(
 
 @app.command("config")
 def config(
-    reveal: bool = typer.Option(False, "--reveal", help="Show sensitive values unmasked"),
+    reveal: bool = typer.Option(
+        False, "--reveal", help="Show sensitive values unmasked"
+    ),
 ):
     """Print current application configuration."""
     settings = Settings()

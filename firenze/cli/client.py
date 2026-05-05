@@ -71,8 +71,6 @@ def _fetch_client(
     return resp.json()
 
 
-
-
 @app.command("sync-credits")
 def sync_credits(
     ctx: typer.Context,
@@ -110,16 +108,18 @@ def sync_credits(
 
     clients = db.query(Client).filter_by(service_id=svc.id).all()
     for client in clients:
-        data = _fetch_client(settings.LEGACY_API_URL, token, service.value, client.client_id)
+        data = _fetch_client(
+            settings.LEGACY_API_URL, token, service.value, client.client_id
+        )
         print(f"{client=}")
         print(f"{data=}")
         if data["creditos"] != client.credits:
             client.credits = data["creditos"]
             db.flush()
             db.commit()
-            print(f"***** {client.client_id=} Actualizar creditos OK. {client.credits=} => {data["creditos"]=} ******")
-
-
+            print(
+                f"***** {client.client_id=} Actualizar creditos OK. {client.credits=} => {data["creditos"]=} ******"
+            )
 
 
 @app.command("clients")
@@ -182,7 +182,9 @@ def migrate_clients(
     table.add_column("ANIs", justify="right")
     table.add_column("status")
 
-    with Live(table, console=console, refresh_per_second=8, vertical_overflow="visible"):
+    with Live(
+        table, console=console, refresh_per_second=8, vertical_overflow="visible"
+    ):
         for cid in client_ids:
             try:
                 data = _fetch_client(settings.LEGACY_API_URL, token, service.value, cid)
@@ -408,7 +410,9 @@ def check_anis(
         "error": 0,
     }
 
-    with Live(table, console=console, refresh_per_second=8, vertical_overflow="visible"):
+    with Live(
+        table, console=console, refresh_per_second=8, vertical_overflow="visible"
+    ):
         for row in rows:
             suggested, fix_reason, warning = _analyze_ani(row.ani)
 
@@ -478,6 +482,7 @@ def check_anis(
         f"leave-alone: {counts['leave_alone']}, "
         f"errors: {counts['error']}"
     )
+
 
 @app.command("check-phones")
 def check_phones(
@@ -561,7 +566,9 @@ def check_phones(
         "error": 0,
     }
 
-    with Live(table, console=console, refresh_per_second=8, vertical_overflow="visible"):
+    with Live(
+        table, console=console, refresh_per_second=8, vertical_overflow="visible"
+    ):
         for row in rows:
             if row.phone_number:
                 suggested, fix_reason, warning = _analyze_ani(row.phone_number)

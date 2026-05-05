@@ -33,7 +33,9 @@ def get_users(db: Session, skip: int = 0, limit: int = 100):
 
 
 def create_user(db: Session, user: schemas.UserCreate):
-    pwd_hash = bcrypt.hashpw(user.password.encode("utf-8")[:72], bcrypt.gensalt()).decode("utf-8")
+    pwd_hash = bcrypt.hashpw(
+        user.password.encode("utf-8")[:72], bcrypt.gensalt()
+    ).decode("utf-8")
     db_user = models.User(
         email=user.email,
         login=user.login,
@@ -80,8 +82,10 @@ def check_pin(db: Session, pin) -> bool:
     # return db.query(models.FonoTarotLatamClient).filter(models.FonoTarotLatamClient.pin_code == pin).exists()
     return False
 
+
 def generate_pin() -> int:
     from .core import get_db
+
     db = get_db()
     logger.debug(f"generate_pin()")
     random_pin = int("".join(secrets.choice(string.digits) for i in range(8)))

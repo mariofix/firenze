@@ -63,9 +63,7 @@ def delete_call(conn: redis.Redis, service: str, ani: str) -> None:
         _log.warning("Redis unavailable - call state not removed: %s", exc)
 
 
-def update_operator(
-    conn: redis.Redis, service: str, ani: str, operator: int
-) -> None:
+def update_operator(conn: redis.Redis, service: str, ani: str, operator: int) -> None:
     """Update only the operator field on an existing call hash.
 
     No-op if the hash does not exist (hset on a missing key would create a

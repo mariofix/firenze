@@ -44,31 +44,37 @@ def lookup(db: Session, service_slug: str, identifier: str) -> dict:
     if len(identifier) == 6:
         client = db.query(Client).filter_by(service_id=svc.id, pin=identifier).first()
     else:
-        client = db.query(Client).filter_by(service_id=svc.id, phone_number=identifier).first()
+        client = (
+            db.query(Client)
+            .filter_by(service_id=svc.id, phone_number=identifier)
+            .first()
+        )
 
     if not client:
         return {"clientid": 0, "segundos": 0}
     return {"clientid": client.client_id, "segundos": client.credits}
 
 
-def deduct_credits(db: Session, service_slug: str, client_id: int, seconds: int) -> dict:
+def deduct_credits(
+    db: Session, service_slug: str, client_id: int, seconds: int
+) -> dict:
     """Deduct seconds from a client's credit balance.
 
     Returns dict with ``ok`` and ``remaining``.
     """
     svc = _get_service(db, service_slug)
-    client = (
-        db.query(Client)
-        .filter_by(service_id=svc.id, client_id=client_id)
-        .first()
-    )
+    client = db.query(Client).filter_by(service_id=svc.id, client_id=client_id).first()
     if not client:
-        raise ClientNotFound(f"Client {client_id} not found in service '{service_slug}'")
+        raise ClientNotFound(
+            f"Client {client_id} not found in service '{service_slug}'"
+        )
     if client.credits <= 0:
         # Per-client one-call-at-a-time enforcement upstream should make this
         # unreachable. If we land here, the customer made a call without
         # credits - log loudly and notify, but don't fail the deduction.
-        logger.warning(f"deduct_credits called with no balance: {service_slug=} {client_id=} {seconds=} {credits=}")
+        logger.warning(
+            f"deduct_credits called with no balance: {service_slug=} {client_id=} {seconds=} {credits=}"
+        )
         notify(
             subject=f"[firenze] deduct on zero balance: client {client_id}",
             body=(

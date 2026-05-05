@@ -7,15 +7,15 @@ Two-step contract:
 2. ``POST /api/v1/payments/complete`` - fired by the payment provider's
    webhook after a successful charge. Creates a new client or tops one up.
 
-No auth: this prefix is intentionally open while we wire up nuevo-fonotarot.
-JWT (or a shared secret) goes in before production. See ``tasks.md`` step 6.
+All endpoints require a valid Bearer token with the ``firenze`` scope.
 """
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from sqlalchemy.orm import Session
 
+from firenze.auth import loggedin_user
 from firenze.dependencies import get_db
 from firenze.schemas.payment import (
     ClientSearchResponse,
@@ -41,10 +41,15 @@ paymentsRouter = APIRouter(prefix="/api/v1", tags=["payments"])
 def clients_search(
     service: str = Query(..., description="Service slug, e.g. fonotarot-cl"),
     email: str | None = Query(default=None),
-    phone: str | None = Query(default=None, description="Profile phone (Client.phone_number)"),
-    ani: str | None = Query(default=None, description="Caller-ID registered to ClientAni"),
+    phone: str | None = Query(
+        default=None, description="Profile phone (Client.phone_number)"
+    ),
+    ani: str | None = Query(
+        default=None, description="Caller-ID registered to ClientAni"
+    ),
     pin: str | None = Query(default=None, description="PIN for PIN-auth services"),
     db: Session = Depends(get_db),
+    _user_id: int = Security(loggedin_user, scopes=["firenze"]),
 ):
     """Search for a client in ``service`` by any combination of identifiers.
 
@@ -82,6 +87,7 @@ def clients_search(
 def payments_complete(
     payload: PurchaseRequest,
     db: Session = Depends(get_db),
+    _user_id: int = Security(loggedin_user, scopes=["firenze"]),
 ):
     """Apply a completed purchase.
 
@@ -131,6 +137,7 @@ def clients_update(
     client_id: int,
     payload: ClientUpdateRequest,
     db: Session = Depends(get_db),
+    _user_id: int = Security(loggedin_user, scopes=["firenze"]),
 ):
     """Patch profile fields on an existing client.
 

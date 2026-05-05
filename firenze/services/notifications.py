@@ -23,7 +23,9 @@ def notify(subject: str, body: str) -> None:
         logger.info("daleks notify skipped (config missing): %s", subject)
         return
 
-    recipients = [addr.strip() for addr in settings.DALEKS_TO.split(",") if addr.strip()]
+    recipients = [
+        addr.strip() for addr in settings.DALEKS_TO.split(",") if addr.strip()
+    ]
     smtp_account = settings.DALEKS_SMTP_ACCOUNT or None
 
     try:

@@ -31,10 +31,10 @@ from firenze.services.did_service import resolve_did
 from firenze.services.dnc_service import check_dnc
 from firenze.services.operator_service import OperatorNotFound, OperatorUnavailable
 from firenze.services.operator_service import get_menu as svc_get_menu
+from firenze.services.operator_service import info_operator as svc_operator
 from firenze.services.operator_service import login_by_phone, logout_by_phone
 from firenze.services.operator_service import release_operator as svc_release
 from firenze.services.operator_service import select_operator as svc_select
-from firenze.services.operator_service import info_operator as svc_operator
 
 agiRouter = APIRouter(prefix="/agi", tags=["agi"])
 
@@ -78,7 +78,9 @@ def agi_did_lookup(did: str, db: Session = Depends(get_db)):
 
 
 @agiRouter.get("/credits/limit")
-def agi_credit_limit(seconds: int = Query(..., description="Credit balance in seconds")):
+def agi_credit_limit(
+    seconds: int = Query(..., description="Credit balance in seconds")
+):
     """Compute call timeout and audio file for a given credit balance.
 
     Replaces the 150-line ``[limite-saldo]`` dialplan ladder.
@@ -211,7 +213,6 @@ def agi_call_get(service: str, ani: str, db: Session = Depends(get_db)):
     return get_active_call(db, service, ani)
 
 
-
 # ---------------------------------------------------------------------------
 # Operator selection
 # ---------------------------------------------------------------------------
@@ -236,7 +237,9 @@ def agi_operators_menu(
 @agiRouter.post("/operators/select")
 def agi_operator_select(
     mode: str = Form(..., description='"random" or "option"'),
-    selection: Optional[str] = Form(default=None, description="Operator option digits, required when mode=option"),
+    selection: Optional[str] = Form(
+        default=None, description="Operator option digits, required when mode=option"
+    ),
     db: Session = Depends(get_db),
     redis_conn: Optional[redis.Redis] = Depends(get_redis),
 ):
@@ -258,9 +261,11 @@ def agi_operator_select(
     """
     return svc_select(db, mode=mode, selection=selection, redis_conn=redis_conn)
 
+
 # ---------------------------------------------------------------------------
 # Operator info
 # ---------------------------------------------------------------------------
+
 
 @agiRouter.get("/operators/by-option/{option}")
 def agi_operator_info_by_option(
@@ -328,7 +333,7 @@ def agi_operator_info_by_option(
             len(op.numbers),
         )
         return {"ok": False, "reason": "no-phone-configured"}
-        
+
     ok_status = True
     ok_meessage = None
     if op.available == 0 or op.loggedin == 0:

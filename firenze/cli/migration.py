@@ -71,8 +71,6 @@ def _fetch_client(
     return resp.json()
 
 
-
-
 @app.command("update-phones")
 def update_phones(
     ctx: typer.Context,
@@ -174,7 +172,9 @@ def migrate_clients(
     table.add_column("ANIs", justify="right")
     table.add_column("status")
 
-    with Live(table, console=console, refresh_per_second=8, vertical_overflow="visible"):
+    with Live(
+        table, console=console, refresh_per_second=8, vertical_overflow="visible"
+    ):
         for cid in client_ids:
             try:
                 data = _fetch_client(settings.LEGACY_API_URL, token, service.value, cid)
@@ -400,7 +400,9 @@ def check_anis(
         "error": 0,
     }
 
-    with Live(table, console=console, refresh_per_second=8, vertical_overflow="visible"):
+    with Live(
+        table, console=console, refresh_per_second=8, vertical_overflow="visible"
+    ):
         for row in rows:
             suggested, fix_reason, warning = _analyze_ani(row.ani)
 
@@ -470,6 +472,7 @@ def check_anis(
         f"leave-alone: {counts['leave_alone']}, "
         f"errors: {counts['error']}"
     )
+
 
 @app.command("check-phones")
 def check_phones(
@@ -553,7 +556,9 @@ def check_phones(
         "error": 0,
     }
 
-    with Live(table, console=console, refresh_per_second=8, vertical_overflow="visible"):
+    with Live(
+        table, console=console, refresh_per_second=8, vertical_overflow="visible"
+    ):
         for row in rows:
             if row.phone_number:
                 suggested, fix_reason, warning = _analyze_ani(row.phone_number)

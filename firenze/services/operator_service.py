@@ -4,10 +4,10 @@ Both the API and CLI call these functions — no business logic lives in
 routers or CLI commands.
 """
 
+import datetime
 import logging
 import secrets
 import time
-import datetime
 from typing import Optional
 
 import redis
@@ -42,11 +42,7 @@ def _get_operator(db: Session, number: int) -> Operator:
 
 
 def _get_operator_by_phone(db: Session, ani: str) -> Operator:
-    phone = (
-        db.query(OperatorPhone)
-        .filter_by(number=ani, enabled=True)
-        .first()
-    )
+    phone = db.query(OperatorPhone).filter_by(number=ani, enabled=True).first()
     if not phone:
         logger.warning(
             "_get_operator_by_phone: no enabled OperatorPhone with number=%r",
@@ -73,17 +69,13 @@ def _get_operator_by_option(db: Session, option: str) -> Operator:
     """
     try:
         option_int = int(option)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         logger.warning(
             "_get_operator_by_option: non-numeric option=%r",
             option,
         )
         raise OperatorNotFound(f"No operator with option {option}")
-    op = (
-        db.query(Operator)
-        .filter(cast(Operator.option, Integer) == option_int)
-        .first()
-    )
+    op = db.query(Operator).filter(cast(Operator.option, Integer) == option_int).first()
     if not op:
         logger.warning(
             "_get_operator_by_option: no operator with option=%d (raw input=%r)",
@@ -123,9 +115,7 @@ def logout(
     db.refresh(op)
 
     if op.enable_valkey and redis_conn:
-        operator_state.set_state(
-            redis_conn, op.number, loggedin=False, available=False
-        )
+        operator_state.set_state(redis_conn, op.number, loggedin=False, available=False)
 
     return op
 
@@ -146,9 +136,7 @@ def logout_by_phone(
     return logout(db, op.number, redis_conn)
 
 
-def get_menu(
-    db: Session, redis_conn: Optional[redis.Redis] = None
-) -> dict:
+def get_menu(db: Session, redis_conn: Optional[redis.Redis] = None) -> dict:
     """Return count of available operators and a Playback-ready audio string.
 
     Audio string is ``&``-joined from ``Operator.audio_file``, ordered by
@@ -157,11 +145,7 @@ def get_menu(
 
     Used by ``GET /agi/operators/menu``.
     """
-    operators = (
-        db.query(Operator)
-        .filter_by(loggedin=True, available=True)
-        .all()
-    )
+    operators = db.query(Operator).filter_by(loggedin=True, available=True).all()
     operators.sort(key=lambda op: int(op.option))
 
     audio_parts = [op.audio_file for op in operators if op.audio_file]

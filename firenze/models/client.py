@@ -2,7 +2,15 @@ import secrets
 import string
 from typing import Optional
 
-from sqlalchemy import ForeignKey, ForeignKeyConstraint, Index, Integer, String, UniqueConstraint, event
+from sqlalchemy import (
+    ForeignKey,
+    ForeignKeyConstraint,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+    event,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from firenze.database import Base
@@ -37,7 +45,9 @@ class Client(Base, TimestampMixin):
     credits: Mapped[int] = mapped_column(Integer, default=0)
 
     service: Mapped[Optional["Service"]] = relationship()
-    anis: Mapped[list["ClientAni"]] = relationship(back_populates="client", cascade="all, delete-orphan")
+    anis: Mapped[list["ClientAni"]] = relationship(
+        back_populates="client", cascade="all, delete-orphan"
+    )
 
     __table_args__ = (
         UniqueConstraint("service_id", "client_id", name="uq_client_service_clientid"),
@@ -80,4 +90,3 @@ class ClientAni(Base):
 
     def __str__(self):
         return f"{self.service_id}:{self.client_id}"
-

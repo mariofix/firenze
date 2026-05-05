@@ -101,8 +101,7 @@ def list_operators(ctx: typer.Context):
             str(op.name),
             str(op.option),
             "\n".join(
-                f"{p.number}/E:{p.enabled}/C:{p.contact}/P:{p.pin}"
-                for p in op.numbers
+                f"{p.number}/E:{p.enabled}/C:{p.contact}/P:{p.pin}" for p in op.numbers
             ),
             str(op.lastcall),
             str(op.loggedin),

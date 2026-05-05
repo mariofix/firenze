@@ -49,7 +49,9 @@ def list_calls(
 @app.command("clear")
 def clear_calls(
     ctx: typer.Context,
-    service: str = typer.Argument(None, help="Clear only this service (all if omitted)"),
+    service: str = typer.Argument(
+        None, help="Clear only this service (all if omitted)"
+    ),
     confirm: bool = typer.Option(False, "--yes", help="Skip confirmation"),
 ):
     """Clear stale online call records from MySQL and Redis."""

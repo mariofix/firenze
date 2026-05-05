@@ -1,0 +1,289 @@
+{% extends "sqladmin/layout.html" %}
+
+{% block content_header %}
+<div class="row align-items-center">
+  <div class="col-auto">
+    <h2 class="page-title">System Status</h2>
+    <div class="page-pretitle">Redis / Valkey health, operator state, and active calls</div>
+  </div>
+  <div class="col-auto ms-auto d-print-none">
+    <a href="{{ request.url }}" class="btn btn-secondary">
+      <i class="fa fa-refresh me-1"></i> Refresh
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{# ── Redis / Valkey ──────────────────────────────────────────────────── #}
+<div class="col-12">
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">
+        <i class="fa fa-database me-2"></i>Redis / Valkey
+      </h3>
+      <div class="card-options">
+        {% if redis_online %}
+          <span class="badge bg-success ms-2">Online</span>
+        {% else %}
+          <span class="badge bg-danger ms-2">Offline</span>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if redis_online and redis_info %}
+    <div class="card-body">
+      <div class="row g-4">
+        <div class="col-6 col-md-2">
+          <div class="subheader">Version</div>
+          <div class="h4 mb-0">{{ redis_info.get("redis_version", "–") }}</div>
+        </div>
+        <div class="col-6 col-md-2">
+          <div class="subheader">Uptime</div>
+          <div class="h4 mb-0">
+            {% set secs = redis_info.get("uptime_in_seconds", 0) %}
+            {{ (secs // 3600) }}h {{ ((secs % 3600) // 60) }}m
+          </div>
+        </div>
+        <div class="col-6 col-md-2">
+          <div class="subheader">Connected Clients</div>
+          <div class="h4 mb-0">{{ redis_info.get("connected_clients", "–") }}</div>
+        </div>
+        <div class="col-6 col-md-2">
+          <div class="subheader">Memory Used</div>
+          <div class="h4 mb-0">{{ redis_info.get("used_memory_human", "–") }}</div>
+        </div>
+        <div class="col-6 col-md-2">
+          <div class="subheader">Role</div>
+          <div class="h4 mb-0">{{ redis_info.get("role", "–") | title }}</div>
+        </div>
+        <div class="col-6 col-md-2">
+          <div class="subheader">Total Commands</div>
+          <div class="h4 mb-0">{{ redis_info.get("total_commands_processed", "–") }}</div>
+        </div>
+      </div>
+
+      <div class="row g-4 mt-1">
+        <div class="col-6 col-md-3">
+          <div class="subheader">Cached Operator Keys</div>
+          <div class="h4 mb-0">
+            <span class="badge bg-teal-lt fs-6">{{ redis_operators_count }}</span>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="subheader">Cached Call Keys</div>
+          <div class="h4 mb-0">
+            <span class="badge bg-blue-lt fs-6">{{ redis_calls_count }}</span>
+          </div>
+        </div>
+        {% if redis_info.get("keyspace_hits") is not none %}
+        <div class="col-6 col-md-3">
+          <div class="subheader">Cache Hits</div>
+          <div class="h4 mb-0">{{ redis_info.get("keyspace_hits", 0) }}</div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="subheader">Cache Misses</div>
+          <div class="h4 mb-0">{{ redis_info.get("keyspace_misses", 0) }}</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% elif not redis_online %}
+    <div class="card-body">
+      <div class="alert alert-danger mb-0">
+        <i class="fa fa-exclamation-triangle me-2"></i>
+        Cannot connect to Redis. Operator state reads will fall back to MySQL.
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{# ── Operators ───────────────────────────────────────────────────────── #}
+<div class="col-12">
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">
+        <i class="fa fa-headset me-2"></i>Operators
+      </h3>
+      <div class="card-options">
+        {% set logged_in_count = operators | selectattr("db_loggedin") | list | length %}
+        {% set available_count = operators | selectattr("db_available") | list | length %}
+        <span class="badge bg-success-lt me-1">{{ logged_in_count }} logged in</span>
+        <span class="badge bg-teal-lt me-1">{{ available_count }} available</span>
+        <span class="badge bg-blue-lt">{{ operators | length }} total</span>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-vcenter card-table">
+        <thead>
+          <tr>
+            <th>Ext.</th>
+            <th>Name</th>
+            <th>IVR Option</th>
+            <th>Valkey</th>
+            <th colspan="2" class="text-center border-start">MySQL State</th>
+            <th colspan="2" class="text-center border-start">Redis State</th>
+            <th>Last Call</th>
+            <th>Cache Sync</th>
+          </tr>
+          <tr class="small text-muted">
+            <th></th><th></th><th></th><th></th>
+            <th class="border-start">Logged In</th>
+            <th>Available</th>
+            <th class="border-start">Logged In</th>
+            <th>Available</th>
+            <th></th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for op in operators %}
+          <tr>
+            <td class="fw-bold">{{ op.number }}</td>
+            <td>{{ op.name }}</td>
+            <td><kbd>{{ op.option }}</kbd></td>
+            <td>
+              {% if op.enable_valkey %}
+                <span class="badge bg-teal-lt">Yes</span>
+              {% else %}
+                <span class="badge bg-secondary-lt">No</span>
+              {% endif %}
+            </td>
+
+            {# MySQL state #}
+            <td class="border-start">
+              {% if op.db_loggedin %}
+                <span class="badge bg-success">In</span>
+              {% else %}
+                <span class="badge bg-secondary">Out</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if op.db_available %}
+                <span class="badge bg-success">Yes</span>
+              {% else %}
+                <span class="badge bg-warning-lt text-warning">No</span>
+              {% endif %}
+            </td>
+
+            {# Redis state #}
+            <td class="border-start">
+              {% if op.redis_state %}
+                {% if op.redis_state.loggedin %}
+                  <span class="badge bg-success">In</span>
+                {% else %}
+                  <span class="badge bg-secondary">Out</span>
+                {% endif %}
+              {% elif op.enable_valkey %}
+                <span class="text-muted">—</span>
+              {% else %}
+                <span class="text-muted">N/A</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if op.redis_state %}
+                {% if op.redis_state.available %}
+                  <span class="badge bg-success">Yes</span>
+                {% else %}
+                  <span class="badge bg-warning-lt text-warning">No</span>
+                {% endif %}
+              {% elif op.enable_valkey %}
+                <span class="text-muted">—</span>
+              {% else %}
+                <span class="text-muted">N/A</span>
+              {% endif %}
+            </td>
+
+            <td class="text-muted small">
+              {{ op.db_lastcall.strftime('%Y-%m-%d %H:%M') if op.db_lastcall else '—' }}
+            </td>
+            <td>
+              {% if op.synced is none %}
+                <span class="text-muted">—</span>
+              {% elif op.synced %}
+                <span class="badge bg-success-lt"><i class="fa fa-check me-1"></i>Synced</span>
+              {% else %}
+                <span class="badge bg-danger"><i class="fa fa-exclamation me-1"></i>Drift</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="10" class="text-center text-muted py-4">No operators found</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{# ── Active Calls ────────────────────────────────────────────────────── #}
+<div class="col-12">
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">
+        <i class="fa fa-phone me-2"></i>Active Calls
+        <span class="badge bg-blue-lt ms-2">{{ active_calls | length }}</span>
+      </h3>
+      <div class="card-options small text-muted">
+        <span class="badge bg-success-lt me-1">DB + Redis</span> = healthy &nbsp;
+        <span class="badge bg-warning me-1">DB only</span> = Redis cache miss &nbsp;
+        <span class="badge bg-azure-lt me-1">Redis only</span> = DB desync
+      </div>
+    </div>
+
+    {% if active_calls %}
+    <div class="table-responsive">
+      <table class="table table-vcenter card-table">
+        <thead>
+          <tr>
+            <th>State</th>
+            <th>Service</th>
+            <th>ANI (Caller)</th>
+            <th>DID (Called)</th>
+            <th>Operator</th>
+            <th>Client ID</th>
+            <th>Started</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for call in active_calls %}
+          <tr>
+            <td>
+              {% if call.source == "db+redis" %}
+                <span class="badge bg-success-lt">DB + Redis</span>
+              {% elif call.source == "db_only" %}
+                <span class="badge bg-warning">DB only</span>
+              {% else %}
+                <span class="badge bg-azure-lt">Redis only</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge bg-secondary-lt">{{ call.service }}</span>
+            </td>
+            <td><code>{{ call.ani }}</code></td>
+            <td><code>{{ call.did }}</code></td>
+            <td>{{ call.operator if call.operator else '—' }}</td>
+            <td>{{ call.client_id if call.client_id else '—' }}</td>
+            <td class="text-muted small">
+              {{ call.created_at.strftime('%Y-%m-%d %H:%M:%S') if call.created_at else '—' }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% else %}
+    <div class="card-body text-center text-muted py-4">
+      <i class="fa fa-phone-slash fa-2x mb-2 d-block opacity-50"></i>
+      No active calls at this time
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
