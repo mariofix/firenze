@@ -64,6 +64,10 @@ def create_app():
     # public endpoints
     app.include_router(publicRouter)
 
+    @app.get("/")
+    def index():
+        return {"status": "ok"}
+
     @app.on_event("startup")
     async def startup():
         app.logger.info(f"Starting ZVN-Firenze-{__version__}-{settings.ENVIRONMENT}")
