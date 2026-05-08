@@ -139,3 +139,45 @@ class ClientUpdateResponse(BaseModel):
     phones_added: int = 0
     phones_removed: int = 0
     phone_skipped_reason: Optional[str] = None
+
+
+class ClientAniWriteRequest(BaseModel):
+    """Body for ClientAni create/add endpoints."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    service: str = Field(
+        ..., min_length=1, description="Service slug, e.g. fonotarot-cl"
+    )
+    client_id: int = Field(..., gt=0, description="Existing client_id in the service")
+    ani: str = Field(..., min_length=8, max_length=15)
+
+    @field_validator("ani")
+    @classmethod
+    def _ani_must_be_digits(cls, v: str) -> str:
+        if not v.isdigit():
+            raise ValueError("ani must be 8-15 digits")
+        return v
+
+
+class ClientAniWriteResponse(BaseModel):
+    ok: bool
+    service: str
+    client_id: int
+    ani: str
+    created: bool
+
+
+class ClientAniListResponse(BaseModel):
+    ok: bool
+    service: str
+    client_id: int
+    anis: list[str]
+
+
+class ClientAniDeleteResponse(BaseModel):
+    ok: bool
+    service: str
+    client_id: int
+    ani: str
+    deleted: bool

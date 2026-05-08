@@ -24,6 +24,14 @@ class PinAlreadyTaken(Exception):
     """Raised when a PIN update would collide with another client in the service."""
 
 
+class AniAlreadyTaken(Exception):
+    """Raised when ANI belongs to another client in the same service."""
+
+
+class ClientAniNotFound(Exception):
+    """Raised when an ANI row does not exist for the target client."""
+
+
 def _get_service(db: Session, slug: str) -> Service:
     svc = db.query(Service).filter_by(slug=slug).first()
     if not svc:
@@ -297,4 +305,101 @@ def update_client(
         "phones_added": phones_added,
         "phones_removed": phones_removed,
         "phone_skipped_reason": phone_skipped_reason,
+    }
+
+
+def list_client_anis(
+    db: Session, *, service_slug: str, client_id: int
+) -> dict:
+    """List every ANI registered to a client in a service."""
+    svc = _get_service(db, service_slug)
+    client = db.query(Client).filter_by(service_id=svc.id, client_id=client_id).first()
+    if not client:
+        raise ClientNotFound(
+            f"Client {client_id} not found in service '{service_slug}'"
+        )
+
+    anis = [
+        row.ani
+        for row in db.query(ClientAni)
+        .filter_by(service_id=svc.id, client_id=client_id)
+        .order_by(ClientAni.id.asc())
+        .all()
+    ]
+
+    return {
+        "ok": True,
+        "service": service_slug,
+        "client_id": client_id,
+        "anis": anis,
+    }
+
+
+def create_client_ani(
+    db: Session, *, service_slug: str, client_id: int, ani: str
+) -> dict:
+    """Create (or idempotently add) one ANI mapping for an existing client."""
+    svc = _get_service(db, service_slug)
+    client = db.query(Client).filter_by(service_id=svc.id, client_id=client_id).first()
+    if not client:
+        raise ClientNotFound(
+            f"Client {client_id} not found in service '{service_slug}'"
+        )
+
+    existing = db.query(ClientAni).filter_by(service_id=svc.id, ani=ani).first()
+    if existing:
+        if existing.client_id == client_id:
+            return {
+                "ok": True,
+                "service": service_slug,
+                "client_id": client_id,
+                "ani": ani,
+                "created": False,
+            }
+        raise AniAlreadyTaken(
+            f"ANI {ani} already registered to client_id={existing.client_id} in service '{service_slug}'"
+        )
+
+    db.add(ClientAni(service_id=svc.id, client_id=client_id, ani=ani))
+    db.commit()
+
+    return {
+        "ok": True,
+        "service": service_slug,
+        "client_id": client_id,
+        "ani": ani,
+        "created": True,
+    }
+
+
+def delete_client_ani(
+    db: Session, *, service_slug: str, client_id: int, ani: str
+) -> dict:
+    """Delete one ANI mapping from a client."""
+    svc = _get_service(db, service_slug)
+    client = db.query(Client).filter_by(service_id=svc.id, client_id=client_id).first()
+    if not client:
+        raise ClientNotFound(
+            f"Client {client_id} not found in service '{service_slug}'"
+        )
+
+    ani_row = (
+        db.query(ClientAni)
+        .filter_by(service_id=svc.id, client_id=client_id, ani=ani)
+        .first()
+    )
+    if not ani_row:
+        raise ClientAniNotFound(
+            f"ANI {ani} not found for client {client_id} in service '{service_slug}'"
+        )
+
+    db.delete(ani_row)
+    db.commit()
+
+    return {
+        "ok": True,
+        "service": service_slug,
+        "client_id": client_id,
+        "ani": ani,
+        "deleted": True,
     }
