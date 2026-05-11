@@ -338,7 +338,7 @@ def agi_operator_info_by_option(
     ok_meessage = None
     if op.available == 0 or op.loggedin == 0:
         ok_status = False
-        ok_meessage = f"{operator.loggedin=} {operator.available=}"
+        ok_meessage = f"{op.loggedin=} {op.available=}"
     return {
         "ok": ok_status,
         "operador_numero": str(op.number),
