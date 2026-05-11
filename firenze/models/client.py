@@ -15,7 +15,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from firenze.database import Base
 from firenze.models.base import TimestampMixin
-
+import datetime
 
 def _generate_pin() -> str:
     """Generate a random 8-digit PIN string."""
@@ -55,7 +55,7 @@ class Client(Base, TimestampMixin):
     )
 
     def __str__(self):
-        return f"<Client: {self.id=}, {self.service_id=}, {self.client_id=} >"
+        return f"<Cliente: {self.id=}/{self.service_id=}/{self.client_id=}>"
 
 
 class ClientAni(Base):
@@ -73,7 +73,8 @@ class ClientAni(Base):
     service_id: Mapped[int] = mapped_column(Integer, nullable=False)
     client_id: Mapped[int] = mapped_column(Integer, nullable=False)
     ani: Mapped[str] = mapped_column(String(16), nullable=False)
-
+    q_calls: Mapped[int] = mapped_column(Integer, nullable=False, default="0")
+    last_call: Mapped[datetime.datetime] = mapped_column(nullable=True, default=None)
     client: Mapped["Client"] = relationship(back_populates="anis")
 
     __table_args__ = (
@@ -89,4 +90,4 @@ class ClientAni(Base):
     )
 
     def __str__(self):
-        return f"{self.service_id}:{self.client_id}"
+        return f"{self.ani} ({self.q_calls})"

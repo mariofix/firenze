@@ -27,7 +27,7 @@ class Operator(Base, TimestampMixin):
     numbers: Mapped[list["OperatorPhone"]] = relationship(back_populates="operator")
 
     def __str__(self):
-        return str(self.number)
+        return f"{self.number}"
 
 
 class OperatorPhone(Base, TimestampMixin):
@@ -45,4 +45,4 @@ class OperatorPhone(Base, TimestampMixin):
     operator: Mapped[Optional["Operator"]] = relationship(back_populates="numbers")
 
     def __str__(self):
-        return str(self.number)
+        return f"{self.number}@{self.trunk}"
