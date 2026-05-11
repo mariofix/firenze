@@ -52,7 +52,7 @@ def lookup(db: Session, service_slug: str, identifier: str) -> dict:
         if not client:
             client_id = db.query(ClientAni).filter_by(ani=identifier, service_id=svc.id).first()
             if client_id:
-                client = db.query(Client).filter_by(service_id=svc.id, client_id=client_id.client).first()
+                client = db.query(Client).filter_by(service_id=svc.id, client_id=client_id.client_id).first()
 
     if not client:
         return {"clientid": 0, "segundos": 0}
