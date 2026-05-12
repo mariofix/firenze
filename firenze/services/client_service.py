@@ -3,6 +3,7 @@
 Used by AGI endpoints - Asterisk dialplan calls these via CURL.
 """
 
+import datetime
 import logging
 
 from sqlalchemy.orm import Session
@@ -99,3 +100,17 @@ def deduct_credits(
     db.commit()
     db.refresh(client)
     return {"ok": True, "remaining": client.credits, "before": before_call}
+
+def update_ani_stats(
+    db: Session, service_slug: str, ani: str 
+) -> None:
+    """Update client_ani.q_calls y client_ani.lastcall
+    """
+    svc = _get_service(db, service_slug)
+
+    ani = db.query(ClientAni).filter_by(ani=ani, service_id=svc.id).first()
+    if ani:
+        ani.q_calls = ani.q_calls+1
+        ani.last_call = datetime.datetime.now()
+        db.flush()
+        db.commit()

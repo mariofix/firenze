@@ -26,6 +26,7 @@ from firenze.services.client_service import (
 )
 from firenze.services.client_service import deduct_credits as svc_deduct
 from firenze.services.client_service import lookup as svc_lookup
+from firenze.services.client_service import update_ani_stats as svc_ani_stats
 from firenze.services.credit_service import compute_call_limit
 from firenze.services.did_service import resolve_did
 from firenze.services.dnc_service import check_dnc
@@ -104,6 +105,7 @@ def agi_client_lookup(
     Returns ``{clientid, segundos}`` — the contract the dialplan expects.
     Returns ``{clientid: 0, segundos: 0}`` if not found (dialplan handles this).
     """
+    svc_ani_stats(db, service, identifier)
     try:
         return svc_lookup(db, service, identifier)
     except ServiceNotFound as e:

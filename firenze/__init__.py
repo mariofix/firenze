@@ -76,12 +76,4 @@ def create_app():
     def index():
         return {"status": "ok"}
 
-    @app.on_event("startup")
-    async def startup():
-        app.logger.info(f"Starting ZVN-Firenze-{__version__}-{settings.ENVIRONMENT}")
-
-    @app.on_event("shutdown")
-    async def shutdown():
-        app.logger.info(f"Stopping ZVN-Firenze-{__version__}-{settings.ENVIRONMENT}")
-
     return app
