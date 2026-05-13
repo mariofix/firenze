@@ -4,8 +4,10 @@ import logging
 
 import bcrypt
 import redis as redis_lib
-from sqladmin import BaseView, ModelView, expose
+from sqladmin import BaseView, ModelView, expose, Admin
+from sqladmin.authentication import login_required
 from starlette.requests import Request
+from starlette.responses import RedirectResponse
 
 from firenze.database import SessionLocal
 from firenze.models import (
@@ -241,15 +243,17 @@ class EventAdmin(ModelView, model=Event):
     name = "Event"
     name_plural = "Events"
 
+class AdminIndex(BaseView):
+    name = "Dashboard"
+    icon = "fa fa-gauge"
 
-class SystemStatusView(BaseView):
-    """Custom admin page showing Redis health, operator cache state, and active calls."""
+    @expose("/index", methods=["GET"])
+    async def admin(self, request):
+        return RedirectResponse(url="/admin")
 
-    name = "System Status"
-    icon = "fa-solid fa-server"
-
-    @expose("/system-status", methods=["GET"])
-    async def system_status(self, request: Request):
+class FirenzeAdmin(Admin):
+    @login_required
+    async def index(self, request):
         data = await asyncio.to_thread(self._collect_data)
         return await self.templates.TemplateResponse(
             request,
@@ -400,8 +404,10 @@ class SystemStatusView(BaseView):
         }
 
 
+
+
 def register_admin(admin):
-    admin.add_base_view(SystemStatusView)
+    admin.add_view(AdminIndex)
     admin.add_view(UserAdmin)
     admin.add_view(DNCAdmin)
     admin.add_view(ClientAdmin)

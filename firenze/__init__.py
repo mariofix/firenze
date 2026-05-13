@@ -9,7 +9,7 @@ from sqladmin import Admin
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from firenze.admin import register_admin
+from firenze.admin import register_admin, FirenzeAdmin
 from firenze.api.agi import agiRouter
 from firenze.api.payments import paymentsRouter
 from firenze.api.public import publicRouter
@@ -54,7 +54,7 @@ def create_app():
 
     # sqladmin
     authentication_backend = AdminAuth(secret_key=settings.SECRET_KEY)
-    admin = Admin(
+    admin = FirenzeAdmin(
         app,
         engine,
         title="Firenze Admin",
