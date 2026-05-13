@@ -133,7 +133,7 @@ def payments_complete(
             e,
         )
         raise HTTPException(status_code=404, detail=str(e))
-
+    logger.info(f"payments_complete: NewPayment: {result=}")
     return PurchaseResponse(**result)
 
 
