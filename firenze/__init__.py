@@ -48,6 +48,10 @@ def create_app():
         allowed_networks=settings.AGI_ALLOWED_NETWORKS,
     )
 
+    @app.get("/")
+    def root_index():
+        return {"status": "ok"}
+
     # sqladmin
     authentication_backend = AdminAuth(secret_key=settings.SECRET_KEY)
     admin = Admin(
@@ -72,8 +76,6 @@ def create_app():
     # public endpoints
     app.include_router(publicRouter)
 
-    @app.get("/")
-    def index():
-        return {"status": "ok"}
+    
 
     return app

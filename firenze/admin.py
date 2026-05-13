@@ -401,6 +401,7 @@ class SystemStatusView(BaseView):
 
 
 def register_admin(admin):
+    admin.add_base_view(SystemStatusView)
     admin.add_view(UserAdmin)
     admin.add_view(DNCAdmin)
     admin.add_view(ClientAdmin)
@@ -412,4 +413,4 @@ def register_admin(admin):
     admin.add_view(OnlineCallsAdmin)
     # admin.add_view(PostCallProcessAdmin)
     # admin.add_view(EventAdmin)
-    admin.add_base_view(SystemStatusView)
+    
