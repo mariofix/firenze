@@ -96,7 +96,7 @@ def clients_search(
 def payments_complete(
     payload: PurchaseRequest,
     db: Session = Depends(get_db),
-    _user_id: int = Security(loggedin_user, scopes=["firenze"]),
+    # _user_id: int = Security(loggedin_user, scopes=["firenze"]),
 ):
     """Apply a completed purchase.
 

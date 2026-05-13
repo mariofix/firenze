@@ -10,6 +10,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     event,
+    JSON
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -43,6 +44,7 @@ class Client(Base, TimestampMixin):
     email: Mapped[Optional[str]] = mapped_column(String(512), default=None)
     phone_number: Mapped[Optional[str]] = mapped_column(String(16), default=None)
     credits: Mapped[int] = mapped_column(Integer, default=0)
+    extra_config: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True, default=None)
 
     service: Mapped[Optional["Service"]] = relationship()
     anis: Mapped[list["ClientAni"]] = relationship(
