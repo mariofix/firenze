@@ -6,6 +6,7 @@ from datetime import timedelta
 import bcrypt
 
 import redis as redis_lib
+from markupsafe import Markup, escape
 from starlette.requests import Request
 from starlette.responses import RedirectResponse
 from starlette.routing import Route
@@ -57,6 +58,18 @@ class ClientAdmin(ModelView, model=Client):
         Client.service: "Servicio Asociado",
         Client.client_id: "Client ID",
         Client.anis: "Teléfono",
+    }
+    column_formatters = {
+        Client.anis: lambda model, _: Markup(
+            '<div class="d-flex flex-wrap gap-1">'
+            + "".join(
+                f'<span class="badge bg-blue-lt text-blue">{escape(client_ani.ani)}</span>'
+                for client_ani in model.anis
+            )
+            + "</div>"
+        )
+        if model.anis
+        else "-"
     }
 
 
