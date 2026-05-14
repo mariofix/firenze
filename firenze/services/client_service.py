@@ -45,15 +45,10 @@ def lookup(db: Session, service_slug: str, identifier: str) -> dict:
     if len(identifier) == 6:
         client = db.query(Client).filter_by(service_id=svc.id, pin=identifier).first()
     else:
-        client = (
-            db.query(Client)
-            .filter_by(service_id=svc.id, phone_number=identifier)
-            .first()
-        )
-        if not client:
-            client_id = db.query(ClientAni).filter_by(ani=identifier, service_id=svc.id).first()
-            if client_id:
-                client = db.query(Client).filter_by(service_id=svc.id, client_id=client_id.client_id).first()
+        client_id = db.query(ClientAni).filter_by(ani=identifier, service_id=svc.id).first()
+        if client_id:
+            client = db.query(Client).filter_by(service_id=svc.id, client_id=client_id.client_id).first()
+
 
     if not client:
         return {"clientid": 0, "segundos": 0}
