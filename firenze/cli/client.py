@@ -1,6 +1,7 @@
 """Client commands - Client Management Commands."""
 
 import re
+import logging
 from enum import Enum
 from typing import Optional
 
@@ -15,6 +16,8 @@ from sqlalchemy import func, select, text
 from firenze.config import settings
 from firenze.models.client import Client, ClientAni
 from firenze.models.service import Service
+
+logger = logging.getLogger("firenze")
 
 app = typer.Typer()
 console = Console()

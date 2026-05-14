@@ -16,7 +16,7 @@ import redis
 
 _KEY_PREFIX = "firenze:call"
 _TTL = 86400
-_log = logging.getLogger(__name__)
+_log = logging.getLogger("firenze")
 
 
 def _key(service: str, ani: str) -> str:

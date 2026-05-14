@@ -25,7 +25,7 @@ from firenze.models import (
 )
 from firenze.redis import get_redis
 
-_log = logging.getLogger(__name__)
+_log = logging.getLogger("firenze")
 
 _TIMESTAMP_EXCLUDED = ["created_at", "modified_at"]
 

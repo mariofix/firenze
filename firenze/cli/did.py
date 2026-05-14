@@ -1,11 +1,11 @@
 """DID resolution CLI commands."""
 
 import typer
-
+import logging
 from firenze.services.did_service import resolve_did
 
 app = typer.Typer()
-
+logger = logging.getLogger("firenze")
 
 @app.command("resolve")
 def resolve(

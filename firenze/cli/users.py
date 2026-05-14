@@ -1,6 +1,7 @@
 """User management CLI commands."""
 
 from typing import Optional
+import logging
 
 import bcrypt
 import typer
@@ -12,6 +13,7 @@ from sqlalchemy import delete
 from firenze.models import User
 
 app = typer.Typer()
+logger = logging.getLogger("firenze")
 
 
 def _hash_password(password: str) -> str:

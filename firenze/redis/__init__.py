@@ -7,7 +7,7 @@ import redis
 
 from firenze.config import settings
 
-_log = logging.getLogger(__name__)
+_log = logging.getLogger("firenze")
 
 
 def get_redis() -> Optional[redis.Redis]:

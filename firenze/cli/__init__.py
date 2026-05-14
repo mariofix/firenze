@@ -6,12 +6,12 @@ import logging.config
 import typer
 
 from firenze.cli import calls, client, did, dnc, fastapi, migration, operators, users
-from firenze.config import LOGGING_CONFIG_CLI
+from firenze.config import LOGGING_CONFIG
 from firenze.database import SessionLocal
 from firenze.redis import get_redis
 
-logging.config.dictConfig(LOGGING_CONFIG_CLI)
-logger = logging.getLogger("firenze-cli")
+logging.config.dictConfig(LOGGING_CONFIG)
+logger = logging.getLogger("firenze")
 
 cli = typer.Typer(help="Admin and debug CLI for Firenze.")
 cli.add_typer(users.app, name="users", help="Manage API users")

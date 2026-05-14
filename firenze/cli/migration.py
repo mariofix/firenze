@@ -1,6 +1,7 @@
 """Migration commands - import clients from the legacy Firenze API."""
 
 import re
+import logging
 from enum import Enum
 from typing import Optional
 
@@ -18,7 +19,7 @@ from firenze.models.service import Service
 
 app = typer.Typer()
 console = Console()
-
+logger = logging.getLogger("firenze")
 
 class LegacyService(str, Enum):
     fonotarot_cl = "fonotarot-cl"

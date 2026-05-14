@@ -2,12 +2,12 @@ import logging.config
 
 import typer
 
-from firenze.cli.utils import set_asterisk_var, verbose
-from firenze.config import LOGGING_CONFIG_CLI
+
+from firenze.config import LOGGING_CONFIG
 from firenze.models import ServiceNumber
 
-logging.config.dictConfig(LOGGING_CONFIG_CLI)
-logger = logging.getLogger("firenze-cli")
+logging.config.dictConfig(LOGGING_CONFIG)
+logger = logging.getLogger("firenze")
 app = typer.Typer()
 
 
@@ -25,11 +25,7 @@ def search_did(
 
     if number:
         logger.info(f"{number=}")
-        set_asterisk_var(agi, "siguiente", number.asterisk_context)
-        verbose(agi, f"Se encontró el contexto {number.asterisk_context}")
         raise typer.Exit(code=0)
     else:
         logger.warn(f"The DID {did} is not registered.")
-        set_asterisk_var(agi, "siguiente", "no-service")
-        verbose(agi, f"The DID {did} is not registered.")
         raise typer.Exit(code=0)

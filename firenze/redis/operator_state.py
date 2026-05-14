@@ -12,7 +12,7 @@ import redis
 
 _KEY_PREFIX = "firenze:operator"
 _TTL = 86400  # 24 hours
-_log = logging.getLogger(__name__)
+_log = logging.getLogger("firenze")
 
 
 def _key(number: int) -> str:
