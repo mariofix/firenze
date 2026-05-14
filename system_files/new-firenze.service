@@ -7,7 +7,9 @@ Type=notify
 User=zvn
 Group=zvn
 WorkingDirectory=/home/zvn/public_apps/new-firenze
-ExecStart=/home/zvn/public_apps/new-firenze/.venv/bin/gunicorn run:app \
+ExecStart=/home/zvn/public_apps/new-firenze/.venv/bin/gunicorn \
+    --config /home/zvn/public_apps/new-firenze/gunicorn.conf.py \
+    run:app \
     --bind 10.0.0.3:9002 \
     --name firenze \
     --workers 1 \
