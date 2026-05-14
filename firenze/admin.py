@@ -60,16 +60,14 @@ class ClientAdmin(ModelView, model=Client):
         Client.anis: "Teléfono",
     }
     column_formatters = {
-        Client.anis: lambda model, _: Markup(
-            '<div class="d-flex flex-wrap gap-1">'
-            + "".join(
+        Client.anis: lambda model, _: [
+            Markup(
                 f'<span class="badge bg-blue-lt text-blue">{escape(client_ani.ani)}</span>'
-                for client_ani in model.anis
             )
-            + "</div>"
-        )
+            for client_ani in model.anis
+        ]
         if model.anis
-        else "-"
+        else []
     }
 
 
@@ -573,3 +571,4 @@ def register_admin(admin):
     admin.add_view(OnlineCallsAdmin)
     # admin.add_view(PostCallProcessAdmin)
     # admin.add_view(EventAdmin)
+    show_compact_lists = False
