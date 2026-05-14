@@ -3,6 +3,7 @@ import datetime
 import logging
 
 import bcrypt
+
 import redis as redis_lib
 from sqladmin import BaseView, ModelView, expose, Admin
 from sqladmin.authentication import login_required
@@ -33,32 +34,41 @@ _TIMESTAMP_EXCLUDED = ["created_at", "modified_at"]
 class ClientAdmin(ModelView, model=Client):
     name = "Client"
     name_plural = "Clients"
+    icon = "fa-solid fa-user"
     form_excluded_columns = _TIMESTAMP_EXCLUDED
-    column_searchable_list = [Client.client_id, Client.phone_number, Client.email]
+    column_searchable_list = [Client.client_id, Client.email]
+    column_sortable_list = [Client.client_id, Client.email, Client.id, Client.credits ]
     column_list = [
         Client.full_name,
         Client.email,
-        Client.phone_number,
         Client.credits,
         Client.service,
         Client.client_id,
+        Client.anis
     ]
     column_labels = {
         Client.full_name: "Nombre",
         Client.email: "Correo",
-        Client.phone_number: "Teléfono Principal",
         Client.credits: "Segundos",
         Client.service: "Servicio Asociado",
         Client.client_id: "Client ID",
+        Client.anis: "Teléfono",
     }
 
 
 class ClientAniAdmin(ModelView, model=ClientAni):
     name = "Client ANI"
     name_plural = "Client ANIs"
+    icon = "fa-solid fa-mobile-screen"
     form_excluded_columns = _TIMESTAMP_EXCLUDED
-    column_searchable_list = [ClientAni.ani, ClientAni.client]
-    column_list = [ClientAni.client_id, ClientAni.ani]
+    column_searchable_list = [ClientAni.ani, ClientAni.client_id]
+    column_list = [ClientAni.client_id, ClientAni.ani, ClientAni.q_calls, ClientAni.last_call]
+    column_labels = {
+        ClientAni.client_id: "Client ID",
+        ClientAni.ani: "Teléfono",
+        ClientAni.q_calls: "Cantidad de Llamadas",
+        ClientAni.last_call: "Última Llamada",
+    }
 
 
 class DNCAdmin(ModelView, model=DoNotCall):
@@ -67,6 +77,7 @@ class DNCAdmin(ModelView, model=DoNotCall):
     form_excluded_columns = _TIMESTAMP_EXCLUDED
     name = "DNC"
     name_plural = "DNC List"
+    icon = "fa-solid fa-phone-slash"
     column_labels = {DoNotCall.created_at: "Date Added"}
     form_args = {
         "ani": {"description": "Phone number in E.164 format, e.g. 56912345678"},
@@ -80,6 +91,7 @@ class ServiceAdmin(ModelView, model=Service):
     form_excluded_columns = _TIMESTAMP_EXCLUDED
     name = "Service"
     name_plural = "Services"
+    icon = "fa-solid fa-blender-phone"
     form_args = {
         "name": {"description": "Human-readable service name, e.g. FonoTarot Chile"},
         "slug": {
@@ -99,6 +111,7 @@ class ServiceNumberAdmin(ModelView, model=ServiceNumber):
     form_excluded_columns = _TIMESTAMP_EXCLUDED
     name = "DID"
     name_plural = "Service DIDs"
+    icon = "fa-solid fa-mobile-retro"
     form_args = {
         "did": {"description": "Full E.164 DID number, e.g. 56229402147"},
         "active": {"description": "Uncheck to stop routing calls to this DID"},
@@ -126,6 +139,7 @@ class OperatorAdmin(ModelView, model=Operator):
     ]
     name = "Operator"
     name_plural = "Operators"
+    icon = "fa-solid fa-headphones"
     form_args = {
         "number": {"description": "Internal SIP extension number, e.g. 1001"},
         "name": {"description": "Operator display name, used in IVR audio and logs"},
@@ -151,6 +165,7 @@ class OperatorPhoneAdmin(ModelView, model=OperatorPhone):
     form_excluded_columns = _TIMESTAMP_EXCLUDED
     name = "Operator Phone"
     name_plural = "Operator Phones"
+    icon = "fa-solid fa-phone"
     form_args = {
         "number": {"description": "Phone number to dial, e.g. 56912345678"},
         "enabled": {"description": "Uncheck to temporarily disable this phone number"},
@@ -182,6 +197,7 @@ class OnlineCallsAdmin(ModelView, model=OnlineCalls):
     can_delete = True
     name = "Online Call"
     name_plural = "Online Calls"
+    icon = "fa-solid fa-signal"
 
 
 class PostCallProcessAdmin(ModelView, model=PostCallProcess):
@@ -207,6 +223,7 @@ class UserAdmin(ModelView, model=User):
     form_excluded_columns = _TIMESTAMP_EXCLUDED
     name = "API User"
     name_plural = "API Users"
+    icon = "fa-solid fa-user-gear"
     form_args = {
         "login": {"description": "Username for API authentication"},
         "email": {"description": "Contact email address"},
