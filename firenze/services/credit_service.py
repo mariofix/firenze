@@ -36,7 +36,7 @@ _THRESHOLDS = [
     (3900, "zvn/saldo/65"),
     (4200, "zvn/saldo/70"),
     (4500, "zvn/saldo/75"),
-    (4800, "zvn/saldo/75"),  # dialplan plays /75 here too (bug in original, replicated)
+    (4800, "zvn/saldo/80"),
     (5100, "zvn/saldo/85"),
     (5400, "zvn/saldo/90"),
     (5700, "zvn/saldo/95"),

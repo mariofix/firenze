@@ -107,7 +107,10 @@ def agi_client_lookup(
     """
     svc_ani_stats(db, service, identifier)
     try:
-        return svc_lookup(db, service, identifier)
+        data = svc_lookup(db, service, identifier)
+        more_data = compute_call_limit(data["segundos"])
+        data.update(more_data)
+        return data
     except ServiceNotFound as e:
         logger.warning(
             "agi_client_lookup: ServiceNotFound for service=%r identifier=%r: %s",
