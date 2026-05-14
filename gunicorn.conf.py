@@ -53,6 +53,10 @@ logconfig_dict = {
             "propagate": False,
         },
     },
+    "root": {
+        "handlers": ["error_file"],
+        "level": f"{loglevel.upper()}",
+    },
 }
 
 # Proxy
