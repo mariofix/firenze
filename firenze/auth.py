@@ -1,10 +1,8 @@
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from typing import Optional
 
-import bcrypt
-import jwt
-from fastapi import APIRouter, Depends, HTTPException, Request, Security
+from fastapi import APIRouter, Depends, HTTPException, Request, Security, status
 from fastapi.security import (
     OAuth2PasswordBearer,
     OAuth2PasswordRequestForm,
@@ -15,10 +13,11 @@ from sqladmin.authentication import AuthenticationBackend
 from sqlalchemy.orm import Session
 from starlette.responses import RedirectResponse
 
-from firenze import crud, models, schemas
+from firenze import crud, schemas
 from firenze.config import settings
 from firenze.database import SessionLocal
 from firenze.dependencies import get_db
+from firenze.services import auth_service
 
 logger = logging.getLogger("firenze")
 
@@ -35,12 +34,7 @@ authRouter = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + (
-        expires_delta if expires_delta else timedelta(minutes=settings.SECRET_EXPIRES)
-    )
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.SECRET_ALGO)
+    return auth_service.create_access_token(data=data, expires_delta=expires_delta)
 
 
 @authRouter.post(
@@ -53,22 +47,77 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 def token(
     form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
 ):
-    user = crud.get_user_by_login(db, form_data.username)
-    if (not user) or (
-        not bcrypt.checkpw(
-            form_data.password.encode("utf-8")[:72], user.password.encode("utf-8")
+    if not settings.AUTH_PASSWORD_LOGIN_ENABLED:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Password login is disabled",
         )
-    ):
+
+    user = auth_service.authenticate_password_user(db, form_data.username, form_data.password)
+    if not user:
         raise HTTPException(
             status_code=401,
             detail="User not found or invalid password",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    if not user.enabled:
+    access_token = create_access_token(
+        data={"sub": str(user.id)},
+        expires_delta=timedelta(minutes=settings.SECRET_EXPIRES),
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@authRouter.post(
+    "/passwordless/request",
+    response_model=schemas.PasswordlessRequestResponse,
+    summary="Request one-time login code",
+)
+def passwordless_request(
+    payload: schemas.PasswordlessRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    if not settings.AUTH_PASSWORDLESS_ENABLED:
         raise HTTPException(
-            status_code=401,
-            detail="User disabled",
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Passwordless login is disabled",
+        )
+
+    detail = "If the account exists, a login code has been sent."
+    user = auth_service.find_user_for_passwordless_identifier(db, payload.identifier)
+    if not user or not user.enabled or not user.email:
+        return {"ok": True, "detail": detail}
+
+    request_ip = request.client.host if request.client else ""
+    user_agent = request.headers.get("user-agent", "")
+    if not auth_service.can_issue_passwordless_code(db, user, request_ip):
+        return {"ok": True, "detail": detail}
+
+    code = auth_service.create_passwordless_code(db, user, request_ip, user_agent)
+    auth_service.send_passwordless_code_email(user.email, code)
+    return {"ok": True, "detail": detail}
+
+
+@authRouter.post(
+    "/passwordless/verify",
+    summary="Verify one-time login code",
+)
+def passwordless_verify(
+    payload: schemas.PasswordlessVerify,
+    db: Session = Depends(get_db),
+):
+    if not settings.AUTH_PASSWORDLESS_ENABLED:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Passwordless login is disabled",
+        )
+
+    user = auth_service.verify_passwordless_code(db, payload.identifier, payload.code)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired code",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -92,9 +141,7 @@ async def loggedin_user(
     )
 
     try:
-        payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[settings.SECRET_ALGO]
-        )
+        payload = auth_service.decode_access_token(token)
     except PyJWTError as e:
         logger.warning("JWT decode error: %s", e)
         raise HTTPException(
@@ -119,6 +166,13 @@ async def loggedin_user(
             headers={"WWW-Authenticate": authenticate_value},
         )
 
+    if not user.enabled:
+        raise HTTPException(
+            status_code=401,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": authenticate_value},
+        )
+
     if not user.scopes:
         raise HTTPException(
             status_code=401,
@@ -126,17 +180,19 @@ async def loggedin_user(
             headers={"WWW-Authenticate": authenticate_value},
         )
 
-    # admin scope bypasses all per-endpoint scope checks
-    if "admin" in user.scopes:
-        return user.id
-
-    for scope in security_scopes.scopes:
-        if scope not in user.scopes:
+    if not auth_service.has_required_scopes(user, security_scopes.scopes):
+        missing = [scope for scope in security_scopes.scopes if scope not in user.scopes]
+        if missing:
             raise HTTPException(
                 status_code=403,
-                detail=f"Insufficient scope: '{scope}' required",
+                detail=f"Insufficient scope: '{missing[0]}' required",
                 headers={"WWW-Authenticate": authenticate_value},
             )
+        raise HTTPException(
+            status_code=401,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": authenticate_value},
+        )
 
     return user.id
 
@@ -160,24 +216,22 @@ def me(
 
 class AdminAuth(AuthenticationBackend):
     async def login(self, request: Request) -> bool:
+        if not settings.AUTH_PASSWORD_LOGIN_ENABLED:
+            logger.warning("AdminAuth: password login is disabled")
+            return False
+
         form = await request.form()
         db = SessionLocal()
         try:
-            user: models.User = crud.get_user_by_login(db, form["username"])
-            if (not user) or (
-                not bcrypt.checkpw(
-                    form["password"].encode("utf-8")[:72],
-                    user.password.encode("utf-8"),
-                )
-            ):
+            user = auth_service.authenticate_password_user(
+                db, form["username"], form["password"]
+            )
+            if not user:
                 logger.warning(
                     "AdminAuth: bad credentials for %r", form.get("username")
                 )
                 return False
-            if not user.enabled:
-                logger.warning("AdminAuth: disabled user %r", user.login)
-                return False
-            if not user.scopes or "admin" not in user.scopes:
+            if not auth_service.has_required_scopes(user, ["admin"]):
                 logger.warning("AdminAuth: user %r lacks admin scope", user.login)
                 return False
             access_token = create_access_token(
@@ -197,22 +251,13 @@ class AdminAuth(AuthenticationBackend):
         token = request.session.get("token")
         if not token:
             return RedirectResponse(request.url_for("admin:login"), status_code=302)
-        try:
-            payload = jwt.decode(
-                token, settings.SECRET_KEY, algorithms=[settings.SECRET_ALGO]
-            )
-        except PyJWTError as e:
-            logger.warning("AdminAuth session token error: %s", e)
-            return RedirectResponse(request.url_for("admin:login"), status_code=302)
-
-        token_user_id = payload.get("sub")
-        if not token_user_id:
-            return RedirectResponse(request.url_for("admin:login"), status_code=302)
 
         db = SessionLocal()
         try:
-            user: models.User = crud.get_user(db, token_user_id)
-            if not user or not user.scopes or "admin" not in user.scopes:
+            user = auth_service.get_user_from_token(db, token)
+            if not user:
+                return RedirectResponse(request.url_for("admin:login"), status_code=302)
+            if not auth_service.has_required_scopes(user, ["admin"]):
                 return RedirectResponse(
                     request.url_for("admin:logout"), status_code=302
                 )

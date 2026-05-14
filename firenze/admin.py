@@ -1,15 +1,18 @@
 import asyncio
 import datetime
 import logging
+from datetime import timedelta
 
 import bcrypt
 
 import redis as redis_lib
-from sqladmin import BaseView, ModelView, expose, Admin
-from sqladmin.authentication import login_required
 from starlette.requests import Request
 from starlette.responses import RedirectResponse
+from starlette.routing import Route
+from sqladmin import BaseView, ModelView, expose, Admin
+from sqladmin.authentication import login_required
 
+from firenze.config import settings
 from firenze.database import SessionLocal
 from firenze.models import (
     Client,
@@ -25,6 +28,7 @@ from firenze.models import (
     User,
 )
 from firenze.redis import get_redis
+from firenze.services import auth_service
 
 _log = logging.getLogger("firenze")
 
@@ -37,14 +41,14 @@ class ClientAdmin(ModelView, model=Client):
     icon = "fa-solid fa-user"
     form_excluded_columns = _TIMESTAMP_EXCLUDED
     column_searchable_list = [Client.client_id, Client.email]
-    column_sortable_list = [Client.client_id, Client.email, Client.id, Client.credits ]
+    column_sortable_list = [Client.client_id, Client.email, Client.id, Client.credits]
     column_list = [
         Client.full_name,
         Client.email,
         Client.credits,
         Client.service,
         Client.client_id,
-        Client.anis
+        Client.anis,
     ]
     column_labels = {
         Client.full_name: "Nombre",
@@ -62,7 +66,13 @@ class ClientAniAdmin(ModelView, model=ClientAni):
     icon = "fa-solid fa-mobile-screen"
     form_excluded_columns = _TIMESTAMP_EXCLUDED
     column_searchable_list = [ClientAni.ani, ClientAni.client_id]
-    column_list = [ClientAni.client_id, ClientAni.ani, ClientAni.q_calls, ClientAni.last_call]
+    column_sortable_list = [ClientAni.client_id, ClientAni.q_calls, ClientAni.last_call]
+    column_list = [
+        ClientAni.client_id,
+        ClientAni.ani,
+        ClientAni.q_calls,
+        ClientAni.last_call,
+    ]
     column_labels = {
         ClientAni.client_id: "Client ID",
         ClientAni.ani: "Teléfono",
@@ -231,7 +241,7 @@ class UserAdmin(ModelView, model=User):
             "description": "Plain text — will be hashed automatically on save"
         },
         "allowed_ips": {
-            "description": 'JSON list of allowed IPs, e.g. ["10.0.0.1"]. Leave empty to allow all'
+            "description": 'Deprecated. Kept for compatibility only; not enforced by auth. Previous format: ["10.0.0.1"].'
         },
         "enabled": {
             "description": "Uncheck to disable API access without deleting the user"
@@ -260,6 +270,7 @@ class EventAdmin(ModelView, model=Event):
     name = "Event"
     name_plural = "Events"
 
+
 class AdminIndex(BaseView):
     name = "Dashboard"
     icon = "fa fa-gauge"
@@ -268,7 +279,122 @@ class AdminIndex(BaseView):
     async def admin(self, request):
         return RedirectResponse(url="/admin")
 
+
 class FirenzeAdmin(Admin):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.admin.router.routes.extend(
+            [
+                Route(
+                    "/login/passwordless-request",
+                    endpoint=self.passwordless_request,
+                    methods=["POST"],
+                    name="passwordless-request",
+                ),
+                Route(
+                    "/login/passwordless-verify",
+                    endpoint=self.passwordless_verify,
+                    methods=["POST"],
+                    name="passwordless-verify",
+                ),
+            ]
+        )
+
+    async def passwordless_request(self, request: Request):
+        if not settings.AUTH_PASSWORDLESS_ENABLED:
+            return RedirectResponse(
+                request.url_for("admin:login").include_query_params(
+                    step="code",
+                    error="Passwordless login is disabled.",
+                ),
+                status_code=302,
+            )
+
+        form = await request.form()
+        identifier = (form.get("username") or "").strip()
+        if not identifier:
+            return RedirectResponse(
+                request.url_for("admin:login").include_query_params(
+                    error="Please enter your email first.",
+                ),
+                status_code=302,
+            )
+
+        db = SessionLocal()
+        try:
+            user = auth_service.find_user_for_passwordless_identifier(db, identifier)
+            if user and user.enabled and user.email:
+                request_ip = request.client.host if request.client else ""
+                user_agent = request.headers.get("user-agent", "")
+                if auth_service.can_issue_passwordless_code(db, user, request_ip):
+                    code = auth_service.create_passwordless_code(
+                        db, user, request_ip, user_agent
+                    )
+                    auth_service.send_passwordless_code_email(user.email, code)
+        finally:
+            db.close()
+
+        return RedirectResponse(
+            request.url_for("admin:login").include_query_params(
+                step="code",
+                identifier=identifier,
+                message="If the account exists, a login code has been sent.",
+            ),
+            status_code=302,
+        )
+
+    async def passwordless_verify(self, request: Request):
+        if not settings.AUTH_PASSWORDLESS_ENABLED:
+            return RedirectResponse(
+                request.url_for("admin:login").include_query_params(
+                    step="code",
+                    error="Passwordless login is disabled.",
+                ),
+                status_code=302,
+            )
+
+        form = await request.form()
+        identifier = (form.get("identifier") or "").strip()
+        code = (form.get("code") or "").strip()
+        if not identifier:
+            return RedirectResponse(
+                request.url_for("admin:login").include_query_params(
+                    error="Please enter your email first.",
+                ),
+                status_code=302,
+            )
+        if not code:
+            return RedirectResponse(
+                request.url_for("admin:login").include_query_params(
+                    step="code",
+                    identifier=identifier,
+                    error="Please enter the login code.",
+                ),
+                status_code=302,
+            )
+
+        db = SessionLocal()
+        try:
+            user = auth_service.verify_passwordless_code(db, identifier, code)
+            if not user or not auth_service.has_required_scopes(user, ["admin"]):
+                return RedirectResponse(
+                    request.url_for("admin:login").include_query_params(
+                        step="code",
+                        identifier=identifier,
+                        error="Invalid or expired code.",
+                    ),
+                    status_code=302,
+                )
+            access_token = auth_service.create_access_token(
+                data={"sub": str(user.id)},
+                expires_delta=timedelta(minutes=settings.SECRET_EXPIRES),
+            )
+            request.session.update({"token": access_token})
+        finally:
+            db.close()
+
+        return RedirectResponse(request.url_for("admin:index"), status_code=302)
+
     @login_required
     async def index(self, request):
         data = await asyncio.to_thread(self._collect_data)
@@ -421,8 +547,6 @@ class FirenzeAdmin(Admin):
         }
 
 
-
-
 def register_admin(admin):
     admin.add_view(AdminIndex)
     admin.add_view(UserAdmin)
@@ -436,4 +560,3 @@ def register_admin(admin):
     admin.add_view(OnlineCallsAdmin)
     # admin.add_view(PostCallProcessAdmin)
     # admin.add_view(EventAdmin)
-    

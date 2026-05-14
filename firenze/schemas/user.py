@@ -1,7 +1,7 @@
 import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class UserBase(BaseModel):
@@ -12,7 +12,10 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
     scopes: Optional[List[str]] = None
-    allowed_ips: Optional[List[str]] = []
+    allowed_ips: Optional[List[str]] = Field(
+        default_factory=list,
+        description="Deprecated. No longer enforced by authentication.",
+    )
 
 
 class User(UserBase):
@@ -21,6 +24,9 @@ class User(UserBase):
     id: int
     created_at: datetime.datetime
     modified_at: datetime.datetime
-    allowed_ips: Optional[List[str]] = []
+    allowed_ips: Optional[List[str]] = Field(
+        default_factory=list,
+        description="Deprecated. No longer enforced by authentication.",
+    )
     enabled: bool
     scopes: Optional[List[str]] = None
