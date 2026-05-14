@@ -62,7 +62,7 @@ class ClientAdmin(ModelView, model=Client):
     column_formatters = {
         Client.anis: lambda model, _: [
             Markup(
-                f'<span class="badge bg-blue-lt text-blue">{escape(client_ani.ani)}</span>'
+                f'<span class="badge bg-blue-lt text-blue">{escape(client_ani.ani)} ({escape(client_ani.q_calls)})</span>'
             )
             for client_ani in model.anis
         ]
