@@ -50,6 +50,7 @@ paymentsRouter = APIRouter(prefix="/api/v1", tags=["payments"])
 @paymentsRouter.get("/clients/search", response_model=ClientSearchResponse)
 def clients_search(
     service: str = Query(..., description="Service slug, e.g. fonotarot-cl"),
+    client_id: int | None = Query(default=None),
     email: str | None = Query(default=None),
     phone: str | None = Query(
         default=None, description="Profile phone (Client.phone_number)"
@@ -67,14 +68,14 @@ def clients_search(
     returned ``client_id`` so the subsequent purchase webhook tops up the
     correct account instead of creating a duplicate.
     """
-    if not any([email, phone, ani, pin]):
+    if not any([client_id, email, phone, ani, pin]):
         raise HTTPException(
             status_code=400,
-            detail="At least one of email, phone, ani, pin is required",
+            detail="At least one of client_id, email, phone, ani, pin is required",
         )
 
     try:
-        client = search_client(db, service, email=email, phone=phone, ani=ani, pin=pin)
+        client = search_client(db, service, client_id=client_id, email=email, phone=phone, ani=ani, pin=pin)
     except ServiceNotFound as e:
         logger.warning("clients_search: ServiceNotFound for service=%r: %s", service, e)
         raise HTTPException(status_code=404, detail=str(e))

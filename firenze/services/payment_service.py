@@ -58,6 +58,7 @@ def search_client(
     db: Session,
     service_slug: str,
     *,
+    client_id: Optional[int] = None,
     email: Optional[str] = None,
     phone: Optional[str] = None,
     ani: Optional[str] = None,
@@ -69,6 +70,11 @@ def search_client(
     match (or ``None``). Raises ``ServiceNotFound`` if the slug is unknown.
     """
     svc = _get_service(db, service_slug)
+
+    if client_id:
+        client = db.query(Client).filter_by(service_id=svc.id, client_id=client_id).first()
+        if client:
+            return client
 
     if pin:
         client = db.query(Client).filter_by(service_id=svc.id, pin=pin).first()
