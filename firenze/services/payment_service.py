@@ -134,7 +134,9 @@ def apply_purchase(
                 f"Client {client_id} not found in service '{service_slug}'"
             )
         before = client.credits
-        client.credits = before + credits
+        # Mientras tanto credits es el total del usuario
+        # client.credits = before + credits
+        client.credits = credits
     else:
         new_id = _next_client_id(db, svc.id)
         client = Client(
