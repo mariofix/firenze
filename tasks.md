@@ -138,7 +138,7 @@ dialplan is migrated piece by piece:
    `${AUDIOTEX}` for `ejecutivos_disponibles`, `ejecutivo_aleatorio`, and
    `info_ejecutivo`. Endpoints exist; swap the dialplan.
 6. **Credit push API for nuevo-fonotarot.**
-   `POST /api/clients/{identifier}/credit`, JWT-scoped. Needed before
+   `POST /api/clients/{identifier}/credit`, API-header scoped. Needed before
    nuevo-fonotarot can complete a purchase end to end.
 
 ## Cleanup debt (safe to delete once 1-5 land)

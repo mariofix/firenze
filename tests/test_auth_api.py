@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -30,38 +31,73 @@ def _build_admin_app():
     return app
 
 
-def test_token_works_with_password_login_enabled(monkeypatch):
-    monkeypatch.setattr(settings, "AUTH_PASSWORD_LOGIN_ENABLED", True)
-    monkeypatch.setattr(
-        "firenze.auth.auth_service.authenticate_password_user",
-        lambda db, login, password: SimpleNamespace(id=7),
-    )
-    monkeypatch.setattr(
-        "firenze.auth.auth_service.create_access_token",
-        lambda data, expires_delta=None: "jwt-token",
-    )
+def test_me_requires_api_headers():
     client = TestClient(_build_app(MagicMock()))
 
-    response = client.post(
-        "/api/v1/auth/token",
-        data={"username": "admin", "password": "secret"},
+    response = client.get("/api/v1/auth/me")
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Missing API credentials"
+
+
+def test_me_accepts_valid_api_headers(monkeypatch):
+    fake_user = SimpleNamespace(
+        id=7,
+        login="admin",
+        email="admin@example.com",
+        enabled=True,
+        scopes=["firenze"],
+        created_at=datetime.now(timezone.utc),
+        modified_at=datetime.now(timezone.utc),
+    )
+    monkeypatch.setattr(
+        "firenze.auth.auth_service.authenticate_api_credential",
+        lambda db, api_key, api_secret: (fake_user, SimpleNamespace(id=1)),
+    )
+    monkeypatch.setattr("firenze.auth.crud.get_user", lambda db, user_id: fake_user)
+    client = TestClient(_build_app(MagicMock()))
+
+    response = client.get(
+        "/api/v1/auth/me",
+        headers={"x-api-key": "key", "x-api-secret": "secret"},
     )
 
     assert response.status_code == 200
-    assert response.json() == {"access_token": "jwt-token", "token_type": "bearer"}
+    assert response.json()["id"] == 7
 
 
-def test_token_fails_when_password_login_disabled(monkeypatch):
-    monkeypatch.setattr(settings, "AUTH_PASSWORD_LOGIN_ENABLED", False)
+def test_me_rejects_invalid_api_headers(monkeypatch):
+    monkeypatch.setattr(
+        "firenze.auth.auth_service.authenticate_api_credential",
+        lambda db, api_key, api_secret: None,
+    )
     client = TestClient(_build_app(MagicMock()))
 
+    response = client.get(
+        "/api/v1/auth/me",
+        headers={"x-api-key": "bad", "x-api-secret": "bad"},
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid API credentials"
+
+
+def test_token_endpoint_removed():
+    client = TestClient(_build_app(MagicMock()))
     response = client.post(
         "/api/v1/auth/token",
         data={"username": "admin", "password": "secret"},
     )
+    assert response.status_code == 404
 
-    assert response.status_code == 403
-    assert response.json()["detail"] == "Password login is disabled"
+
+def test_passwordless_verify_endpoint_removed():
+    client = TestClient(_build_app(MagicMock()))
+    response = client.post(
+        "/api/v1/auth/passwordless/verify",
+        json={"identifier": "user@example.com", "code": "123456"},
+    )
+    assert response.status_code == 404
 
 
 def test_passwordless_request_is_generic_for_unknown_user(monkeypatch):
@@ -111,42 +147,34 @@ def test_passwordless_request_creates_and_sends_code(monkeypatch):
     send_mock.assert_called_once_with("user@example.com", "123456")
 
 
-def test_passwordless_verify_returns_token(monkeypatch):
-    monkeypatch.setattr(settings, "AUTH_PASSWORDLESS_ENABLED", True)
+def test_admin_password_login_sets_cookie_session(monkeypatch):
+    monkeypatch.setattr(settings, "AUTH_PASSWORD_LOGIN_ENABLED", True)
     monkeypatch.setattr(
-        "firenze.auth.auth_service.verify_passwordless_code",
-        lambda db, identifier, code: SimpleNamespace(id=99),
+        "firenze.auth.SessionLocal", lambda: SimpleNamespace(close=lambda: None)
     )
     monkeypatch.setattr(
-        "firenze.auth.auth_service.create_access_token",
-        lambda data, expires_delta=None: "jwt-token",
+        "firenze.auth.auth_service.authenticate_password_user",
+        lambda db, login, password: SimpleNamespace(id=1, login=login, scopes=["admin"]),
     )
-    client = TestClient(_build_app(MagicMock()))
+    monkeypatch.setattr(
+        "firenze.auth.auth_service.has_required_scopes",
+        lambda user, scopes: True,
+    )
+    monkeypatch.setattr(
+        "firenze.auth.crud.get_user",
+        lambda db, user_id: SimpleNamespace(id=user_id, enabled=True, scopes=["admin"]),
+    )
+    client = TestClient(_build_admin_app())
 
     response = client.post(
-        "/api/v1/auth/passwordless/verify",
-        json={"identifier": "user@example.com", "code": "123456"},
+        "/admin/login",
+        data={"username": "admin@example.com", "password": "secret"},
+        follow_redirects=False,
     )
 
-    assert response.status_code == 200
-    assert response.json() == {"access_token": "jwt-token", "token_type": "bearer"}
-
-
-def test_passwordless_verify_rejects_invalid_code(monkeypatch):
-    monkeypatch.setattr(settings, "AUTH_PASSWORDLESS_ENABLED", True)
-    monkeypatch.setattr(
-        "firenze.auth.auth_service.verify_passwordless_code",
-        lambda db, identifier, code: None,
-    )
-    client = TestClient(_build_app(MagicMock()))
-
-    response = client.post(
-        "/api/v1/auth/passwordless/verify",
-        json={"identifier": "user@example.com", "code": "999999"},
-    )
-
-    assert response.status_code == 401
-    assert response.json()["detail"] == "Invalid or expired code"
+    assert response.status_code == 302
+    assert response.headers["location"].endswith("/admin/")
+    assert "session=" in response.headers.get("set-cookie", "")
 
 
 def test_admin_passwordless_request_redirects_to_code_step(monkeypatch):
@@ -199,8 +227,8 @@ def test_admin_passwordless_verify_sets_session_and_redirects(monkeypatch):
         lambda user, scopes: True,
     )
     monkeypatch.setattr(
-        "firenze.admin.auth_service.create_access_token",
-        lambda data, expires_delta=None: "admin-token",
+        "firenze.auth.crud.get_user",
+        lambda db, user_id: SimpleNamespace(id=user_id, enabled=True, scopes=["admin"]),
     )
     client = TestClient(_build_admin_app())
 
@@ -212,3 +240,4 @@ def test_admin_passwordless_verify_sets_session_and_redirects(monkeypatch):
 
     assert response.status_code == 302
     assert response.headers["location"].endswith("/admin/")
+    assert "session=" in response.headers.get("set-cookie", "")

@@ -2,9 +2,9 @@ import secrets
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
-import jwt
+from argon2 import PasswordHasher
+from argon2.exceptions import InvalidHashError, VerifyMismatchError, VerificationError
 from daleks.contrib.client import DaleksClient
-from jwt import PyJWTError
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
@@ -12,21 +12,115 @@ from firenze import crud, models
 from firenze.config import settings
 from firenze.models.auth_login_code import AuthLoginCode
 
+_argon2_hasher = PasswordHasher()
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
-    to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + (
-        expires_delta if expires_delta else timedelta(minutes=settings.SECRET_EXPIRES)
+
+def hash_secret(secret: str) -> str:
+    return _argon2_hasher.hash(secret)
+
+
+def verify_secret(secret: str, secret_hash: str) -> bool:
+    try:
+        return _argon2_hasher.verify(secret_hash, secret)
+    except (VerifyMismatchError, VerificationError, InvalidHashError):
+        return False
+
+
+def generate_api_key() -> str:
+    return f"fk_{secrets.token_urlsafe(24)}"
+
+
+def generate_api_secret() -> str:
+    return secrets.token_urlsafe(48)
+
+
+def _is_credential_active(credential: models.ApiCredential) -> bool:
+    now = datetime.now(timezone.utc)
+    if not credential.enabled:
+        return False
+    if credential.revoked_at:
+        return False
+    expires_at = credential.expires_at
+    if expires_at and expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at and expires_at <= now:
+        return False
+    return True
+
+
+def create_api_credential(
+    db: Session,
+    user: models.User,
+    name: str | None = None,
+    expires_at: datetime | None = None,
+) -> tuple[models.ApiCredential, str]:
+    api_secret = generate_api_secret()
+    api_key = generate_api_key()
+    # Retry collisions defensively; key is public identifier.
+    for _ in range(5):
+        exists = (
+            db.query(models.ApiCredential)
+            .filter(models.ApiCredential.api_key == api_key)
+            .first()
+        )
+        if not exists:
+            break
+        api_key = generate_api_key()
+    else:
+        raise RuntimeError("Could not generate unique API key")
+
+    credential = models.ApiCredential(
+        user_id=user.id,
+        name=name,
+        api_key=api_key,
+        api_secret_hash=hash_secret(api_secret),
+        enabled=True,
+        expires_at=expires_at,
+        revoked_at=None,
     )
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.SECRET_ALGO)
+    db.add(credential)
+    db.commit()
+    db.refresh(credential)
+    return credential, api_secret
 
 
-def decode_access_token(token: str) -> dict:
-    return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.SECRET_ALGO])
+def revoke_api_credential(db: Session, credential: models.ApiCredential) -> models.ApiCredential:
+    credential.enabled = False
+    credential.revoked_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(credential)
+    return credential
+
+
+def authenticate_api_credential(
+    db: Session, api_key: str, api_secret: str
+) -> tuple[models.User, models.ApiCredential] | None:
+    credential = (
+        db.query(models.ApiCredential)
+        .filter(models.ApiCredential.api_key == api_key)
+        .first()
+    )
+    if not credential:
+        return None
+    if not _is_credential_active(credential):
+        return None
+    if not verify_secret(api_secret, credential.api_secret_hash):
+        return None
+    user = crud.get_user(db, credential.user_id)
+    if not user or not user.enabled:
+        return None
+    credential.last_used_at = datetime.now(timezone.utc)
+    db.commit()
+    return user, credential
+
+
+def hash_user_password(password: str) -> str:
+    return hash_secret(password)
 
 
 def verify_password(password: str, password_hash: str) -> bool:
+    if password_hash.startswith("$argon2"):
+        return verify_secret(password, password_hash)
     return bcrypt.checkpw(password.encode("utf-8")[:72], password_hash.encode("utf-8"))
 
 
@@ -35,22 +129,6 @@ def authenticate_password_user(db: Session, login: str, password: str) -> models
     if not user:
         return None
     if not verify_password(password, user.password):
-        return None
-    if not user.enabled:
-        return None
-    return user
-
-
-def get_user_from_token(db: Session, token: str) -> models.User | None:
-    try:
-        payload = decode_access_token(token)
-    except PyJWTError:
-        return None
-    token_user_id = payload.get("sub")
-    if not token_user_id:
-        return None
-    user = crud.get_user(db, token_user_id)
-    if not user:
         return None
     if not user.enabled:
         return None

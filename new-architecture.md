@@ -55,10 +55,10 @@ SQLAlchemy + Typer + Redis on every spawn dominates the call latency on a
 
 ### AGI endpoint security
 
-The `/agi/` endpoints are dialplan-facing and must be fast. No JWT auth -
-Asterisk's `CURL()` cannot manage token flows. Protection is binding to
-localhost plus an optional static API key header. Firenze's public endpoints
-(credit API for nuevo-fonotarot, admin panel) keep JWT.
+The `/agi/` endpoints are dialplan-facing and must be fast. Asterisk's
+`CURL()` cannot manage token flows. Protection is binding to localhost plus
+an optional static API key header. Firenze's protected public endpoints use
+`x-api-key` + `x-api-secret`, and SQLAdmin uses cookie sessions.
 
 ## Domain model overview
 
@@ -129,7 +129,7 @@ Same pattern for active calls (`firenze:call:{service}:{ani}`).
 | Cache / hot state | Redis/Valkey via `redis-py` |
 | Admin | sqladmin at `/boss` |
 | CLI | Typer - admin + migration + debug only, no longer in the call hot path |
-| Auth | JWT (python-jose) + direct bcrypt |
+| Auth | API credentials (`x-api-key` + `x-api-secret`) + SQLAdmin cookie sessions |
 
 The CLI is still shipped (entry point `firenze`) but Asterisk no longer
 invokes it during calls. All call-time traffic is HTTP.

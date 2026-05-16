@@ -1,9 +1,6 @@
 import asyncio
 import datetime
 import logging
-from datetime import timedelta
-
-import bcrypt
 
 import redis as redis_lib
 from markupsafe import Markup, escape
@@ -16,6 +13,7 @@ from sqladmin.authentication import login_required
 from firenze.config import settings
 from firenze.database import SessionLocal
 from firenze.models import (
+    ApiCredential,
     Client,
     ClientAni,
     DoNotCall,
@@ -246,7 +244,7 @@ class UserAdmin(ModelView, model=User):
     name_plural = "API Users"
     icon = "fa-solid fa-user-gear"
     form_args = {
-        "login": {"description": "Username for API authentication"},
+        "login": {"description": "Username for SQLAdmin/passwordless authentication"},
         "email": {"description": "Contact email address"},
         "password": {
             "description": "Plain text — will be hashed automatically on save"
@@ -264,11 +262,40 @@ class UserAdmin(ModelView, model=User):
 
     async def on_model_change(self, data, model, is_created, request):
         if data.get("password"):
-            data["password"] = bcrypt.hashpw(
-                data["password"].encode("utf-8")[:72], bcrypt.gensalt()
-            ).decode("utf-8")
+            data["password"] = auth_service.hash_user_password(data["password"])
         elif is_created:
             raise ValueError("Password is required when creating a user")
+
+
+class ApiCredentialAdmin(ModelView, model=ApiCredential):
+    name = "API Credential"
+    name_plural = "API Credentials"
+    icon = "fa-solid fa-key"
+    form_excluded_columns = _TIMESTAMP_EXCLUDED + [
+        "api_secret_hash",
+        "last_used_at",
+        "revoked_at",
+    ]
+    can_create = False
+    column_list = [
+        ApiCredential.id,
+        ApiCredential.user_id,
+        ApiCredential.name,
+        ApiCredential.api_key,
+        ApiCredential.enabled,
+        ApiCredential.expires_at,
+        ApiCredential.last_used_at,
+        ApiCredential.revoked_at,
+    ]
+    column_searchable_list = [ApiCredential.api_key, ApiCredential.name]
+    form_args = {
+        "name": {"description": "Optional internal label for this credential"},
+        "api_key": {
+            "description": "Public key identifier. Create/rotate via CLI users commands."
+        },
+        "enabled": {"description": "Disable to immediately block this credential"},
+        "expires_at": {"description": "Optional expiry timestamp (UTC)"},
+    }
 
 
 class EventAdmin(ModelView, model=Event):
@@ -396,11 +423,7 @@ class FirenzeAdmin(Admin):
                     ),
                     status_code=302,
                 )
-            access_token = auth_service.create_access_token(
-                data={"sub": str(user.id)},
-                expires_delta=timedelta(minutes=settings.SECRET_EXPIRES),
-            )
-            request.session.update({"token": access_token})
+            request.session.update({"admin_user_id": user.id})
         finally:
             db.close()
 
@@ -561,6 +584,7 @@ class FirenzeAdmin(Admin):
 def register_admin(admin):
     admin.add_view(AdminIndex)
     admin.add_view(UserAdmin)
+    admin.add_view(ApiCredentialAdmin)
     admin.add_view(DNCAdmin)
     admin.add_view(ClientAdmin)
     admin.add_view(ClientAniAdmin)
@@ -571,4 +595,3 @@ def register_admin(admin):
     admin.add_view(OnlineCallsAdmin)
     # admin.add_view(PostCallProcessAdmin)
     # admin.add_view(EventAdmin)
-    show_compact_lists = False

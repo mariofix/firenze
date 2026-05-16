@@ -7,7 +7,8 @@ Two-step contract:
 2. ``POST /api/v1/payments/complete`` - fired by the payment provider's
    webhook after a successful charge. Creates a new client or tops one up.
 
-All endpoints require a valid Bearer token with the ``firenze`` scope.
+Protected endpoints require ``x-api-key`` and ``x-api-secret`` headers
+linked to a user with the ``firenze`` scope.
 """
 
 import logging

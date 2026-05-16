@@ -1,11 +1,9 @@
 import logging
 import logging.config
-from decimal import Decimal
 
 from debug_toolbar.middleware import DebugToolbarMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqladmin import Admin
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
@@ -67,7 +65,7 @@ def create_app():
     # AGI endpoints (called by Asterisk dialplan via CURL)
     app.include_router(agiRouter)
 
-    # Auth endpoints (/api/v1/auth/token, /api/v1/auth/me)
+    # Auth endpoints (/api/v1/auth/me and passwordless request)
     app.include_router(authRouter)
 
     # Payment / storefront endpoints (called by nuevo-fonotarot)

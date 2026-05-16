@@ -28,8 +28,8 @@ firenze/
   config.py                - Settings (pydantic-settings v2)
   database.py              - engine, SessionLocal, Base
   dependencies.py          - get_db(), get_redis()
-  auth.py                  - JWT, OAuth2, AdminAuth for sqladmin
-  crud.py                  - user + event CRUD (direct bcrypt)
+  auth.py                  - API header auth + AdminAuth for sqladmin
+  crud.py                  - user + event CRUD
   admin.py                 - sqladmin views
   exceptions.py            - GenericError, ProcessError, ConfigException
   core.py                  - legacy unused router (cleanup)

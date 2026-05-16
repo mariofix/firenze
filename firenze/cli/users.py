@@ -1,26 +1,20 @@
 """User management CLI commands."""
 
-from typing import Optional
+import datetime
 import logging
+from typing import Optional
 
-import bcrypt
 import typer
 from rich import box
 from rich.console import Console
 from rich.table import Table
 from sqlalchemy import delete
 
-from firenze.models import User
+from firenze.models import ApiCredential, User
+from firenze.services import auth_service
 
 app = typer.Typer()
 logger = logging.getLogger("firenze")
-
-
-def _hash_password(password: str) -> str:
-    """Hash a password, truncating to 72 bytes as required by bcrypt."""
-    return bcrypt.hashpw(password.encode("utf-8")[:72], bcrypt.gensalt()).decode(
-        "utf-8"
-    )
 
 
 @app.command("search")
@@ -78,7 +72,7 @@ def create_user(
         user = User(
             login=login,
             email=email,
-            password=_hash_password(password),
+            password=auth_service.hash_user_password(password),
             scopes=[s.strip() for s in scopes.split(",")],
             enabled=enabled,
         )
@@ -106,7 +100,6 @@ def update_user(
 ):
     """Update an existing user."""
     session = ctx.obj.get("dbsession")
-    logger = ctx.obj.get("logger")
     user = session.get(User, user_id)
     if not user:
         typer.echo(f"User {user_id} not found", err=True)
@@ -115,7 +108,7 @@ def update_user(
     if enable is not None:
         user.enabled = enable
     if password:
-        user.password = _hash_password(password)
+        user.password = auth_service.hash_user_password(password)
     if login:
         user.login = login
     if email:
@@ -146,12 +139,93 @@ def change_password(
         typer.echo(f"User {user_id} not found", err=True)
         raise typer.Exit(code=1)
     try:
-        user.password = _hash_password(password)
+        user.password = auth_service.hash_user_password(password)
         session.commit()
         typer.echo(f"Password updated for user {user_id}")
     except Exception as e:
         logger.error(e)
         raise typer.Exit(code=1)
+
+
+@app.command("api-credential-list")
+def api_credential_list(
+    ctx: typer.Context,
+    user_id: int = typer.Option(None, help="Filter by user ID"),
+    enabled_only: bool = typer.Option(False, help="Show only enabled credentials"),
+):
+    """List API credentials."""
+    session = ctx.obj.get("dbsession")
+    query = session.query(ApiCredential)
+    if user_id is not None:
+        query = query.filter(ApiCredential.user_id == user_id)
+    if enabled_only:
+        query = query.filter(ApiCredential.enabled.is_(True), ApiCredential.revoked_at.is_(None))
+    rows = query.order_by(ApiCredential.id.asc()).all()
+
+    table = Table(title="API Credentials", box=box.ASCII2)
+    table.add_column("ID")
+    table.add_column("User ID")
+    table.add_column("Name")
+    table.add_column("API Key")
+    table.add_column("Enabled")
+    table.add_column("Expires At")
+    table.add_column("Revoked At")
+    table.add_column("Last Used")
+
+    for row in rows:
+        table.add_row(
+            str(row.id),
+            str(row.user_id),
+            row.name or "",
+            row.api_key,
+            str(row.enabled),
+            str(row.expires_at or ""),
+            str(row.revoked_at or ""),
+            str(row.last_used_at or ""),
+        )
+    Console().print(table)
+
+
+@app.command("api-credential-create")
+def api_credential_create(
+    ctx: typer.Context,
+    user_id: int = typer.Argument(..., help="Owner user ID"),
+    name: str = typer.Option(None, help="Optional internal label"),
+    expires_days: int = typer.Option(None, help="Optional expiration in days"),
+):
+    """Create one API credential pair (key+secret). Secret is shown once."""
+    session = ctx.obj.get("dbsession")
+    user = session.get(User, user_id)
+    if not user:
+        typer.echo(f"User {user_id} not found", err=True)
+        raise typer.Exit(code=1)
+    expires_at = None
+    if expires_days is not None:
+        expires_at = datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=expires_days)
+    credential, api_secret = auth_service.create_api_credential(
+        session,
+        user=user,
+        name=name,
+        expires_at=expires_at,
+    )
+    typer.echo(f"Created API credential id={credential.id} for user={user_id}")
+    typer.echo(f"x-api-key: {credential.api_key}")
+    typer.echo(f"x-api-secret: {api_secret}")
+
+
+@app.command("api-credential-revoke")
+def api_credential_revoke(
+    ctx: typer.Context,
+    credential_id: int = typer.Argument(..., help="Credential ID"),
+):
+    """Revoke an API credential."""
+    session = ctx.obj.get("dbsession")
+    credential = session.get(ApiCredential, credential_id)
+    if not credential:
+        typer.echo(f"Credential {credential_id} not found", err=True)
+        raise typer.Exit(code=1)
+    auth_service.revoke_api_credential(session, credential)
+    typer.echo(f"Revoked API credential {credential_id}")
 
 
 @app.command("delete")

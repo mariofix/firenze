@@ -1,18 +1,12 @@
-import importlib
-import json
 import logging
-import re
 import secrets
 import string
-import time
 
-import bcrypt
-import requests
-from fastapi import HTTPException, Request
-from slugify import slugify
+from fastapi import Request
 from sqlalchemy.orm import Session
 
 from firenze import models, schemas
+from firenze.services import auth_service
 
 logger = logging.getLogger("firenze")
 
@@ -33,9 +27,7 @@ def get_users(db: Session, skip: int = 0, limit: int = 100):
 
 
 def create_user(db: Session, user: schemas.UserCreate):
-    pwd_hash = bcrypt.hashpw(
-        user.password.encode("utf-8")[:72], bcrypt.gensalt()
-    ).decode("utf-8")
+    pwd_hash = auth_service.hash_user_password(user.password)
     db_user = models.User(
         email=user.email,
         login=user.login,
@@ -87,7 +79,7 @@ def generate_pin() -> int:
     from .core import get_db
 
     db = get_db()
-    logger.debug(f"generate_pin()")
+    logger.debug("generate_pin()")
     random_pin = int("".join(secrets.choice(string.digits) for i in range(8)))
     if check_pin(db, random_pin):
         raise Exception(f"{random_pin=} ya existe")

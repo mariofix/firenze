@@ -13,11 +13,13 @@
       {% set code_error = request.query_params.get("error", "") %}
       <div class="mb-3">
         <label class="form-label">Email</label>
-        <input name="identifier" type="email" class="form-control{% if code_error and request.query_params.get('identifier') %} is-invalid{% endif %}" value="{{ request.query_params.get('identifier', '') }}" placeholder="you@example.com" autocomplete="off">
+        <input name="identifier" type="text" class="form-control{% if code_error and request.query_params.get('identifier') %} is-invalid{% endif %}"
+          value="{{ request.query_params.get('identifier', '') }}" placeholder="you@example.com" autocomplete="off">
       </div>
       <div class="mb-3">
         <label class="form-label">Code</label>
-        <input name="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" class="form-control{% if code_error %} is-invalid{% endif %}" placeholder="6-digit code" autocomplete="one-time-code">
+        <input name="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" class="form-control{% if code_error %} is-invalid{% endif %}" placeholder="6-digit code"
+          autocomplete="one-time-code">
         {% if code_error %}
         <div class="invalid-feedback">{{ code_error }}</div>
         {% endif %}
@@ -36,10 +38,10 @@
         <label class="form-label">Email</label>
         {% set login_error = error or request.query_params.get("error", "") %}
         {% if login_error %}
-        <input name="username" type="email" class="form-control is-invalid" placeholder="you@example.com" autocomplete="off">
+        <input name="username" type="text" class="form-control is-invalid" placeholder="you@example.com" autocomplete="off">
         <div class="invalid-feedback">{{ login_error }}</div>
         {% else %}
-        <input name="username" type="email" class="form-control" placeholder="you@example.com" autocomplete="off">
+        <input name="username" type="text" class="form-control" placeholder="you@example.com" autocomplete="off">
         {% endif %}
       </div>
       <div class="mb-2">
