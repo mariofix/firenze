@@ -30,3 +30,6 @@ class ApiCredential(Base, TimestampMixin):
     revoked_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime, nullable=True)
 
     user: Mapped["User"] = relationship(back_populates="api_credentials")
+
+    def __str__(self):
+        return f"{self.api_key[:6]}...{self.api_key[-5:]}"
