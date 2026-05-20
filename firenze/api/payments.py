@@ -19,10 +19,6 @@ from sqlalchemy.orm import Session
 from firenze.auth import loggedin_user
 from firenze.dependencies import get_db
 from firenze.schemas.payment import (
-    ClientAniDeleteResponse,
-    ClientAniListResponse,
-    ClientAniWriteRequest,
-    ClientAniWriteResponse,
     ClientSearchResponse,
     ClientUpdateRequest,
     ClientUpdateResponse,
@@ -31,12 +27,7 @@ from firenze.schemas.payment import (
 )
 from firenze.services.client_service import ClientNotFound, ServiceNotFound
 from firenze.services.payment_service import (
-    AniAlreadyTaken,
-    ClientAniNotFound,
     apply_purchase,
-    create_client_ani,
-    delete_client_ani,
-    list_client_anis,
     search_client,
     update_client,
 )
@@ -178,135 +169,3 @@ def clients_update(
         raise HTTPException(status_code=404, detail=str(e))
     return ClientUpdateResponse(**result)
 
-
-@paymentsRouter.get(
-    "/client-ani/{service}/{client_id}",
-    response_model=ClientAniListResponse,
-)
-def client_ani_list(
-    service: str,
-    client_id: int,
-    db: Session = Depends(get_db),
-    _user_id: int = Security(loggedin_user, scopes=["firenze"]),
-):
-    """List ANI rows for an existing client."""
-    try:
-        result = list_client_anis(db, service_slug=service, client_id=client_id)
-    except ServiceNotFound as e:
-        logger.warning("client_ani_list: ServiceNotFound for service=%r: %s", service, e)
-        raise HTTPException(status_code=404, detail=str(e))
-    except ClientNotFound as e:
-        logger.warning(
-            "client_ani_list: ClientNotFound for service=%r client_id=%s: %s",
-            service,
-            client_id,
-            e,
-        )
-        raise HTTPException(status_code=404, detail=str(e))
-
-    return ClientAniListResponse(**result)
-
-
-@paymentsRouter.post(
-    "/client-ani/create",
-    response_model=ClientAniWriteResponse,
-)
-def client_ani_create(
-    payload: ClientAniWriteRequest,
-    db: Session = Depends(get_db),
-    _user_id: int = Security(loggedin_user, scopes=["firenze"]),
-):
-    """Create one ANI row for an existing client.
-
-    ``client_id`` is mandatory - this endpoint does not create clients.
-    """
-    try:
-        result = create_client_ani(
-            db,
-            service_slug=payload.service,
-            client_id=payload.client_id,
-            ani=payload.ani,
-        )
-    except ServiceNotFound as e:
-        logger.warning(
-            "client_ani_create: ServiceNotFound for service=%r: %s", payload.service, e
-        )
-        raise HTTPException(status_code=404, detail=str(e))
-    except ClientNotFound as e:
-        logger.warning(
-            "client_ani_create: ClientNotFound for service=%r client_id=%s: %s",
-            payload.service,
-            payload.client_id,
-            e,
-        )
-        raise HTTPException(status_code=404, detail=str(e))
-    except AniAlreadyTaken as e:
-        logger.warning(
-            "client_ani_create: AniAlreadyTaken for service=%r client_id=%s ani=%r: %s",
-            payload.service,
-            payload.client_id,
-            payload.ani,
-            e,
-        )
-        raise HTTPException(status_code=409, detail=str(e))
-
-    return ClientAniWriteResponse(**result)
-
-
-@paymentsRouter.post(
-    "/client-ani/create/{service}/{client_id}",
-    response_model=ClientAniWriteResponse,
-)
-def client_ani_create_by_path(
-    service: str,
-    client_id: int,
-    ani: str = Query(..., description="ANI to register (8-15 digits)"),
-    db: Session = Depends(get_db),
-    _user_id: int = Security(loggedin_user, scopes=["firenze"]),
-):
-    """Debug-friendly create endpoint with service/client_id in path."""
-    payload = ClientAniWriteRequest(service=service, client_id=client_id, ani=ani)
-    return client_ani_create(payload=payload, db=db, _user_id=_user_id)
-
-
-@paymentsRouter.delete(
-    "/client-ani/{service}/{client_id}/{ani}",
-    response_model=ClientAniDeleteResponse,
-)
-def client_ani_delete(
-    service: str,
-    client_id: int,
-    ani: str,
-    db: Session = Depends(get_db),
-    _user_id: int = Security(loggedin_user, scopes=["firenze"]),
-):
-    """Delete one ANI row from an existing client."""
-    try:
-        result = delete_client_ani(
-            db,
-            service_slug=service,
-            client_id=client_id,
-            ani=ani,
-        )
-    except ServiceNotFound as e:
-        logger.warning("client_ani_delete: ServiceNotFound for service=%r: %s", service, e)
-        raise HTTPException(status_code=404, detail=str(e))
-    except ClientNotFound as e:
-        logger.warning(
-            "client_ani_delete: ClientNotFound for service=%r client_id=%s: %s",
-            service,
-            client_id,
-            e,
-        )
-        raise HTTPException(status_code=404, detail=str(e))
-    except ClientAniNotFound as e:
-        logger.warning(
-            "client_ani_delete: ClientAniNotFound for service=%r client_id=%s ani=%r: %s",
-            service,
-            client_id,
-            ani,
-            e,
-        )
-        raise HTTPException(status_code=404, detail=str(e))
-
-    return ClientAniDeleteResponse(**result)

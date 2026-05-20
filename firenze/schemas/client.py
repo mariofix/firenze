@@ -71,3 +71,39 @@ class ClientDeleteResponse(BaseModel):
     service: str
     client_id: int
     deleted: bool
+
+
+class ClientAniCreateRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, extra="ignore")
+
+    ani: str = Field(..., min_length=8, max_length=15)
+
+    @field_validator("ani")
+    @classmethod
+    def _ani_must_be_digits(cls, value: str) -> str:
+        if not value.isdigit():
+            raise ValueError("ani must be 8-15 digits")
+        return value
+
+
+class ClientAniWriteResponse(BaseModel):
+    ok: bool
+    service: str
+    client_id: int
+    ani: str
+    created: bool
+
+
+class ClientAniListResponse(BaseModel):
+    ok: bool
+    service: str
+    client_id: int
+    anis: list[str]
+
+
+class ClientAniDeleteResponse(BaseModel):
+    ok: bool
+    service: str
+    client_id: int
+    ani: str
+    deleted: bool

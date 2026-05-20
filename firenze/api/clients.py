@@ -8,6 +8,10 @@ from sqlalchemy.orm import Session
 from firenze.auth import loggedin_user
 from firenze.dependencies import get_db
 from firenze.schemas.client import (
+    ClientAniCreateRequest,
+    ClientAniDeleteResponse,
+    ClientAniListResponse,
+    ClientAniWriteResponse,
     ClientCreateRequest,
     ClientDeleteResponse,
     ClientResponse,
@@ -22,6 +26,13 @@ from firenze.services.client_service import (
     delete_client,
     get_client,
     update_client_record,
+)
+from firenze.services.payment_service import (
+    AniAlreadyTaken,
+    ClientAniNotFound,
+    create_client_ani,
+    delete_client_ani,
+    list_client_anis,
 )
 
 logger = logging.getLogger("firenze")
@@ -176,3 +187,114 @@ def clients_delete(
             exc,
         )
         raise HTTPException(status_code=404, detail=str(exc))
+
+
+@clientsRouter.get(
+    "/{service}/{client_id}/ani",
+    response_model=ClientAniListResponse,
+    summary="List client ANI",
+)
+def client_ani_list(
+    service: str,
+    client_id: int,
+    db: Session = Depends(get_db),
+    _user_id: int = Security(loggedin_user, scopes=["firenze"]),
+):
+    try:
+        result = list_client_anis(db, service_slug=service, client_id=client_id)
+    except ServiceNotFound as exc:
+        logger.warning("client_ani_list: ServiceNotFound for service=%r: %s", service, exc)
+        raise HTTPException(status_code=404, detail=str(exc))
+    except ClientNotFound as exc:
+        logger.warning(
+            "client_ani_list: ClientNotFound for service=%r client_id=%s: %s",
+            service,
+            client_id,
+            exc,
+        )
+        raise HTTPException(status_code=404, detail=str(exc))
+    return ClientAniListResponse(**result)
+
+
+@clientsRouter.post(
+    "/{service}/{client_id}/ani",
+    response_model=ClientAniWriteResponse,
+    summary="Create client ANI",
+)
+def client_ani_create(
+    service: str,
+    client_id: int,
+    payload: ClientAniCreateRequest,
+    db: Session = Depends(get_db),
+    _user_id: int = Security(loggedin_user, scopes=["firenze"]),
+):
+    try:
+        result = create_client_ani(
+            db,
+            service_slug=service,
+            client_id=client_id,
+            ani=payload.ani,
+        )
+    except ServiceNotFound as exc:
+        logger.warning("client_ani_create: ServiceNotFound for service=%r: %s", service, exc)
+        raise HTTPException(status_code=404, detail=str(exc))
+    except ClientNotFound as exc:
+        logger.warning(
+            "client_ani_create: ClientNotFound for service=%r client_id=%s: %s",
+            service,
+            client_id,
+            exc,
+        )
+        raise HTTPException(status_code=404, detail=str(exc))
+    except AniAlreadyTaken as exc:
+        logger.warning(
+            "client_ani_create: AniAlreadyTaken for service=%r client_id=%s ani=%r: %s",
+            service,
+            client_id,
+            payload.ani,
+            exc,
+        )
+        raise HTTPException(status_code=409, detail=str(exc))
+    return ClientAniWriteResponse(**result)
+
+
+@clientsRouter.delete(
+    "/{service}/{client_id}/ani/{ani}",
+    response_model=ClientAniDeleteResponse,
+    summary="Delete client ANI",
+)
+def client_ani_delete(
+    service: str,
+    client_id: int,
+    ani: str,
+    db: Session = Depends(get_db),
+    _user_id: int = Security(loggedin_user, scopes=["firenze"]),
+):
+    try:
+        result = delete_client_ani(
+            db,
+            service_slug=service,
+            client_id=client_id,
+            ani=ani,
+        )
+    except ServiceNotFound as exc:
+        logger.warning("client_ani_delete: ServiceNotFound for service=%r: %s", service, exc)
+        raise HTTPException(status_code=404, detail=str(exc))
+    except ClientNotFound as exc:
+        logger.warning(
+            "client_ani_delete: ClientNotFound for service=%r client_id=%s: %s",
+            service,
+            client_id,
+            exc,
+        )
+        raise HTTPException(status_code=404, detail=str(exc))
+    except ClientAniNotFound as exc:
+        logger.warning(
+            "client_ani_delete: ClientAniNotFound for service=%r client_id=%s ani=%r: %s",
+            service,
+            client_id,
+            ani,
+            exc,
+        )
+        raise HTTPException(status_code=404, detail=str(exc))
+    return ClientAniDeleteResponse(**result)
