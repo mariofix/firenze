@@ -13,15 +13,15 @@ from sqlalchemy.orm import Session
 
 from firenze.models.client import Client, ClientAni
 from firenze.models.service import Service
-from firenze.services.client_service import ClientNotFound, ServiceNotFound
+from firenze.services.client_service import (
+    ClientNotFound,
+    ServiceNotFound,
+    _pick_unique_pin,
+)
 
 logger = logging.getLogger("firenze")
 
 PHONE_ERASE_SENTINEL = "::EMPTY::"
-
-
-class PinAlreadyTaken(Exception):
-    """Raised when a PIN update would collide with another client in the service."""
 
 
 class AniAlreadyTaken(Exception):
@@ -66,8 +66,9 @@ def search_client(
 ) -> Optional[Client]:
     """Find a client in ``service_slug`` matching any of the provided fields.
 
-    Lookup order: pin, email, phone_number, ClientAni.ani. Returns the first
-    match (or ``None``). Raises ``ServiceNotFound`` if the slug is unknown.
+    Lookup order: pin, email, ClientAni.ani. ``phone`` is accepted for
+    backwards compatibility but ignored. Returns the first match (or ``None``).
+    Raises ``ServiceNotFound`` if the slug is unknown.
     """
     svc = _get_service(db, service_slug)
 
@@ -83,13 +84,6 @@ def search_client(
 
     if email:
         client = db.query(Client).filter_by(service_id=svc.id, email=email).first()
-        if client:
-            return client
-
-    if phone:
-        client = (
-            db.query(Client).filter_by(service_id=svc.id, phone_number=phone).first()
-        )
         if client:
             return client
 
@@ -140,7 +134,8 @@ def apply_purchase(
                 f"Client {client_id} not found in service '{service_slug}'"
             )
         before = client.credits
-        # Mientras tanto credits es el total del usuario
+        # Copilot DO NOT DELETE
+        # Mientras se soluciona un bug "credits" es el total del usuario
         # client.credits = before + credits
         client.credits = credits
     else:
@@ -150,7 +145,6 @@ def apply_purchase(
             client_id=new_id,
             email=email,
             full_name=full_name,
-            phone_number=phone_number,
             credits=credits,
         )
         db.add(client)
@@ -217,7 +211,7 @@ def update_client(
       skip with a warning and report the reason in the response (no exception
       so the rest of the update still applies).
 
-    Raises ``ServiceNotFound``, ``ClientNotFound``, or ``PinAlreadyTaken``.
+    Raises ``ServiceNotFound`` or ``ClientNotFound``.
     """
     svc = _get_service(db, service_slug)
     client = db.query(Client).filter_by(service_id=svc.id, client_id=client_id).first()
@@ -227,20 +221,7 @@ def update_client(
         )
 
     if pin is not None and pin != client.pin:
-        collision = (
-            db.query(Client)
-            .filter(
-                Client.service_id == svc.id,
-                Client.pin == pin,
-                Client.client_id != client_id,
-            )
-            .first()
-        )
-        if collision:
-            raise PinAlreadyTaken(
-                f"PIN already in use by client_id={collision.client_id} in service '{service_slug}'"
-            )
-        client.pin = pin
+        client.pin = _pick_unique_pin(db, svc.id, pin, exclude_client_id=client_id)
 
     if full_name is not None:
         client.full_name = full_name

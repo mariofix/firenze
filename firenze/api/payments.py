@@ -33,7 +33,6 @@ from firenze.services.client_service import ClientNotFound, ServiceNotFound
 from firenze.services.payment_service import (
     AniAlreadyTaken,
     ClientAniNotFound,
-    PinAlreadyTaken,
     apply_purchase,
     create_client_ani,
     delete_client_ani,
@@ -53,7 +52,7 @@ def clients_search(
     client_id: int | None = Query(default=None),
     email: str | None = Query(default=None),
     phone: str | None = Query(
-        default=None, description="Profile phone (Client.phone_number)"
+        default=None, description="Deprecated; accepted but ignored"
     ),
     ani: str | None = Query(
         default=None, description="Caller-ID registered to ClientAni"
@@ -90,7 +89,7 @@ def clients_search(
         credits=client.credits,
         email=client.email,
         full_name=client.full_name,
-        phone_number=client.phone_number,
+        phone_number=None,
     )
 
 
@@ -177,15 +176,6 @@ def clients_update(
             e,
         )
         raise HTTPException(status_code=404, detail=str(e))
-    except PinAlreadyTaken as e:
-        logger.warning(
-            "clients_update: PinAlreadyTaken for service=%r client_id=%s: %s",
-            service,
-            client_id,
-            e,
-        )
-        raise HTTPException(status_code=409, detail=str(e))
-
     return ClientUpdateResponse(**result)
 
 

@@ -8,6 +8,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from firenze.admin import register_admin, FirenzeAdmin
+from firenze.api.clients import clientsRouter
 from firenze.api.agi import agiRouter
 from firenze.api.payments import paymentsRouter
 from firenze.api.public import publicRouter
@@ -71,9 +72,10 @@ def create_app():
     # Payment / storefront endpoints (called by nuevo-fonotarot)
     app.include_router(paymentsRouter)
 
+    # Client CRUD endpoints
+    app.include_router(clientsRouter)
+
     # public endpoints
     app.include_router(publicRouter)
-
-    
 
     return app

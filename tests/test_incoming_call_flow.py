@@ -117,6 +117,7 @@ def test_incoming_call_happy_path(mock_op_state, mock_call_state):
     query_chain = session.query.return_value.filter_by.return_value
     lock_chain = query_chain.with_for_update.return_value
     order_chain = query_chain.order_by.return_value
+    filter_lock_chain = session.query.return_value.filter.return_value.with_for_update.return_value
 
     # ----- Step 1: DNC check - caller is not blocked -------------------------
     query_chain.first.return_value = None
@@ -132,10 +133,9 @@ def test_incoming_call_happy_path(mock_op_state, mock_call_state):
     }
 
     # ----- Step 3: Client lookup by ANI --------------------------------------
-    # lookup() runs 4 consecutive .filter_by().first() calls:
-    #   a) Service by slug, b) Client by pin (miss), c) ClientAni match,
-    #   d) Client by client_id.
-    query_chain.first.side_effect = [svc, None, ani_row, client]
+    # lookup() runs 3 consecutive .filter_by().first() calls:
+    #   a) Service by slug, b) ClientAni match, c) Client by client_id.
+    query_chain.first.side_effect = [svc, ani_row, client]
     assert lookup(session, SERVICE_SLUG, CALLER_ANI) == {
         "clientid": CLIENT_ID,
         "segundos": INITIAL_CREDITS,
@@ -153,12 +153,13 @@ def test_incoming_call_happy_path(mock_op_state, mock_call_state):
     }
 
     # ----- Step 6: Operator menu - one available operator --------------------
+    query_chain.all.return_value = [operator]
     order_chain.all.return_value = [operator]
     menu = get_menu(session, redis_conn)
     assert menu == {"disponibles": 1, "audio_str": "zvn/operator/1001"}
 
     # ----- Step 7: Caller picks option 01; operator marked busy atomically ---
-    lock_chain.first.return_value = operator
+    filter_lock_chain.first.return_value = operator
     selected = select_operator(
         session,
         mode="option",
@@ -212,7 +213,11 @@ def test_incoming_call_happy_path(mock_op_state, mock_call_state):
     # deduct_credits: a) Service by slug, b) Client by client_id.
     query_chain.first.side_effect = [svc, client]
     deduct_res = deduct_credits(session, SERVICE_SLUG, CLIENT_ID, CALL_DURATION)
-    assert deduct_res == {"ok": True, "remaining": INITIAL_CREDITS - CALL_DURATION}
+    assert deduct_res == {
+        "ok": True,
+        "remaining": INITIAL_CREDITS - CALL_DURATION,
+        "before": INITIAL_CREDITS,
+    }
     assert client.credits == INITIAL_CREDITS - CALL_DURATION
     query_chain.first.side_effect = None
 

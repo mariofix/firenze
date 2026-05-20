@@ -28,7 +28,6 @@ class Client(Base, TimestampMixin):
 
     - ``client_id`` is the business-facing identifier, unique within a service.
     - ``pin`` is set for PIN-auth services (fonotarot-latam); lookup key at call time.
-    - ``phone_number`` is the profile contact number — not used for call routing.
     - ANI-based lookup goes through ``ClientAni`` (supports multiple ANIs per client).
     """
 
@@ -42,7 +41,6 @@ class Client(Base, TimestampMixin):
     pin: Mapped[Optional[str]] = mapped_column(String(8), default=None)
     full_name: Mapped[Optional[str]] = mapped_column(String(128), default=None)
     email: Mapped[Optional[str]] = mapped_column(String(512), default=None)
-    phone_number: Mapped[Optional[str]] = mapped_column(String(16), default=None)
     credits: Mapped[int] = mapped_column(Integer, default=0)
     extra_config: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True, default=None)
 

@@ -521,6 +521,12 @@ def check_phones(
 
         firenze migration check-anis --all
     """
+    typer.echo(
+        "Client.phone_number was removed; check-phones is deprecated and now no-ops.",
+        err=True,
+    )
+    raise typer.Exit(0)
+
     db = ctx.obj["dbsession"]
 
     if not any([service, client_id, ani_filter, all_records]):

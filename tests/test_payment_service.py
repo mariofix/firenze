@@ -1,13 +1,12 @@
 """Tests for firenze.services.payment_service - search and apply_purchase."""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from firenze.services.client_service import ClientNotFound, ServiceNotFound
 from firenze.services.payment_service import (
     PHONE_ERASE_SENTINEL,
-    PinAlreadyTaken,
     apply_purchase,
     search_client,
     update_client,
@@ -51,11 +50,10 @@ class TestSearchClient:
 
         assert result is client
 
-    def test_returns_client_by_phone_when_email_misses(self):
+    def test_ignores_phone_lookup_when_email_misses(self):
         svc = _make_service()
-        client = _make_client(client_id=42, phone_number="56912345678")
-        # service, email miss, phone hit
-        session = _session_with_filter_results([svc, None, client])
+        # service, email miss. The phone argument is ignored, so no extra query.
+        session = _session_with_filter_results([svc, None])
 
         result = search_client(
             session,
@@ -64,7 +62,7 @@ class TestSearchClient:
             phone="56912345678",
         )
 
-        assert result is client
+        assert result is None
 
     def test_returns_client_by_ani_via_clientani(self):
         svc = _make_service()
@@ -313,26 +311,27 @@ class TestUpdateClient:
         assert result["phones_removed"] == 0
         assert result["phone_skipped_reason"] is None
 
-    def test_pin_collision_raises(self):
+    def test_pin_collision_gets_replaced(self):
         svc = _make_service()
         client = _make_client(client_id=42, pin="11111111")
-        other = _make_client(client_id=99, pin="22222222")
-        # service, client, PIN collision -> other
+        # service, client, replacement pin lookup (collision then free)
         session = _build_update_session([
             {"first": svc},
             {"first": client},
-            {"first": other},
+            {"all": []},
         ])
 
-        with pytest.raises(PinAlreadyTaken):
-            update_client(
+        with patch("firenze.services.payment_service._pick_unique_pin", return_value="33333333") as mock_pick:
+            result = update_client(
                 session,
                 service_slug="fonotarot-cl",
                 client_id=42,
                 pin="22222222",
             )
-        # PIN should not have been mutated
-        assert client.pin == "11111111"
+
+        mock_pick.assert_called_once_with(session, svc.id, "22222222", exclude_client_id=42)
+        assert client.pin == "33333333"
+        assert result["pin"] == "33333333"
 
     def test_pin_unchanged_skips_collision_check(self):
         svc = _make_service()

@@ -7,8 +7,10 @@ import pytest
 from firenze.services.client_service import (
     ClientNotFound,
     ServiceNotFound,
+    create_client,
     deduct_credits,
     lookup,
+    update_client_record,
 )
 
 
@@ -42,13 +44,12 @@ def _mock_session_for_lookup(service=None, client=None, ani_row=None):
     # Each call to session.query(X).filter_by(...).first() is a separate chain.
     # We use side_effect on filter_by to return results in call order:
     #   1st call: _get_service → service
-    #   2nd call: Client by pin → client (or None to trigger ANI path)
+    #   2nd call: Client by pin → client (or None when not found)
     #   3rd call: ClientAni by ani → ani_row (ANI path only)
     #   4th call: Client by client_id → client (ANI path only)
-    pin_result = client if (client and client.pin) else None
     if ani_row:
-        # service → pin miss → ani_row hit → client
-        side_effects = [service, pin_result, ani_row, client]
+        # service → ani_row hit → client
+        side_effects = [service, ani_row, client]
     elif client is None:
         # service → pin miss → ani miss (not found)
         side_effects = [service, None, None]
@@ -162,3 +163,134 @@ class TestDeductCredits:
 
         with pytest.raises(ServiceNotFound):
             deduct_credits(session, "nonexistent", 100, 300)
+
+
+class TestClientPinCollisionHandling:
+    def test_create_client_replaces_taken_pin(self):
+        svc = _make_service()
+        collision = _make_client(client_id=77, pin="22222222")
+        session = MagicMock()
+        session.query.return_value.filter_by.return_value.first.side_effect = [svc, None]
+        session.query.return_value.filter.return_value.first.side_effect = [
+            collision,
+            None,
+        ]
+        session.query.return_value.filter_by.return_value.order_by.return_value.all.return_value = []
+        added: list = []
+        session.add.side_effect = lambda obj: added.append(obj)
+        session.refresh.side_effect = lambda obj: None
+
+        with patch("firenze.services.client_service._generate_pin", return_value="33333333"):
+            result = create_client(
+                session,
+                "fonotarot-latam",
+                client_id=42,
+                pin="22222222",
+            )
+
+        assert len(added) == 1
+        assert added[0].pin == "33333333"
+        assert result["pin"] == "33333333"
+
+    def test_update_client_record_replaces_taken_pin(self):
+        svc = _make_service()
+        client = _make_client(client_id=42, pin="11111111")
+        collision = _make_client(client_id=77, pin="22222222")
+        session = MagicMock()
+        session.query.return_value.filter_by.return_value.first.side_effect = [
+            svc,
+            client,
+        ]
+        filter_chain = session.query.return_value.filter.return_value
+        filter_chain.filter.return_value.first.side_effect = [collision, None]
+        session.query.return_value.filter_by.return_value.order_by.return_value.all.return_value = []
+
+        with patch("firenze.services.client_service._generate_pin", return_value="33333333"):
+            result = update_client_record(
+                session,
+                "fonotarot-latam",
+                client_id=42,
+                pin="22222222",
+            )
+
+        assert client.pin == "33333333"
+        assert result["pin"] == "33333333"
+
+    def test_update_client_record_raises_when_pin_space_is_exhausted(self):
+        svc = _make_service()
+        client = _make_client(client_id=42, pin="11111111")
+        collision = _make_client(client_id=77, pin="22222222")
+        session = MagicMock()
+        session.query.return_value.filter_by.return_value.first.side_effect = [
+            svc,
+            client,
+        ]
+        filter_chain = session.query.return_value.filter.return_value
+        filter_chain.filter.return_value.first.return_value = collision
+        session.query.return_value.filter_by.return_value.order_by.return_value.all.return_value = []
+
+        with patch("firenze.services.client_service._generate_pin", return_value="22222222"):
+            with pytest.raises(RuntimeError, match="Unable to allocate a unique PIN"):
+                update_client_record(
+                    session,
+                    "fonotarot-latam",
+                    client_id=42,
+                    pin="22222222",
+                )
+
+    def test_create_client_uses_deterministic_fallback_after_repeated_collisions(self):
+        svc = _make_service()
+        collision = _make_client(client_id=77, pin="22222222")
+        session = MagicMock()
+        session.query.return_value.filter_by.return_value.first.side_effect = [svc, None]
+        session.query.return_value.filter.return_value.first.side_effect = [
+            collision,
+            collision,
+            collision,
+            collision,
+            collision,
+            collision,
+            collision,
+            collision,
+            collision,
+            None,
+        ]
+        session.query.return_value.filter_by.return_value.order_by.return_value.all.return_value = []
+        added: list = []
+        session.add.side_effect = lambda obj: added.append(obj)
+        session.refresh.side_effect = lambda obj: None
+
+        with patch("firenze.services.client_service._generate_pin", return_value="22222222"):
+            result = create_client(
+                session,
+                "fonotarot-latam",
+                client_id=42,
+                pin="22222222",
+            )
+
+        assert len(added) == 1
+        assert added[0].pin == "22222223"
+        assert result["pin"] == "22222223"
+
+
+def test_update_client_record_clears_extra_config_when_explicitly_provided():
+    svc = _make_service()
+    client = _make_client(client_id=42, pin="11111111")
+    client.extra_config = {"tarotista_favorita": 7001}
+    session = MagicMock()
+    session.query.return_value.filter_by.return_value.first.side_effect = [
+        svc,
+        client,
+    ]
+    session.query.return_value.filter_by.return_value.order_by.return_value.all.return_value = []
+
+    result = update_client_record(
+        session,
+        "fonotarot-latam",
+        client_id=42,
+        extra_config=None,
+        extra_config_provided=True,
+    )
+
+    assert client.extra_config is None
+    assert result["extra_config"] is None

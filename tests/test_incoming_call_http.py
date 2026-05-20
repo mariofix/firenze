@@ -111,16 +111,18 @@ def test_incoming_call_happy_path_http(mock_op_state, mock_call_state):
     query_chain = session.query.return_value.filter_by.return_value
     lock_chain = query_chain.with_for_update.return_value
     order_chain = query_chain.order_by.return_value
+    filter_lock_chain = session.query.return_value.filter.return_value.with_for_update.return_value
 
     # All the .filter_by().first() results the dialplan sequence triggers,
     # in order across the 12 HTTP requests below.
     query_chain.first.side_effect = [
         None,       # 1: /agi/dnc/{ani}              - check_dnc
         did_row,    # 2: /agi/services/did/{did}     - resolve_did
-        svc,        # 3a: /agi/clients/lookup        - _get_service
-        None,       # 3b: lookup Client by pin (miss)
-        ani_row,    # 3c: ClientAni match
-        client,     # 3d: Client by client_id
+        svc,        # 3a: /agi/clients/lookup        - update_ani_stats _get_service
+        None,       # 3b: update_ani_stats ANI miss
+        svc,        # 3c: /agi/clients/lookup        - _get_service
+        ani_row,    # 3d: ClientAni match
+        client,     # 3e: Client by client_id
         None,       # 5: /agi/calls/online/.../?     - get_active_call
         call_row,   # 9: /agi/calls/online/.../assign - update_call_operator
         svc,        # 10a: /agi/clients/.../deduct   - _get_service
@@ -128,8 +130,9 @@ def test_incoming_call_happy_path_http(mock_op_state, mock_call_state):
         operator,   # 11: /agi/operators/{n}/release - _get_operator
         call_row,   # 12: /agi/calls/online/.../close - delete_call
     ]
+    query_chain.all.return_value = [operator]  # 6: operator menu
     order_chain.all.return_value = [operator]  # 6: operator menu
-    lock_chain.first.return_value = operator   # 7: operator select (option mode)
+    filter_lock_chain.first.return_value = operator   # 7: operator select (option mode)
 
     client_http = TestClient(_build_app(session, redis_conn))
 
@@ -154,7 +157,13 @@ def test_incoming_call_happy_path_http(mock_op_state, mock_call_state):
         params={"service": SERVICE_SLUG, "identifier": CALLER_ANI},
     )
     assert r.status_code == 200
-    assert r.json() == {"clientid": CLIENT_ID, "segundos": INITIAL_CREDITS}
+    assert r.json() == {
+        "clientid": CLIENT_ID,
+        "segundos": INITIAL_CREDITS,
+        "timeout": 1800,
+        "audio": "zvn/saldo/30",
+        "minutes": 30,
+    }
 
     # ----- Step 4: Credit limit - pure function ------------------------------
     r = client_http.get("/agi/credits/limit", params={"seconds": INITIAL_CREDITS})
@@ -227,7 +236,11 @@ def test_incoming_call_happy_path_http(mock_op_state, mock_call_state):
         data={"seconds": CALL_DURATION},
     )
     assert r.status_code == 200
-    assert r.json() == {"ok": True, "remaining": INITIAL_CREDITS - CALL_DURATION}
+    assert r.json() == {
+        "ok": True,
+        "remaining": INITIAL_CREDITS - CALL_DURATION,
+        "before": INITIAL_CREDITS,
+    }
     assert client.credits == INITIAL_CREDITS - CALL_DURATION
 
     # ----- Step 11: Release operator -----------------------------------------

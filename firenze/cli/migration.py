@@ -84,6 +84,11 @@ def update_phones(
     Examples:
         firenze migration update-phones --dry-run
     """
+    typer.echo(
+        "Client.phone_number was removed; update-phones is deprecated and now no-ops.",
+        err=True,
+    )
+    raise typer.Exit(0)
 
     db = ctx.obj["dbsession"]
     stmt = (
