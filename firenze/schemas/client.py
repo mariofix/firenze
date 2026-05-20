@@ -73,6 +73,16 @@ class ClientDeleteResponse(BaseModel):
     deleted: bool
 
 
+class ClientSearchResponse(BaseModel):
+    found: bool
+    client_id: Optional[int] = None
+    service: Optional[str] = None
+    credits: Optional[int] = None
+    email: Optional[str] = None
+    full_name: Optional[str] = None
+    phone_number: Optional[str] = None
+
+
 class ClientAniCreateRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, extra="ignore")
 

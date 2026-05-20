@@ -10,6 +10,7 @@ from firenze.services.client_service import (
     ClientAlreadyExists,
     ClientNotFound,
     InvalidClientExtraConfig,
+    ServiceNotFound,
 )
 
 
@@ -52,6 +53,64 @@ def test_clients_get(mock_get):
 
     assert response.status_code == 200
     assert response.json()["pin"] == "12345678"
+
+
+@patch("firenze.api.clients.search_client")
+def test_clients_search(mock_search):
+    found = MagicMock()
+    found.client_id = 12
+    found.credits = 900
+    found.email = "buyer@example.com"
+    found.full_name = "Buyer"
+    mock_search.return_value = found
+    client = TestClient(_build_app(MagicMock()))
+
+    response = client.get(
+        "/api/v1/clients/search",
+        params={"service": "fonotarot-cl", "email": "buyer@example.com"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["found"] is True
+    assert response.json()["client_id"] == 12
+
+
+@patch("firenze.api.clients.search_client")
+def test_clients_search_returns_not_found(mock_search):
+    mock_search.return_value = None
+    client = TestClient(_build_app(MagicMock()))
+
+    response = client.get(
+        "/api/v1/clients/search",
+        params={"service": "fonotarot-cl", "email": "buyer@example.com"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["found"] is False
+
+
+def test_clients_search_requires_identifier():
+    client = TestClient(_build_app(MagicMock()))
+
+    response = client.get(
+        "/api/v1/clients/search",
+        params={"service": "fonotarot-cl"},
+    )
+
+    assert response.status_code == 400
+
+
+@patch("firenze.api.clients.search_client")
+def test_clients_search_returns_service_not_found(mock_search):
+    mock_search.side_effect = ServiceNotFound("Service 'unknown' not found")
+    client = TestClient(_build_app(MagicMock()))
+
+    response = client.get(
+        "/api/v1/clients/search",
+        params={"service": "unknown", "email": "buyer@example.com"},
+    )
+
+    assert response.status_code == 404
 
 
 @patch("firenze.api.clients.create_client")

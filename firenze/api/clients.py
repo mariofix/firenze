@@ -2,7 +2,7 @@
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Security
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from sqlalchemy.orm import Session
 
 from firenze.auth import loggedin_user
@@ -15,6 +15,7 @@ from firenze.schemas.client import (
     ClientCreateRequest,
     ClientDeleteResponse,
     ClientResponse,
+    ClientSearchResponse,
     ClientUpdateRequest,
 )
 from firenze.services.client_service import (
@@ -33,11 +34,65 @@ from firenze.services.payment_service import (
     create_client_ani,
     delete_client_ani,
     list_client_anis,
+    search_client,
 )
 
 logger = logging.getLogger("firenze")
 
 clientsRouter = APIRouter(prefix="/api/v1/clients", tags=["clients"])
+
+
+@clientsRouter.get(
+    "/search",
+    response_model=ClientSearchResponse,
+    summary="Search client",
+)
+def clients_search(
+    service: str = Query(..., description="Service slug, e.g. fonotarot-cl"),
+    client_id: int | None = Query(default=None),
+    email: str | None = Query(default=None),
+    phone: str | None = Query(
+        default=None, description="Deprecated; accepted but ignored"
+    ),
+    ani: str | None = Query(
+        default=None, description="Caller-ID registered to ClientAni"
+    ),
+    pin: str | None = Query(default=None, description="PIN for PIN-auth services"),
+    db: Session = Depends(get_db),
+    _user_id: int = Security(loggedin_user, scopes=["firenze"]),
+):
+    if not any([client_id, email, phone, ani, pin]):
+        raise HTTPException(
+            status_code=400,
+            detail="At least one of client_id, email, phone, ani, pin is required",
+        )
+
+    try:
+        client = search_client(
+            db,
+            service,
+            client_id=client_id,
+            email=email,
+            phone=phone,
+            ani=ani,
+            pin=pin,
+        )
+    except ServiceNotFound as exc:
+        logger.warning("clients_search: ServiceNotFound for service=%r: %s", service, exc)
+        raise HTTPException(status_code=404, detail=str(exc))
+
+    if client is None:
+        return ClientSearchResponse(found=False)
+
+    return ClientSearchResponse(
+        found=True,
+        client_id=client.client_id,
+        service=service,
+        credits=client.credits,
+        email=client.email,
+        full_name=client.full_name,
+        phone_number=None,
+    )
 
 
 @clientsRouter.get(

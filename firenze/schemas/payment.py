@@ -1,9 +1,4 @@
-"""Schemas for the payment API consumed by nuevo-fonotarot.
-
-Two flows: search for an existing client (returns ``client_id``) and apply a
-completed purchase (creates the client when ``client_id`` is absent, otherwise
-tops up).
-"""
+"""Schemas for payment API endpoints consumed by nuevo-fonotarot."""
 
 from typing import Optional
 
@@ -17,22 +12,6 @@ from pydantic import (
 )
 
 PHONE_ERASE_SENTINEL = "::EMPTY::"
-
-
-class ClientSearchResponse(BaseModel):
-    """Result of ``GET /api/v1/clients/search``.
-
-    ``found=False`` returns just that flag; the rest of the fields are only
-    populated on a hit so the caller can verify it found the right person.
-    """
-
-    found: bool
-    client_id: Optional[int] = None
-    service: Optional[str] = None
-    credits: Optional[int] = None
-    email: Optional[str] = None
-    full_name: Optional[str] = None
-    phone_number: Optional[str] = None
 
 
 class PurchaseRequest(BaseModel):
@@ -139,4 +118,3 @@ class ClientUpdateResponse(BaseModel):
     phones_added: int = 0
     phones_removed: int = 0
     phone_skipped_reason: Optional[str] = None
-
