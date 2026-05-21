@@ -104,16 +104,16 @@ def apply_purchase(
     ani: str | None = None,
     transaction_id: str | None = None,
 ) -> dict:
-    """Apply a completed purchase: create the client or top up an existing one.
+    """Aplica una compra completada: crea el cliente o recarga el existente.
 
-    When ``client_id`` is provided, the matching ``Client`` row is updated and
-    ``credits`` is added to its balance. Otherwise a new ``Client`` is inserted
-    with a freshly generated ``client_id`` and the supplied profile fields, and
-    ``credits`` becomes its initial balance. If ``ani`` is provided it is
-    registered against the client (skipped silently when already taken by
-    someone else within the same service).
+    Cuando se proporciona ``client_id``, la fila ``Client`` coincidente se actualiza y
+    ``credits`` se suma a su saldo. De lo contrario, se inserta un nuevo ``Client``
+    con un ``client_id`` recién generado y los campos de perfil suministrados, y
+    ``credits`` se convierte en su saldo inicial. Si se proporciona ``ani``, se registra
+    contra el cliente (se omite silenciosamente cuando ya está tomado por
+    alguien más dentro del mismo servicio).
 
-    Returns a dict suitable for ``PurchaseResponse``.
+    Retorna un dict adecuado para ``PurchaseResponse``.
     """
     svc = _get_service(db, service_slug)
     created = False
@@ -191,18 +191,18 @@ def update_client(
     pin: str | None = None,
     phone: str | None = None,
 ) -> dict:
-    """Update profile fields on an existing client.
+    """Actualiza campos de perfil en un cliente existente.
 
-    All inputs are optional. Phone behavior:
-    - ``phone is None``: do nothing.
-    - ``phone == PHONE_ERASE_SENTINEL``: delete every ``ClientAni`` for this
-      client.
-    - other value: add to ``ClientAni`` if not already on this client. If the
-      number is already registered to a different client in the same service,
-      skip with a warning and report the reason in the response (no exception
-      so the rest of the update still applies).
+    Todas las entradas son opcionales. Comportamiento del teléfono:
+    - ``phone is None``: no hace nada.
+    - ``phone == PHONE_ERASE_SENTINEL``: elimina cada ``ClientAni`` para este
+      cliente.
+    - otro valor: agrega a ``ClientAni`` si no está en este cliente. Si el
+      número ya está registrado para un cliente diferente en el mismo servicio,
+      omítalo con una advertencia e informe el motivo en la respuesta (sin excepción
+      para que el resto de la actualización siga aplicándose).
 
-    Raises ``ServiceNotFound`` or ``ClientNotFound``.
+    Genera ``ServiceNotFound`` o ``ClientNotFound``.
     """
     svc = _get_service(db, service_slug)
     client = db.query(Client).filter_by(service_id=svc.id, client_id=client_id).first()
@@ -278,7 +278,7 @@ def update_client(
 
 
 def list_client_anis(db: Session, *, service_slug: str, client_id: int) -> dict:
-    """List every ANI registered to a client in a service."""
+    """Lista cada ANI registrado para un cliente en un servicio."""
     svc = _get_service(db, service_slug)
     client = db.query(Client).filter_by(service_id=svc.id, client_id=client_id).first()
     if not client:
@@ -301,7 +301,7 @@ def list_client_anis(db: Session, *, service_slug: str, client_id: int) -> dict:
 
 
 def create_client_ani(db: Session, *, service_slug: str, client_id: int, ani: str) -> dict:
-    """Create (or idempotently add) one ANI mapping for an existing client."""
+    """Crea (o agrega de forma idempotente) un mapeo de ANI para un cliente existente."""
     svc = _get_service(db, service_slug)
     client = db.query(Client).filter_by(service_id=svc.id, client_id=client_id).first()
     if not client:
@@ -334,7 +334,7 @@ def create_client_ani(db: Session, *, service_slug: str, client_id: int, ani: st
 
 
 def delete_client_ani(db: Session, *, service_slug: str, client_id: int, ani: str) -> dict:
-    """Delete one ANI mapping from a client."""
+    """Elimina un mapeo de ANI de un cliente."""
     svc = _get_service(db, service_slug)
     client = db.query(Client).filter_by(service_id=svc.id, client_id=client_id).first()
     if not client:
