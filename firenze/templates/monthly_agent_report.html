@@ -19,24 +19,8 @@
       <div class="card-body">
         <form method="GET" class="row g-3 align-items-end">
           <div class="col-auto">
-            <label class="form-label">Mes</label>
-            <select name="month" class="form-select">
-              {% for m_num, m_name in months_es.items() %}
-              <option value="{{ m_num }}"{% if m_num == month %} selected{% endif %}>{{ m_name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="col-auto">
-            <label class="form-label">Año</label>
-            <input
-              type="number"
-              name="year"
-              value="{{ year }}"
-              min="{{ min_year }}"
-              max="{{ today.year + 1 }}"
-              class="form-control"
-              style="width: 110px"
-            />
+            <label class="form-label">Período</label>
+            <div class="form-control-plaintext fw-semibold">{{ months_es[month] }} {{ year }} (mes actual)</div>
           </div>
           <div class="col-12 col-lg">
             <label class="form-label">Agentes (vacío = todos)</label>

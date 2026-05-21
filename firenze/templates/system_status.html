@@ -3,8 +3,8 @@
 {% block content_header %}
 <div class="row align-items-center">
   <div class="col-auto">
-    <h2 class="page-title">System Status</h2>
-    <div class="page-pretitle">Redis / Valkey health, CDR reports, operator state, and active calls</div>
+    <h2 class="page-title">Firenze</h2>
+    <div class="page-pretitle">Fonotarot Dashboard / Firenze Status</div>
   </div>
   <div class="col-auto ms-auto d-print-none">
     <a href="{{ request.url }}" class="btn btn-secondary">
@@ -49,11 +49,18 @@
             </div>
           </div>
           <div class="datagrid-item">
-            <div class="datagrid-title">Live Calls</div>
+            <div class="datagrid-title">Online Calls</div>
             <div class="datagrid-content">
               <span class="badge bg-blue-lt text-blue">{{ active_calls|length }} in progress</span>
             </div>
           </div>
+        </div>
+        <div class="row g-2 text-secondary small mt-3">
+          <div class="col-6">Redis version: <strong>{{ redis_info.get("redis_version", "—") }}</strong></div>
+          <div class="col-6">Clients: <strong>{{ redis_info.get("connected_clients", "—") }}</strong></div>
+          <div class="col-6">Memory: <strong>{{ redis_info.get("used_memory_human", "—") }}</strong></div>
+          <div class="col-6">Role: <strong>{{ redis_info.get("role", "—") | title }}</strong></div>
+          <div class="col-12">Operator keys: <strong>{{ redis_operators_count }}</strong> · Call keys: <strong>{{ redis_calls_count }}</strong></div>
         </div>
       </div>
     </div>
@@ -66,6 +73,7 @@
           <div class="card-body">
             <div class="subheader">Today Calls</div>
             <div class="h2 mb-0">{{ cdr_reports.today.total_calls }}</div>
+            <div class="text-secondary small">From Midnight to now</div>
           </div>
         </div>
       </div>
@@ -74,46 +82,41 @@
           <div class="card-body">
             <div class="subheader">Answered</div>
             <div class="h2 mb-0 text-success">{{ cdr_reports.today.answered_calls }}</div>
+            <div class="text-secondary small">Includes all services.</div>
           </div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="card">
           <div class="card-body">
-            <div class="subheader">Failed</div>
-            <div class="h2 mb-0 text-warning">{{ cdr_reports.today.failed_calls }}</div>
+            <div class="subheader">Avg Call</div>
+            <div class="h2 mb-0">{{ (cdr_reports.today.avg_billsec / 60) | round(1) }} min</div>
+            <div class="text-secondary small">and in seconds: {{cdr_reports.today.avg_billsec}}</div>
           </div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="card">
           <div class="card-body">
-            <div class="subheader">Avg Billsec</div>
-            <div class="h2 mb-0">{{ cdr_reports.today.avg_billsec | round(1) }}</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-6 col-md-3">
-        <div class="card">
-          <div class="card-body">
-            <div class="subheader">ANI Registry</div>
+            <div class="subheader">Client ANI Registered</div>
             <div class="h2 mb-0">{{ ani_reports.total_anis }}</div>
+            <div class="text-secondary small">Across all services</div>
           </div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="card">
           <div class="card-body">
-            <div class="subheader">ANI Calls (lifetime)</div>
+            <div class="subheader">Inbound Calls (lifetime)</div>
             <div class="h2 mb-0">{{ ani_reports.total_calls }}</div>
-            <div class="text-secondary small">{{ ani_reports.avg_calls | round(1) }} avg / ANI</div>
+            <div class="text-secondary small">{{ ani_reports.avg_calls | round(1) }} avg / client_id</div>
           </div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="card">
           <div class="card-body">
-            <div class="subheader">ANI Active (24h)</div>
+            <div class="subheader">Client ID Active (24h)</div>
             <div class="h2 mb-0 text-green">{{ ani_reports.active_24h }}</div>
           </div>
         </div>
@@ -121,7 +124,7 @@
       <div class="col-6 col-md-3">
         <div class="card">
           <div class="card-body">
-            <div class="subheader">ANI Active (7d)</div>
+            <div class="subheader">Client IDs Active (7d)</div>
             <div class="h2 mb-0 text-azure">{{ ani_reports.active_7d }}</div>
           </div>
         </div>
@@ -129,43 +132,95 @@
       <div class="col-12">
         <div class="card">
           <div class="card-body">
-            {% set ani_den = ani_reports.total_anis if ani_reports.total_anis else 1 %}
+            {% set ani_tracked_total = ani_reports.total_anis - ani_reports.no_last_call %}
+            {% set ani_den = ani_tracked_total if ani_tracked_total > 0 else 1 %}
             {% set ani_coverage = (ani_reports.with_last_call * 100 / ani_den) | round(1) %}
-            <div class="d-flex flex-wrap gap-2">
-              <span class="badge bg-blue-lt text-blue">Tracked ANI: {{ ani_reports.with_last_call }}/{{ ani_reports.total_anis }} ({{ ani_coverage }}%)</span>
-              <span class="badge bg-yellow-lt text-yellow">Stale +30d: {{ ani_reports.stale_30d }}</span>
-              <span class="badge bg-azure-lt text-azure">
-                Latest ANI:
+            {% set ani_active_15 = ani_reports.active_15d %}
+            {% set ani_stale_30 = ani_reports.stale_30d %}
+            {% set ani_stale_60 = ani_reports.stale_60d %}
+            {% set ani_no_last_call = ani_reports.no_last_call %}
+            {% set ani_active_15_pct = (ani_active_15 * 100 / ani_den) | round(1) %}
+            {% set ani_stale_30_pct = (ani_stale_30 * 100 / ani_den) | round(1) %}
+            {% set ani_stale_60_pct = (ani_stale_60 * 100 / ani_den) | round(1) %}
+            <p class="mb-3">
+              client_id activity <strong>{{ ani_reports.with_last_call }}</strong> of {{ ani_tracked_total + ani_reports.total_anis }} active client_id
+              <span class="text-secondary">({{ ani_coverage }}%)</span>
+            </p>
+            <div class="progress progress-separated mb-3">
+              <div class="progress-bar bg-green" role="progressbar" style="width: {{ ani_active_15_pct }}%" aria-label="Active 15 days"></div>
+              <div class="progress-bar bg-yellow" role="progressbar" style="width: {{ ani_stale_30_pct }}%" aria-label="Stale 30-59 days"></div>
+              <div class="progress-bar bg-orange" role="progressbar" style="width: {{ ani_stale_60_pct }}%" aria-label="Stale 60+ days"></div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-auto d-flex align-items-center pe-2">
+                <span class="legend me-2 bg-green"></span>
+                <span>Active (&lt;=15d)</span>
+                <span class="ms-2 text-secondary">{{ ani_active_15 }}</span>
+              </div>
+              <div class="col-auto d-flex align-items-center px-2">
+                <span class="legend me-2 bg-yellow"></span>
+                <span>Stale 1 (30-59d)</span>
+                <span class="ms-2 text-secondary">{{ ani_stale_30 }}</span>
+              </div>
+              <div class="col-auto d-flex align-items-center px-2">
+                <span class="legend me-2 bg-orange"></span>
+                <span>Stale 2 (&gt;=60d)</span>
+                <span class="ms-2 text-secondary">{{ ani_stale_60 }}</span>
+              </div>
+              <div class="col-auto d-flex align-items-center px-2">
+                <span class="legend me-2 bg-secondary"></span>
+                <span>No last_call</span>
+                <span class="ms-2 text-secondary">{{ ani_no_last_call }}</span>
+              </div>
+              <div class="col-auto d-flex align-items-center ps-2 text-secondary">
+                Latest:
                 {% if ani_reports.latest_last_call %}
-                  {{ ani_reports.latest_last_call.strftime('%Y-%m-%d %H:%M:%S') }} ({{ ani_reports.latest_last_call_hours }}h ago)
+                  <span class="ms-1">{{ ani_reports.latest_last_call.strftime('%Y-%m-%d %H:%M:%S') }} ({{ ani_reports.latest_last_call_hours }}h ago)</span>
                 {% else %}
-                  —
+                  <span class="ms-1">—</span>
                 {% endif %}
-              </span>
+              </div>
+            </div>
+            {% set top5_total_calls = operator_activity_top5 | sum(attribute='calls') %}
+            <p class="mb-3">
+              Operator activity <strong>Top 5</strong> in last 15 days
+              <span class="text-secondary">({{ top5_total_calls }} calls)</span>
+            </p>
+            <div class="progress progress-separated mb-3">
+              {% for op in operator_activity_top5 %}
+              <div class="progress-bar {{ op.color_class }}" role="progressbar" style="width: {{ op.share }}%" aria-label="{{ op.name }}"></div>
+              {% else %}
+              <div class="progress-bar bg-secondary" role="progressbar" style="width: 100%" aria-label="No data"></div>
+              {% endfor %}
+            </div>
+            <div class="row">
+              {% for op in operator_activity_top5 %}
+              <div class="col-auto d-flex align-items-center pe-2">
+                <span class="legend me-2 {{ op.color_class }}"></span>
+                <span>{{ op.name }} ({{ op.operator }})</span>
+                <span class="ms-2 text-secondary">{{ op.calls }}</span>
+              </div>
+              {% else %}
+              <div class="col-auto d-flex align-items-center pe-2 text-secondary">
+                No operator activity in the last 15 days.
+              </div>
+              {% endfor %}
             </div>
           </div>
         </div>
       </div>
-      <div class="col-12">
-        <div class="card">
-          <div class="card-body">
-            <div class="row g-2 text-secondary small">
-              <div class="col-6 col-md-2">Redis version: <strong>{{ redis_info.get("redis_version", "—") }}</strong></div>
-              <div class="col-6 col-md-2">Clients: <strong>{{ redis_info.get("connected_clients", "—") }}</strong></div>
-              <div class="col-6 col-md-3">Memory: <strong>{{ redis_info.get("used_memory_human", "—") }}</strong></div>
-              <div class="col-6 col-md-2">Role: <strong>{{ redis_info.get("role", "—") | title }}</strong></div>
-              <div class="col-6 col-md-3">Operator keys: <strong>{{ redis_operators_count }}</strong> · Call keys: <strong>{{ redis_calls_count }}</strong></div>
-            </div>
-          </div>
-        </div>
-      </div>
+
+      
     </div>
   </div>
 
   <div class="col-12 col-lg-6">
     <div class="card">
-      <div class="card-header">
+      <div class="card-header d-flex align-items-center justify-content-between">
         <h3 class="card-title"><i class="fa fa-chart-bar me-2"></i>Reporte Servicios</h3>
+        <a href="{{ request.url_for('admin:monthly-report') }}" class="btn btn-sm btn-outline-primary ms-auto">
+          <i class="fa fa-up-right-from-square me-1"></i>Ver reporte mensual
+        </a>
       </div>
       <div class="card-body">
         <div id="chart-mentions" class="position-relative chart-lg"></div>
@@ -176,20 +231,33 @@
   <div class="col-12 col-lg-6">
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-mobile-screen-button me-2"></i>Top ANI Activity</h3>
+        <h3 class="card-title"><i class="fa fa-mobile-screen-button me-2"></i>Top client_id Activity from last 7 days</h3>
         <div class="card-actions">
-          {% for opt in ani_reports.top_options %}
+          <div class="dropdown">
             <a
-              href="{{ request.url.include_query_params(top_ani=opt) }}"
-              class="btn btn-sm {% if ani_reports.top_limit == opt %}btn-primary{% else %}btn-outline-primary{% endif %}"
-            >Top {{ opt }}</a>
-          {% endfor %}
+              class="dropdown-toggle text-secondary"
+              id="top-client-dropdown"
+              href="#"
+              data-bs-toggle="dropdown"
+              aria-haspopup="true"
+              aria-expanded="false"
+            >Top {{ ani_reports.top_limit }}</a>
+            <div class="dropdown-menu dropdown-menu-end" aria-labelledby="top-client-dropdown">
+              {% for opt in ani_reports.top_options %}
+              <a
+                class="dropdown-item {% if ani_reports.top_limit == opt %}active{% endif %}"
+                {% if ani_reports.top_limit == opt %}aria-current="true"{% endif %}
+                href="{{ request.url.include_query_params(top_ani=opt) }}"
+              >Top {{ opt }}</a>
+              {% endfor %}
+            </div>
+          </div>
         </div>
       </div>
       <table class="table card-table table-vcenter table-sm">
         <thead>
           <tr>
-            <th>ANI</th>
+            <th>ANI (phone)</th>
             <th>Client ID</th>
             <th>Calls</th>
             <th class="w-50">Load</th>
@@ -217,7 +285,7 @@
           </tr>
           {% else %}
           <tr>
-            <td colspan="5" class="text-center text-muted py-3">No ANI activity tracked yet.</td>
+            <td colspan="5" class="text-center text-muted py-3">No client_id activity tracked yet.</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -328,33 +396,83 @@
   </div>
 
   <div class="col-12">
-    <div class="card">
+    <div class="card" id="operator-report">
       <div class="card-header">
-        <h3 class="card-title">Social Media Traffic</h3>
+        <h3 class="card-title">Operator Report — {{ cdr_reports.operator_period_label }}</h3>
+        <div class="card-actions">
+          <div class="dropdown">
+            <a
+              class="dropdown-toggle text-secondary"
+              id="operator-period-dropdown"
+              href="#"
+              data-bs-toggle="dropdown"
+              aria-haspopup="true"
+              aria-expanded="false"
+            >{{ cdr_reports.operator_period_label }}</a>
+            <div class="dropdown-menu dropdown-menu-end" aria-labelledby="operator-period-dropdown">
+              {% for opt in cdr_reports.operator_period_options %}
+              <a
+                class="dropdown-item {% if cdr_reports.operator_period == opt['value'] %}active{% endif %}"
+                {% if cdr_reports.operator_period == opt['value'] %}aria-current="true"{% endif %}
+                href="{{ request.url.include_query_params(operator_period=opt['value']) }}"
+              >{{ opt['label'] }}</a>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
       </div>
       <table class="table card-table table-vcenter">
         <thead>
           <tr>
-            <th>Network</th>
-            <th colspan="2">Visitors</th>
+            <th>Operator</th>
+            <th >Minutes</th>
+            <th >Calls</th>
+            <th>Minutes Load</th>
+            <th>Calls Load</th>
           </tr>
         </thead>
         <tbody>
-          {% set max_agent_minutes = cdr_reports.operator_totals[0].minutes if cdr_reports.operator_totals else 1 %}
           {% for op in cdr_reports.operator_totals %}
-          {% set share = ((op.minutes * 100) / max_agent_minutes) | round(1) %}
+          {% set minutes_share = ((op.minutes * 100) / cdr_reports.operator_max_minutes) | round(1) %}
+          {% set calls_share = ((op.calls * 100) / cdr_reports.operator_max_calls) | round(1) %}
+          {% set minutes_hue = (minutes_share * 0.6) if minutes_share <= 50 else (30 + ((minutes_share - 50) * 1.8)) %}
+          {% set calls_hue = (calls_share * 0.6) if calls_share <= 50 else (30 + ((calls_share - 50) * 1.8)) %}
           <tr>
             <td>{{ op.name }} <span class="text-secondary">({{ op.operator }})</span></td>
-            <td>{{ op.minutes }}</td>
-            <td class="w-50">
+            <td>
+              <span class="fw-semibold">{{ op.minutes }}</span>
+              <span class="text-secondary small ms-1">of total {{ cdr_reports.operator_total_minutes }}</span>
+            </td>
+            <td>
+              <span class="fw-semibold">{{ op.calls }}</span>
+              <span class="text-secondary small ms-1">of total {{ cdr_reports.operator_total_calls }}</span>
+            </td>
+            <td class="w-20">
               <div class="progress progress-xs">
-                <div class="progress-bar bg-primary" style="width: {{ share }}%"></div>
+                <div
+                  class="progress-bar"
+                  style="width: {{ minutes_share }}%; background-color: hsl({{ minutes_hue }}, 85%, 52%);"
+                  data-bs-toggle="tooltip"
+                  data-bs-placement="top"
+                  title="{{ minutes_share }}% relative to the top operator minutes in this table"
+                ></div>
+              </div>
+            </td>
+            <td class="w-20">
+              <div class="progress progress-xs">
+                <div
+                  class="progress-bar"
+                  style="width: {{ calls_share }}%; background-color: hsl({{ calls_hue }}, 85%, 52%);"
+                  data-bs-toggle="tooltip"
+                  data-bs-placement="top"
+                  title="{{ calls_share }}% relative to the top operator calls in this table"
+                ></div>
               </div>
             </td>
           </tr>
           {% else %}
           <tr>
-            <td colspan="3" class="text-center text-muted py-3">No monthly operator usage yet.</td>
+            <td colspan="5" class="text-center text-muted py-3">No operator usage for this period yet.</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -415,6 +533,9 @@
         colors: chartColors,
         legend: { show: true, position: "top" },
       }).render();
+
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.forEach((tooltipTriggerEl) => new bootstrap.Tooltip(tooltipTriggerEl));
   });
 </script>
 {% endblock %}

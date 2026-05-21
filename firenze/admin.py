@@ -5,7 +5,7 @@ import logging
 
 import redis as redis_lib
 from markupsafe import Markup, escape
-from sqlalchemy import case, func
+from sqlalchemy import and_, case, func
 from sqladmin import Admin, BaseView, ModelView, expose
 from sqladmin.authentication import login_required
 from starlette.requests import Request
@@ -186,6 +186,8 @@ class ClientAdmin(ModelView, model=Client):
     name = "Client"
     name_plural = "Clients"
     icon = "fa-solid fa-user"
+    category = "FonoTarot"
+    category_icon = "fa-solid fa-eye"
     form_excluded_columns = _TIMESTAMP_EXCLUDED
     column_searchable_list = [Client.client_id, Client.email]
     column_sortable_list = [Client.client_id, Client.email, Client.id, Client.credits]
@@ -223,6 +225,8 @@ class ClientAniAdmin(ModelView, model=ClientAni):
     name = "Client ANI"
     name_plural = "Client ANIs"
     icon = "fa-solid fa-mobile-screen"
+    category = "FonoTarot"
+    category_icon = "fa-solid fa-eye"
     form_excluded_columns = _TIMESTAMP_EXCLUDED
     column_searchable_list = [ClientAni.ani, ClientAni.client_id]
     column_sortable_list = [ClientAni.client_id, ClientAni.q_calls, ClientAni.last_call]
@@ -558,14 +562,8 @@ class MonthlyAgentReportIndex(BaseView):
     @login_required
     async def index(self, request):
         today = datetime.date.today()
-        try:
-            year = int(request.query_params.get("year", today.year))
-            month = int(request.query_params.get("month", today.month))
-        except (TypeError, ValueError):
-            year, month = today.year, today.month
-
-        month = max(1, min(12, month))
-        year = max(_REPORT_MIN_YEAR, min(today.year + 1, year))
+        year = today.year
+        month = today.month
 
         selected_raw = request.query_params.getlist("agents")
         selected_agents = tuple(int(v) for v in selected_raw if v.isdigit())
@@ -712,8 +710,11 @@ class FirenzeAdmin(Admin):
             requested_top_ani = int(top_ani_raw)
         except (TypeError, ValueError):
             requested_top_ani = 10
-        top_ani_limit = requested_top_ani if requested_top_ani in {5, 10, 50} else 10
-        data = await asyncio.to_thread(self._collect_data, top_ani_limit)
+        top_ani_limit = requested_top_ani if requested_top_ani in {5, 10, 15} else 10
+        operator_period = request.query_params.get("operator_period", "current_month")
+        if operator_period not in {"current_month", "last_month", "last_3_months"}:
+            operator_period = "current_month"
+        data = await asyncio.to_thread(self._collect_data, top_ani_limit, operator_period)
         return await self.templates.TemplateResponse(
             request,
             "system_status.html",
@@ -725,12 +726,39 @@ class FirenzeAdmin(Admin):
         )
 
     @staticmethod
-    def _collect_data(top_ani_limit: int = 10) -> dict:
+    def _collect_data(top_ani_limit: int = 10, operator_period: str = "current_month") -> dict:
         now = datetime.datetime.now()
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         tomorrow_start = today_start + datetime.timedelta(days=1)
         month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         next_month = (month_start + datetime.timedelta(days=32)).replace(day=1)
+        last_month_start = (month_start - datetime.timedelta(days=1)).replace(day=1)
+        last_3_months_start = month_start
+        for _ in range(2):
+            last_3_months_start = (last_3_months_start - datetime.timedelta(days=1)).replace(day=1)
+
+        operator_period_meta = {
+            "current_month": {
+                "label": "Current Month",
+                "start": month_start,
+                "end": next_month,
+            },
+            "last_month": {
+                "label": "Last Month",
+                "start": last_month_start,
+                "end": month_start,
+            },
+            "last_3_months": {
+                "label": "Last 3 Months",
+                "start": last_3_months_start,
+                "end": next_month,
+            },
+        }
+        selected_operator_period = (
+            operator_period if operator_period in operator_period_meta else "current_month"
+        )
+        operator_period_start = operator_period_meta[selected_operator_period]["start"]
+        operator_period_end = operator_period_meta[selected_operator_period]["end"]
 
         redis_conn = get_redis()
         redis_online = redis_conn is not None
@@ -812,40 +840,93 @@ class FirenzeAdmin(Admin):
                 .filter(AsteriskCDR.calldate >= today_start, AsteriskCDR.calldate < tomorrow_start)
                 .one()
             )
+            cdr_client_activity = (
+                db.query(
+                    AsteriskCDR.zvn_clientid.label("client_id"),
+                    func.max(AsteriskCDR.calldate).label("last_call"),
+                    func.count(AsteriskCDR.cdrid).label("calls"),
+                )
+                .filter(
+                    AsteriskCDR.zvn_clientid.is_not(None),
+                    AsteriskCDR.zvn_clientid > 1,
+                )
+                .group_by(AsteriskCDR.zvn_clientid)
+                .subquery()
+            )
             ani_usage = (
                 db.query(
-                    func.count(ClientAni.id).label("total_anis"),
-                    func.coalesce(func.sum(ClientAni.q_calls), 0).label("total_calls"),
-                    func.coalesce(func.avg(ClientAni.q_calls), 0).label("avg_calls"),
-                    func.sum(case((ClientAni.last_call.is_not(None), 1), else_=0)).label("with_last_call"),
-                    func.sum(case((ClientAni.last_call >= today_start, 1), else_=0)).label("active_24h"),
+                    func.count(cdr_client_activity.c.client_id).label("total_anis"),
+                    func.coalesce(func.sum(cdr_client_activity.c.calls), 0).label("total_calls"),
+                    func.coalesce(func.avg(cdr_client_activity.c.calls), 0).label("avg_calls"),
+                    func.sum(case((cdr_client_activity.c.last_call.is_not(None), 1), else_=0)).label("with_last_call"),
+                    func.sum(case((cdr_client_activity.c.last_call.is_(None), 1), else_=0)).label("no_last_call"),
+                    func.sum(case((cdr_client_activity.c.last_call >= today_start, 1), else_=0)).label("active_24h"),
                     func.sum(
                         case(
-                            (ClientAni.last_call >= now - datetime.timedelta(days=7), 1),
+                            (cdr_client_activity.c.last_call >= now - datetime.timedelta(days=7), 1),
                             else_=0,
                         )
                     ).label("active_7d"),
                     func.sum(
                         case(
-                            (ClientAni.last_call < now - datetime.timedelta(days=30), 1),
+                            (cdr_client_activity.c.last_call >= now - datetime.timedelta(days=15), 1),
+                            else_=0,
+                        )
+                    ).label("active_15d"),
+                    func.sum(
+                        case(
+                            (
+                                and_(
+                                    cdr_client_activity.c.last_call < now - datetime.timedelta(days=30),
+                                    cdr_client_activity.c.last_call >= now - datetime.timedelta(days=60),
+                                ),
+                                1,
+                            ),
                             else_=0,
                         )
                     ).label("stale_30d"),
-                    func.max(ClientAni.last_call).label("latest_last_call"),
+                    func.sum(
+                        case(
+                            (cdr_client_activity.c.last_call < now - datetime.timedelta(days=60), 1),
+                            else_=0,
+                        )
+                    ).label("stale_60d"),
+                    func.max(cdr_client_activity.c.last_call).label("latest_last_call"),
                 )
+                .select_from(cdr_client_activity)
                 .one()
             )
-            ani_top_rows = (
+            cdr_top_client_rows = (
                 db.query(
-                    ClientAni.ani,
-                    ClientAni.client_id,
-                    ClientAni.q_calls,
-                    ClientAni.last_call,
+                    AsteriskCDR.zvn_clientid.label("client_id"),
+                    func.count(AsteriskCDR.cdrid).label("calls"),
+                    func.max(AsteriskCDR.calldate).label("last_call"),
                 )
-                .order_by(ClientAni.q_calls.desc(), ClientAni.last_call.desc(), ClientAni.id.asc())
+                .filter(
+                    AsteriskCDR.calldate >= now - datetime.timedelta(days=7),
+                    AsteriskCDR.calldate < tomorrow_start,
+                    AsteriskCDR.disposition == "ANSWERED",
+                    AsteriskCDR.zvn_clientid.is_not(None),
+                    AsteriskCDR.zvn_clientid > 1,
+                )
+                .group_by(AsteriskCDR.zvn_clientid)
+                .order_by(func.count(AsteriskCDR.cdrid).desc(), func.max(AsteriskCDR.calldate).desc())
                 .limit(top_ani_limit)
                 .all()
             )
+            top_client_ids = [int(row.client_id) for row in cdr_top_client_rows]
+            if top_client_ids:
+                client_ani_rows = (
+                    db.query(
+                        ClientAni.client_id,
+                        func.min(ClientAni.ani).label("ani"),
+                    )
+                    .filter(ClientAni.client_id.in_(top_client_ids))
+                    .group_by(ClientAni.client_id)
+                    .all()
+                )
+            else:
+                client_ani_rows = []
             cdr_month_answered = (
                 db.query(
                     func.count(AsteriskCDR.cdrid).label("answered_calls"),
@@ -889,15 +970,33 @@ class FirenzeAdmin(Admin):
                     func.coalesce(func.floor(func.sum(AsteriskCDR.billsec) / 60), 0).label("minutes"),
                 )
                 .filter(
-                    AsteriskCDR.calldate >= month_start,
-                    AsteriskCDR.calldate < next_month,
+                    AsteriskCDR.calldate >= operator_period_start,
+                    AsteriskCDR.calldate < operator_period_end,
                     AsteriskCDR.disposition == "ANSWERED",
                     AsteriskCDR.zvn_operator.is_not(None),
                     AsteriskCDR.zvn_clientid.is_not(None),
                     AsteriskCDR.zvn_clientid > 1,
                 )
                 .group_by(AsteriskCDR.zvn_operator)
-                .order_by(func.sum(AsteriskCDR.billsec).desc())
+                .order_by(AsteriskCDR.zvn_operator.asc())
+                .all()
+            )
+            cdr_operator_activity_rows = (
+                db.query(
+                    AsteriskCDR.zvn_operator,
+                    func.count(AsteriskCDR.cdrid).label("calls"),
+                )
+                .filter(
+                    AsteriskCDR.calldate >= now - datetime.timedelta(days=15),
+                    AsteriskCDR.calldate < tomorrow_start,
+                    AsteriskCDR.disposition == "ANSWERED",
+                    AsteriskCDR.zvn_operator.is_not(None),
+                    AsteriskCDR.zvn_clientid.is_not(None),
+                    AsteriskCDR.zvn_clientid > 1,
+                )
+                .group_by(AsteriskCDR.zvn_operator)
+                .order_by(func.count(AsteriskCDR.cdrid).desc())
+                .limit(5)
                 .all()
             )
             disposition_rows = (
@@ -1065,6 +1164,27 @@ class FirenzeAdmin(Admin):
                     "minutes": int(row.minutes or 0),
                 }
             )
+        operator_max_minutes = max((row["minutes"] for row in cdr_operator_totals), default=1)
+        operator_max_calls = max((row["calls"] for row in cdr_operator_totals), default=1)
+        operator_total_minutes = sum(row["minutes"] for row in cdr_operator_totals)
+        operator_total_calls = sum(row["calls"] for row in cdr_operator_totals)
+        top_operator_calls_total = sum(int(row.calls or 0) for row in cdr_operator_activity_rows)
+        operator_activity_colors = ["bg-purple", "bg-blue", "bg-green", "bg-yellow", "bg-red"]
+        operator_activity_top5 = []
+        for idx, row in enumerate(cdr_operator_activity_rows):
+            operator_ref = int(row.zvn_operator)
+            calls = int(row.calls or 0)
+            operator_activity_top5.append(
+                {
+                    "operator": operator_ref,
+                    "name": operator_name_by_number.get(operator_ref)
+                    or operator_name_by_id.get(operator_ref)
+                    or f"Operator {operator_ref}",
+                    "calls": calls,
+                    "share": round((calls * 100 / top_operator_calls_total), 1) if top_operator_calls_total else 0.0,
+                    "color_class": operator_activity_colors[idx % len(operator_activity_colors)],
+                }
+            )
 
         disposition_total = sum(int(row.count or 0) for row in disposition_rows)
         cdr_dispositions = [
@@ -1075,16 +1195,17 @@ class FirenzeAdmin(Admin):
             }
             for row in disposition_rows
         ]
-        top_ani_calls = max((int(row.q_calls or 0) for row in ani_top_rows), default=1)
+        client_ani_map = {int(row.client_id): (row.ani or "—") for row in client_ani_rows}
+        top_ani_calls = max((int(row.calls or 0) for row in cdr_top_client_rows), default=1)
         ani_top_callers = [
             {
-                "ani": row.ani,
+                "ani": client_ani_map.get(int(row.client_id), "—"),
                 "client_id": int(row.client_id or 0),
-                "q_calls": int(row.q_calls or 0),
-                "share": round((int(row.q_calls or 0) / top_ani_calls) * 100, 1) if top_ani_calls else 0.0,
+                "q_calls": int(row.calls or 0),
+                "share": round((int(row.calls or 0) / top_ani_calls) * 100, 1) if top_ani_calls else 0.0,
                 "last_call": row.last_call,
             }
-            for row in ani_top_rows
+            for row in cdr_top_client_rows
         ]
         latest_last_call = ani_usage.latest_last_call
         latest_last_call_hours = (
@@ -1111,6 +1232,7 @@ class FirenzeAdmin(Admin):
             "redis_info": redis_info,
             "operators": enriched_operators,
             "operator_summary": operator_summary,
+            "operator_activity_top5": operator_activity_top5,
             "active_calls": enriched_calls,
             "active_call_services": active_call_services,
             "redis_operators_count": len(redis_operators),
@@ -1120,13 +1242,16 @@ class FirenzeAdmin(Admin):
                 "total_calls": int(ani_usage.total_calls or 0),
                 "avg_calls": float(ani_usage.avg_calls or 0),
                 "with_last_call": int(ani_usage.with_last_call or 0),
+                "no_last_call": int(ani_usage.no_last_call or 0),
                 "active_24h": int(ani_usage.active_24h or 0),
                 "active_7d": int(ani_usage.active_7d or 0),
+                "active_15d": int(ani_usage.active_15d or 0),
                 "stale_30d": int(ani_usage.stale_30d or 0),
+                "stale_60d": int(ani_usage.stale_60d or 0),
                 "latest_last_call": latest_last_call,
                 "latest_last_call_hours": latest_last_call_hours,
                 "top_limit": top_ani_limit,
-                "top_options": [5, 10, 50],
+                "top_options": [5, 10, 15],
                 "top_callers": ani_top_callers,
             },
             "cdr_reports": {
@@ -1148,6 +1273,17 @@ class FirenzeAdmin(Admin):
                 "carrier_chart": carrier_chart,
                 "dispositions": cdr_dispositions,
                 "operator_totals": cdr_operator_totals,
+                "operator_max_minutes": operator_max_minutes,
+                "operator_max_calls": operator_max_calls,
+                "operator_total_minutes": operator_total_minutes,
+                "operator_total_calls": operator_total_calls,
+                "operator_period": selected_operator_period,
+                "operator_period_label": str(operator_period_meta[selected_operator_period]["label"]),
+                "operator_period_options": [
+                    {"value": "current_month", "label": "Current Month"},
+                    {"value": "last_month", "label": "Last Month"},
+                    {"value": "last_3_months", "label": "Last 3 Months"},
+                ],
                 "recent_cdr": recent_cdr,
             },
         }
