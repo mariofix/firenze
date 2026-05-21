@@ -9,7 +9,7 @@ from firenze.database import Base
 
 
 class AsteriskCDR(Base):
-    """Read-only mapping for the Asterisk CDR table."""
+    """Mapeo de solo lectura para la tabla CDR de Asterisk."""
 
     __tablename__ = "cdr"
     __table_args__ = (

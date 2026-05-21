@@ -1,4 +1,4 @@
-"""Re-export all models so existing imports continue to work unchanged."""
+"""Re-exporta todos los modelos para que las importaciones existentes continúen funcionando sin cambios."""
 
 from firenze.models.api_credential import ApiCredential
 from firenze.models.auth_login_code import AuthLoginCode

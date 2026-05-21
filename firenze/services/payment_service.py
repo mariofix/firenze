@@ -1,8 +1,8 @@
-"""Search clients and apply completed purchases.
+"""Buscar clientes y aplicar compras completadas.
 
-Consumed by ``firenze.api.payments`` - the storefront (nuevo-fonotarot) calls
-these via HTTP. Firenze is not authoritative on payments themselves; it just
-records the resulting credit delta.
+Consumido por ``firenze.api.payments`` - la tienda (nuevo-fonotarot) llama
+a estos a través de HTTP. Firenze no es la autoridad sobre los pagos en sí; solo
+registra el delta de crédito resultante.
 """
 
 import logging
@@ -24,11 +24,11 @@ PHONE_ERASE_SENTINEL = "::EMPTY::"
 
 
 class AniAlreadyTaken(Exception):
-    """Raised when ANI belongs to another client in the same service."""
+    """Se genera cuando el ANI pertenece a otro cliente en el mismo servicio."""
 
 
 class ClientAniNotFound(Exception):
-    """Raised when an ANI row does not exist for the target client."""
+    """Se genera cuando una fila de ANI no existe para el cliente destino."""
 
 
 def _get_service(db: Session, slug: str) -> Service:
@@ -39,13 +39,13 @@ def _get_service(db: Session, slug: str) -> Service:
 
 
 def _next_client_id(db: Session, service_id: int) -> int:
-    """Pick the next ``client_id`` for a service.
+    """Elige el siguiente ``client_id`` para un servicio.
 
-    Plain ``MAX(client_id)+1`` per service. The caller serializes around the
-    inserting transaction, so this is safe under the storefront's expected
-    concurrency (single-digit purchases per day). If contention grows this
-    should move to a per-service sequence table or be replaced by using the
-    surrogate PK as the business identifier.
+    Simple ``MAX(client_id)+1`` por servicio. El llamador serializa alrededor de la
+    transacción de inserción, así que esto es seguro bajo la concurrencia esperada de la tienda
+    (compras de un solo dígito por día). Si la contención crece, esto
+    debería pasar a una tabla de secuencia por servicio o ser reemplazado por usar la
+    PK sustituta como identificador comercial.
     """
     current = db.query(func.max(Client.client_id)).filter_by(service_id=service_id).scalar()
     return (current or 0) + 1
@@ -61,11 +61,11 @@ def search_client(
     ani: str | None = None,
     pin: str | None = None,
 ) -> Client | None:
-    """Find a client in ``service_slug`` matching any of the provided fields.
+    """Encuentra un cliente en ``service_slug`` que coincida con cualquiera de los campos proporcionados.
 
-    Lookup order: pin, email, ClientAni.ani. ``phone`` is accepted for
-    backwards compatibility but ignored. Returns the first match (or ``None``).
-    Raises ``ServiceNotFound`` if the slug is unknown.
+    Orden de búsqueda: pin, email, ClientAni.ani. ``phone`` se acepta para
+    compatibilidad hacia atrás pero se ignora. Retorna la primera coincidencia (o ``None``).
+    Genera ``ServiceNotFound`` si el slug es desconocido.
     """
     svc = _get_service(db, service_slug)
 

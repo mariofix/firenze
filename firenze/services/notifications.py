@@ -1,7 +1,7 @@
-"""Outbound notifications via the Daleks email queue.
+"""Notificaciones salientes a través de la cola de correo de Daleks.
 
-Failures (network, auth, missing config) are swallowed and logged - sending
-a notification must never break the call path that triggered it.
+Los fallos (red, autenticación, configuración faltante) se ignoran y registran - enviar
+una notificación nunca debe interrumpir el camino de llamadas que la gatilló.
 """
 
 import logging
@@ -14,10 +14,10 @@ logger = logging.getLogger("firenze")
 
 
 def notify(subject: str, body: str) -> None:
-    """Send a notification email through the configured Daleks server.
+    """Envía una notificación de correo a través del servidor Daleks configurado.
 
-    No-op (with a log line) when DALEKS_URL is unset. Any send error is
-    caught and logged at WARNING.
+    Sin operación (con una línea de registro) cuando DALEKS_URL no está configurada. Cualquier error de envío se
+    captura y registra en ADVERTENCIA.
     """
     if not settings.DALEKS_URL or not settings.DALEKS_FROM or not settings.DALEKS_TO:
         logger.info("daleks notify skipped (config missing): %s", subject)

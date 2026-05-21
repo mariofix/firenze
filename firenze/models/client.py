@@ -24,16 +24,16 @@ if TYPE_CHECKING:
 
 
 def _generate_pin() -> str:
-    """Generate a random 8-digit PIN string."""
+    """Genera una cadena de PIN aleatoria de 8 dígitos."""
     return "".join(secrets.choice(string.digits) for _ in range(8))
 
 
 class Client(Base, TimestampMixin):
-    """Unified client model — one row per client per service.
+    """Modelo de cliente unificado — una fila por cliente por servicio.
 
-    - ``client_id`` is the business-facing identifier, unique within a service.
-    - ``pin`` is set for PIN-auth services (fonotarot-latam); lookup key at call time.
-    - ANI-based lookup goes through ``ClientAni`` (supports multiple ANIs per client).
+    - ``client_id`` es el identificador orientado al negocio, único dentro de un servicio.
+    - ``pin`` se establece para servicios con autenticación PIN (fonotarot-latam); clave de búsqueda en tiempo de llamada.
+    - La búsqueda basada en ANI pasa por ``ClientAni`` (soporta múltiples ANIs por cliente).
     """
 
     __tablename__ = "client"
@@ -62,12 +62,12 @@ class Client(Base, TimestampMixin):
 
 
 class ClientAni(Base):
-    """Maps ANI (caller ID) to a client within a service.
+    """Mapea ANI (ID de llamada) a un cliente dentro de un servicio.
 
-    - One client can have multiple ANIs (registered users with several phones).
-    - Anonymous clients have exactly one ANI row.
-    - ``UNIQUE(service_id, ani)`` is enforced at DB level — safe for direct DB writes.
-    - Composite FK ``(service_id, client_id)`` → ``Client`` prevents cross-service inserts.
+    - Un cliente puede tener múltiples ANIs (usuarios registrados con varios teléfonos).
+    - Los clientes anónimos tienen exactamente una fila ANI.
+    - ``UNIQUE(service_id, ani)`` se aplica a nivel de BD — seguro para escrituras directas en BD.
+    - FK compuesto ``(service_id, client_id)`` → ``Client`` previene inserciones entre servicios.
     """
 
     __tablename__ = "client_ani"

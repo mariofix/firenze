@@ -4,16 +4,16 @@ from firenze.models import ServiceNumber
 
 
 def resolve_did(db: Session, did: str) -> dict:
-    """Return full service config for a DID, or empty strings if not found.
+    """Retorna la configuración completa del servicio para un DID, o cadenas vacías si no se encuentra.
 
-    Used by ``GET /agi/services/did/{did}`` — Asterisk dialplan reads all
-    fields in one call and sets them as channel variables.
+    Usado por ``GET /agi/services/did/{did}`` — el dialplan de Asterisk lee todos
+    los campos en una llamada y los establece como variables de canal.
 
-    Returns:
-        siguiente    — Asterisk context to Goto (e.g. "prepago-service")
-        servicio     — service slug (e.g. "alotarot", "fonotarot-cl")
-        auth_method  — "ani" or "pin"
-        intro_audio  — Playback-compatible string (e.g. "zvn/intro-alotarot")
+    Retorna:
+        siguiente    — contexto de Asterisk para Goto (p. ej. "prepago-service")
+        servicio     — slug del servicio (p. ej. "alotarot", "fonotarot-cl")
+        auth_method  — "ani" o "pin"
+        intro_audio  — cadena compatible con Playback (p. ej. "zvn/intro-alotarot")
     """
     number = db.query(ServiceNumber).filter_by(did=did, active=True).first()
     if not number or not number.service:

@@ -1,4 +1,4 @@
-"""Shared SQLAlchemy mixins."""
+"""Mezclas SQLAlchemy compartidas."""
 
 import datetime
 

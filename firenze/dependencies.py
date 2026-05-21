@@ -1,4 +1,4 @@
-"""Shared FastAPI dependencies - single source of truth."""
+"""Dependencias compartidas de FastAPI - fuente única de verdad."""
 
 from firenze.database import SessionLocal
 from firenze.redis import get_redis as get_redis
@@ -7,7 +7,7 @@ __all__ = ["get_db", "get_redis"]
 
 
 def get_db():
-    """Yield a SQLAlchemy session, closing it when done."""
+    """Cede una sesión de SQLAlchemy, cerrándola cuando se realiza."""
     db = SessionLocal()
     try:
         yield db
