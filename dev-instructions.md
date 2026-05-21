@@ -1,6 +1,6 @@
-# Dev Instructions
+# Instrucciones de Desarrollo
 
-## Setup
+## Configuración
 
 ```bash
 python3.12 -m venv .venv
@@ -9,7 +9,7 @@ pip install -e ".[dev]"
 mkdir -p logs
 ```
 
-Create `.env` in the project root:
+Crear `.env` en la raíz del proyecto:
 
 ```env
 SQLALCHEMY_DATABASE_URL=mysql+pymysql://user:pass@localhost/zvn_firenze
@@ -17,95 +17,95 @@ SECRET_KEY=dev-secret
 DEBUG=True
 ```
 
-Run migrations:
+Ejecutar migraciones:
 
 ```bash
 alembic upgrade head
 ```
 
-## Run
+## Ejecutar
 
 ```bash
 fastapi dev run.py --port 9002
 ```
 
-## Test endpoints
+## Probar puntos finales
 
-**DNC check — number not in list:**
+**Verificación de DNC — número no en la lista:**
 ```bash
 curl http://localhost:9002/agi/dnc/5551234567
 # {"dnc":"NO"}
 ```
 
-**DNC check — add a number first, then check:**
+**Verificación de DNC — agregar un número primero, luego verificar:**
 ```bash
-# Add via admin panel at http://localhost:9002/boss
-# or directly in MySQL:
+# Agregar a través del panel de administración en http://localhost:9002/boss
+# o directamente en MySQL:
 # INSERT INTO dnc (ani, reason) VALUES ('5551234567', 'test');
 
 curl http://localhost:9002/agi/dnc/5551234567
 # {"dnc":"YES"}
 ```
 
-**Credit limit — zero balance:**
+**Límite de crédito — saldo cero:**
 ```bash
 curl "http://localhost:9002/agi/credits/limit?seconds=0"
 # {"timeout":1,"audio":"","minutes":0}
 ```
 
-**Credit limit — 5 minutes (300s):**
+**Límite de crédito — 5 minutos (300s):**
 ```bash
 curl "http://localhost:9002/agi/credits/limit?seconds=300"
 # {"timeout":300,"audio":"zvn/saldo/5","minutes":5}
 ```
 
-**Credit limit — 1 hour (3600s):**
+**Límite de crédito — 1 hora (3600s):**
 ```bash
 curl "http://localhost:9002/agi/credits/limit?seconds=3600"
 # {"timeout":3600,"audio":"zvn/saldo/60","minutes":60}
 ```
 
-**Credit limit — over max (7200s cap):**
+**Límite de crédito — más que el máximo (límite de 7200s):**
 ```bash
 curl "http://localhost:9002/agi/credits/limit?seconds=9999"
 # {"timeout":7200,"audio":"zvn/saldo/121","minutes":121}
 ```
 
-## Asterisk dialplan
+## Dialplan de Asterisk
 
-Add to your `extensions.conf` (Firenze runs on port 9002):
+Agregar a su `extensions.conf` (Firenze se ejecuta en el puerto 9002):
 
 ```ini
-; DNC check — hang up if caller is on the Do Not Call list
+; Verificación de DNC — colgar si la persona que llama está en la lista de no llamar
 same => n,Set(DNC_RESULT=${CURL(http://localhost:9002/agi/dnc/${CALLERID(num)})})
 same => n,Set(DNC=${JSON_DECODE(DNC_RESULT,dnc)})
 same => n,GotoIf($["${DNC}" = "YES"]?dnc_hangup)
 
-; Credit limit — set call timeout and play balance audio
+; Límite de crédito — establecer tiempo de espera de llamada y reproducir audio de saldo
 same => n,Set(LIMIT_RESULT=${CURL(http://localhost:9002/agi/credits/limit?seconds=${CREDIT_SECONDS})})
 same => n,Set(TIMEOUT(absolute)=${JSON_DECODE(LIMIT_RESULT,timeout)})
 same => n,Playback(${JSON_DECODE(LIMIT_RESULT,audio)})
 
-; DNC hangup target
+; Objetivo de cuelgue de DNC
 same => n(dnc_hangup),Playback(zvn/dnc)
 same => n,Hangup()
 ```
 
-Reload dialplan after changes:
+Recargar dialplan después de cambios:
 
 ```bash
 asterisk -rx "dialplan reload"
 ```
 
-## Admin panel
+## Panel de administración
 
 ```
 http://localhost:9002/boss
 ```
 
-Manage the DNC list from here (add, edit, delete entries).
+Administrar la lista de DNC desde aquí (agregar, editar, eliminar entradas).
 
-## API docs
+## Documentación de API
 
 ```
 http://localhost:9002/office
