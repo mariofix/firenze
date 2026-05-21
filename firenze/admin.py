@@ -236,6 +236,7 @@ class AsteriskCDRAdmin(ModelView, model=AsteriskCDR):
         AsteriskCDR.zvn_clientid,
         AsteriskCDR.zvn_client_ani,
     ]
+    column_default_sort = (AsteriskCDR.calldate, True)
     can_create = False
     can_edit = False
     can_delete = False
