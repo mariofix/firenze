@@ -22,49 +22,37 @@
       <div class="card-header">
         <h3 class="card-title"><i class="fa fa-heart-pulse me-2"></i>Service Status</h3>
       </div>
-      <div class="list-group list-group-flush list-group-hoverable">
-        <div class="list-group-item">
-          <div class="row align-items-center">
-            <div class="col-auto">
-              <span class="status-dot {% if redis_online %}bg-green{% else %}bg-red{% endif %} d-block"></span>
-            </div>
-            <div class="col text-truncate">
-              <div class="text-body d-block">Redis / Valkey</div>
-              <div class="text-secondary text-truncate mt-n1">{% if redis_online %}Healthy{% else %}Offline{% endif %}</div>
-            </div>
-            <div class="col-auto">
-              <span class="badge {% if redis_online %}bg-success-lt{% else %}bg-danger-lt{% endif %}">
-                {% if redis_online %}OK{% else %}DOWN{% endif %}
+      <div class="card-body">
+        <div class="datagrid">
+          <div class="datagrid-item">
+            <div class="datagrid-title">Redis / Valkey</div>
+            <div class="datagrid-content">
+              <span class="badge {% if redis_online %}bg-success-lt text-success{% else %}bg-danger-lt text-danger{% endif %}">
+                {% if redis_online %}Healthy{% else %}Offline{% endif %}
               </span>
             </div>
           </div>
-        </div>
-        <div class="list-group-item">
-          <div class="row align-items-center">
-            <div class="col-auto">
-              <span class="status-dot {% if operator_summary.drift == 0 %}bg-green{% else %}bg-yellow{% endif %} d-block"></span>
-            </div>
-            <div class="col text-truncate">
-              <div class="text-body d-block">Operator Cache Sync</div>
-              <div class="text-secondary text-truncate mt-n1">{{ operator_summary.synced }} synced / {{ operator_summary.total }} total</div>
-            </div>
-            <div class="col-auto">
-              <span class="badge {% if operator_summary.drift == 0 %}bg-success-lt{% else %}bg-warning-lt text-warning{% endif %}">
-                {{ operator_summary.drift }} drift
+          <div class="datagrid-item">
+            <div class="datagrid-title">Cache Sync</div>
+            <div class="datagrid-content">
+              <span class="badge {% if operator_summary.drift == 0 %}bg-success-lt text-success{% else %}bg-warning-lt text-warning{% endif %}">
+                {{ operator_summary.synced }}/{{ operator_summary.total }} synced
               </span>
             </div>
           </div>
-        </div>
-        <div class="list-group-item">
-          <div class="row align-items-center">
-            <div class="col-auto">
-              <span class="status-dot {% if active_calls|length > 0 %}bg-blue{% else %}bg-secondary{% endif %} d-block"></span>
+          <div class="datagrid-item">
+            <div class="datagrid-title">Drift Alerts</div>
+            <div class="datagrid-content">
+              <span class="badge {% if operator_summary.drift == 0 %}bg-success-lt text-success{% else %}bg-warning-lt text-warning{% endif %}">
+                {{ operator_summary.drift }}
+              </span>
             </div>
-            <div class="col text-truncate">
-              <div class="text-body d-block">Live Calls Engine</div>
-              <div class="text-secondary text-truncate mt-n1">{{ active_calls|length }} calls in progress</div>
+          </div>
+          <div class="datagrid-item">
+            <div class="datagrid-title">Live Calls</div>
+            <div class="datagrid-content">
+              <span class="badge bg-blue-lt text-blue">{{ active_calls|length }} in progress</span>
             </div>
-            <div class="col-auto"><span class="badge bg-blue-lt">{{ active_calls|length }}</span></div>
           </div>
         </div>
       </div>
@@ -143,18 +131,17 @@
           <div class="card-body">
             {% set ani_den = ani_reports.total_anis if ani_reports.total_anis else 1 %}
             {% set ani_coverage = (ani_reports.with_last_call * 100 / ani_den) | round(1) %}
-            <div class="row g-2 text-secondary small">
-              <div class="col-6 col-md-3">Tracked last_call: <strong>{{ ani_reports.with_last_call }}/{{ ani_reports.total_anis }}</strong> ({{ ani_coverage }}%)</div>
-              <div class="col-6 col-md-3">Stale (+30d): <strong>{{ ani_reports.stale_30d }}</strong></div>
-              <div class="col-12 col-md-6">Latest ANI call:
-                <strong>
-                  {% if ani_reports.latest_last_call %}
-                    {{ ani_reports.latest_last_call.strftime('%Y-%m-%d %H:%M:%S') }} ({{ ani_reports.latest_last_call_hours }}h ago)
-                  {% else %}
-                    —
-                  {% endif %}
-                </strong>
-              </div>
+            <div class="d-flex flex-wrap gap-2">
+              <span class="badge bg-blue-lt text-blue">Tracked ANI: {{ ani_reports.with_last_call }}/{{ ani_reports.total_anis }} ({{ ani_coverage }}%)</span>
+              <span class="badge bg-yellow-lt text-yellow">Stale +30d: {{ ani_reports.stale_30d }}</span>
+              <span class="badge bg-azure-lt text-azure">
+                Latest ANI:
+                {% if ani_reports.latest_last_call %}
+                  {{ ani_reports.latest_last_call.strftime('%Y-%m-%d %H:%M:%S') }} ({{ ani_reports.latest_last_call_hours }}h ago)
+                {% else %}
+                  —
+                {% endif %}
+              </span>
             </div>
           </div>
         </div>
@@ -238,55 +225,54 @@
     </div>
   </div>
 
-  <div class="col-12 col-lg-4">
+  <div class="col-12 col-lg-6">
     <div class="card">
       <div class="card-header">
         <h3 class="card-title"><i class="fa fa-phone me-2"></i>Online Calls by Service</h3>
       </div>
       <div class="card-body">
         {% for service in active_call_services %}
-          <div class="d-flex justify-content-between mb-1">
-            <span class="text-truncate">{{ service.service }}</span>
-            <span class="fw-bold">{{ service.count }} ({{ service.share }}%)</span>
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="text-truncate">
+              <span class="badge bg-blue-lt text-blue me-1">{{ service.service }}</span>
+            </span>
+            <span class="fw-bold">{{ service.count }} calls</span>
           </div>
           <div class="progress progress-sm mb-3">
             <div class="progress-bar bg-azure" style="width: {{ service.share }}%"></div>
           </div>
         {% else %}
-          <div class="text-muted">No active calls right now.</div>
+          <div class="text-muted"><span class="badge bg-secondary-lt text-secondary">No active calls right now</span></div>
         {% endfor %}
       </div>
     </div>
   </div>
 
-  <div class="col-12 col-lg-4">
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-chart-pie me-2"></i>CDR Dispositions ({{ cdr_reports.month_label }})</h3>
-      </div>
-      <div class="card-body">
-        {% for item in cdr_reports.dispositions %}
-          <div class="d-flex justify-content-between mb-1">
-            <span>{{ item.name }}</span>
-            <span class="fw-bold">{{ item.count }} ({{ item.share }}%)</span>
-          </div>
-          <div class="progress progress-sm mb-3">
-            <div class="progress-bar {% if item.name == 'ANSWERED' %}bg-green{% elif item.name in ['BUSY', 'NO ANSWER'] %}bg-yellow{% else %}bg-secondary{% endif %}" style="width: {{ item.share }}%"></div>
-          </div>
-        {% else %}
-          <div class="text-muted">No monthly CDR rows yet.</div>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-
-  <div class="col-12 col-lg-5">
+  <div class="col-12 col-lg-6">
     <div class="card">
       <div class="card-header">
         <h3 class="card-title"><i class="fa fa-headset me-2"></i>Operator Availability</h3>
       </div>
       <div class="card-body">
         {% set total_ops = operator_summary.total if operator_summary.total else 1 %}
+        <div class="datagrid mb-3">
+          <div class="datagrid-item">
+            <div class="datagrid-title">Total Operators</div>
+            <div class="datagrid-content"><span class="badge bg-secondary-lt text-secondary">{{ operator_summary.total }}</span></div>
+          </div>
+          <div class="datagrid-item">
+            <div class="datagrid-title">Logged In</div>
+            <div class="datagrid-content"><span class="badge bg-blue-lt text-blue">{{ operator_summary.logged_in }}</span></div>
+          </div>
+          <div class="datagrid-item">
+            <div class="datagrid-title">Available</div>
+            <div class="datagrid-content"><span class="badge bg-teal-lt text-teal">{{ operator_summary.available }}</span></div>
+          </div>
+          <div class="datagrid-item">
+            <div class="datagrid-title">Cache Drift</div>
+            <div class="datagrid-content"><span class="badge {% if operator_summary.drift == 0 %}bg-success-lt text-success{% else %}bg-warning-lt text-warning{% endif %}">{{ operator_summary.drift }}</span></div>
+          </div>
+        </div>
 
         {% set logged_in_pct = (operator_summary.logged_in * 100 / total_ops) | round(1) %}
         <div class="d-flex justify-content-between mb-1"><span>Logged in</span><span class="fw-bold">{{ operator_summary.logged_in }}/{{ operator_summary.total }}</span></div>
@@ -307,7 +293,7 @@
     </div>
   </div>
 
-  <div class="col-12 col-lg-7">
+  <div class="col-12">
     <div class="card">
       <div class="card-header">
         <h3 class="card-title"><i class="fa fa-bolt me-2"></i>Live Call Feed</h3>
