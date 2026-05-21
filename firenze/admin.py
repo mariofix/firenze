@@ -600,6 +600,19 @@ class FirenzeAdmin(Admin):
                 .limit(8)
                 .all()
             )
+            disposition_rows = (
+                db.query(
+                    AsteriskCDR.disposition,
+                    func.count(AsteriskCDR.cdrid).label("count"),
+                )
+                .filter(
+                    AsteriskCDR.calldate >= month_start,
+                    AsteriskCDR.calldate < next_month,
+                )
+                .group_by(AsteriskCDR.disposition)
+                .order_by(func.count(AsteriskCDR.cdrid).desc())
+                .all()
+            )
             recent_cdr_rows = (
                 db.query(AsteriskCDR)
                 .order_by(AsteriskCDR.calldate.desc())
@@ -663,6 +676,28 @@ class FirenzeAdmin(Admin):
                     }
                 )
 
+        operator_summary = {
+            "total": len(enriched_operators),
+            "logged_in": sum(1 for op in enriched_operators if op["db_loggedin"]),
+            "available": sum(1 for op in enriched_operators if op["db_available"]),
+            "valkey_enabled": sum(1 for op in enriched_operators if op["enable_valkey"]),
+            "synced": sum(1 for op in enriched_operators if op["synced"] is True),
+            "drift": sum(1 for op in enriched_operators if op["synced"] is False),
+        }
+
+        service_counts: dict[str, int] = {}
+        for call in enriched_calls:
+            service_counts[call["service"]] = service_counts.get(call["service"], 0) + 1
+        total_active_calls = len(enriched_calls)
+        active_call_services = [
+            {
+                "service": service,
+                "count": count,
+                "share": (round((count / total_active_calls) * 100, 1) if total_active_calls else 0.0),
+            }
+            for service, count in sorted(service_counts.items(), key=lambda item: item[1], reverse=True)
+        ]
+
         carrier_by_day: dict[str, dict[str, int]] = {}
         for row in carrier_rows:
             day_key = row.day.isoformat()
@@ -688,6 +723,12 @@ class FirenzeAdmin(Admin):
             carrier_totals["latam"] += day_data["latam"]
             carrier_totals["total"] += day_total
 
+        carrier_breakdown = []
+        for key, label in [("fonotarot-cl", "Fonotarot"), ("alotarot", "Alotarot"), ("latam", "Latam")]:
+            minutes = carrier_totals[key]
+            share = round((minutes / carrier_totals["total"]) * 100, 1) if carrier_totals["total"] else 0.0
+            carrier_breakdown.append({"key": key, "label": label, "minutes": minutes, "share": share})
+
         operator_name_by_number = {op.number: op.name for op in operators}
         operator_name_by_id = {op.id: op.name for op in operators}
         cdr_operator_totals = []
@@ -703,6 +744,16 @@ class FirenzeAdmin(Admin):
                     "minutes": int(row.minutes or 0),
                 }
             )
+
+        disposition_total = sum(int(row.count or 0) for row in disposition_rows)
+        cdr_dispositions = [
+            {
+                "name": row.disposition or "UNKNOWN",
+                "count": int(row.count or 0),
+                "share": (round((int(row.count or 0) / disposition_total) * 100, 1) if disposition_total else 0.0),
+            }
+            for row in disposition_rows
+        ]
 
         recent_cdr = [
             {
@@ -721,7 +772,9 @@ class FirenzeAdmin(Admin):
             "redis_online": redis_online,
             "redis_info": redis_info,
             "operators": enriched_operators,
+            "operator_summary": operator_summary,
             "active_calls": enriched_calls,
+            "active_call_services": active_call_services,
             "redis_operators_count": len(redis_operators),
             "redis_calls_count": len(redis_calls),
             "cdr_reports": {
@@ -739,6 +792,8 @@ class FirenzeAdmin(Admin):
                 },
                 "carrier_days": carrier_days,
                 "carrier_totals": carrier_totals,
+                "carrier_breakdown": carrier_breakdown,
+                "dispositions": cdr_dispositions,
                 "operator_totals": cdr_operator_totals,
                 "recent_cdr": recent_cdr,
             },

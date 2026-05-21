@@ -16,351 +16,291 @@
 
 {% block content %}
 
-{# ── Redis / Valkey ──────────────────────────────────────────────────── #}
-<div class="col-12">
-  <div class="card">
-    <div class="card-header">
-      <h3 class="card-title">
-        <i class="fa fa-database me-2"></i>Redis / Valkey
-      </h3>
-      <div class="card-options">
-        {% if redis_online %}
-          <span class="badge bg-success ms-2">Online</span>
+<div class="row row-cards">
+  <div class="col-12 col-lg-3">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fa fa-heart-pulse me-2"></i>Service Status</h3>
+      </div>
+      <div class="list-group list-group-flush list-group-hoverable">
+        <div class="list-group-item">
+          <div class="row align-items-center">
+            <div class="col-auto">
+              <span class="status-dot {% if redis_online %}bg-green{% else %}bg-red{% endif %} d-block"></span>
+            </div>
+            <div class="col text-truncate">
+              <div class="text-body d-block">Redis / Valkey</div>
+              <div class="text-secondary text-truncate mt-n1">{% if redis_online %}Healthy{% else %}Offline{% endif %}</div>
+            </div>
+            <div class="col-auto">
+              <span class="badge {% if redis_online %}bg-success-lt{% else %}bg-danger-lt{% endif %}">
+                {% if redis_online %}OK{% else %}DOWN{% endif %}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="list-group-item">
+          <div class="row align-items-center">
+            <div class="col-auto">
+              <span class="status-dot {% if operator_summary.drift == 0 %}bg-green{% else %}bg-yellow{% endif %} d-block"></span>
+            </div>
+            <div class="col text-truncate">
+              <div class="text-body d-block">Operator Cache Sync</div>
+              <div class="text-secondary text-truncate mt-n1">{{ operator_summary.synced }} synced / {{ operator_summary.total }} total</div>
+            </div>
+            <div class="col-auto">
+              <span class="badge {% if operator_summary.drift == 0 %}bg-success-lt{% else %}bg-warning-lt text-warning{% endif %}">
+                {{ operator_summary.drift }} drift
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="list-group-item">
+          <div class="row align-items-center">
+            <div class="col-auto">
+              <span class="status-dot {% if active_calls|length > 0 %}bg-blue{% else %}bg-secondary{% endif %} d-block"></span>
+            </div>
+            <div class="col text-truncate">
+              <div class="text-body d-block">Live Calls Engine</div>
+              <div class="text-secondary text-truncate mt-n1">{{ active_calls|length }} calls in progress</div>
+            </div>
+            <div class="col-auto"><span class="badge bg-blue-lt">{{ active_calls|length }}</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-9">
+    <div class="row row-cards">
+      <div class="col-6 col-md-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="subheader">Today Calls</div>
+            <div class="h2 mb-0">{{ cdr_reports.today.total_calls }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="subheader">Answered</div>
+            <div class="h2 mb-0 text-success">{{ cdr_reports.today.answered_calls }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="subheader">Failed</div>
+            <div class="h2 mb-0 text-warning">{{ cdr_reports.today.failed_calls }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="subheader">Avg Billsec</div>
+            <div class="h2 mb-0">{{ cdr_reports.today.avg_billsec | round(1) }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12">
+        <div class="card">
+          <div class="card-body">
+            <div class="row g-2 text-secondary small">
+              <div class="col-6 col-md-2">Redis version: <strong>{{ redis_info.get("redis_version", "—") }}</strong></div>
+              <div class="col-6 col-md-2">Clients: <strong>{{ redis_info.get("connected_clients", "—") }}</strong></div>
+              <div class="col-6 col-md-3">Memory: <strong>{{ redis_info.get("used_memory_human", "—") }}</strong></div>
+              <div class="col-6 col-md-2">Role: <strong>{{ redis_info.get("role", "—") | title }}</strong></div>
+              <div class="col-6 col-md-3">Operator keys: <strong>{{ redis_operators_count }}</strong> · Call keys: <strong>{{ redis_calls_count }}</strong></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-4">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fa fa-headset me-2"></i>Operator Availability</h3>
+      </div>
+      <div class="card-body">
+        {% set total_ops = operator_summary.total if operator_summary.total else 1 %}
+
+        {% set logged_in_pct = (operator_summary.logged_in * 100 / total_ops) | round(1) %}
+        <div class="d-flex justify-content-between mb-1"><span>Logged in</span><span class="fw-bold">{{ operator_summary.logged_in }}/{{ operator_summary.total }}</span></div>
+        <div class="progress progress-sm mb-3"><div class="progress-bar bg-blue" style="width: {{ logged_in_pct }}%"></div></div>
+
+        {% set available_pct = (operator_summary.available * 100 / total_ops) | round(1) %}
+        <div class="d-flex justify-content-between mb-1"><span>Available</span><span class="fw-bold">{{ operator_summary.available }}/{{ operator_summary.total }}</span></div>
+        <div class="progress progress-sm mb-3"><div class="progress-bar bg-teal" style="width: {{ available_pct }}%"></div></div>
+
+        {% set synced_pct = (operator_summary.synced * 100 / total_ops) | round(1) %}
+        <div class="d-flex justify-content-between mb-1"><span>Cache synced</span><span class="fw-bold">{{ operator_summary.synced }}/{{ operator_summary.total }}</span></div>
+        <div class="progress progress-sm mb-3"><div class="progress-bar bg-green" style="width: {{ synced_pct }}%"></div></div>
+
+        {% set drift_pct = (operator_summary.drift * 100 / total_ops) | round(1) %}
+        <div class="d-flex justify-content-between mb-1"><span>Cache drift</span><span class="fw-bold">{{ operator_summary.drift }}/{{ operator_summary.total }}</span></div>
+        <div class="progress progress-sm"><div class="progress-bar bg-yellow" style="width: {{ drift_pct }}%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-4">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fa fa-phone me-2"></i>Online Calls by Service</h3>
+      </div>
+      <div class="card-body">
+        {% for service in active_call_services %}
+          <div class="d-flex justify-content-between mb-1">
+            <span class="text-truncate">{{ service.service }}</span>
+            <span class="fw-bold">{{ service.count }} ({{ service.share }}%)</span>
+          </div>
+          <div class="progress progress-sm mb-3">
+            <div class="progress-bar bg-azure" style="width: {{ service.share }}%"></div>
+          </div>
         {% else %}
-          <span class="badge bg-danger ms-2">Offline</span>
-        {% endif %}
+          <div class="text-muted">No active calls right now.</div>
+        {% endfor %}
       </div>
     </div>
+  </div>
 
-    {% if redis_online and redis_info %}
-    <div class="card-body">
-      <div class="row g-4">
-        <div class="col-6 col-md-2">
-          <div class="subheader">Version</div>
-          <div class="h4 mb-0">{{ redis_info.get("redis_version", "–") }}</div>
-        </div>
-        <div class="col-6 col-md-2">
-          <div class="subheader">Uptime</div>
-          <div class="h4 mb-0">
-            {% set secs = redis_info.get("uptime_in_seconds", 0) %}
-            {{ (secs // 3600) }}h {{ ((secs % 3600) // 60) }}m
+  <div class="col-12 col-lg-4">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fa fa-chart-pie me-2"></i>CDR Dispositions ({{ cdr_reports.month_label }})</h3>
+      </div>
+      <div class="card-body">
+        {% for item in cdr_reports.dispositions %}
+          <div class="d-flex justify-content-between mb-1">
+            <span>{{ item.name }}</span>
+            <span class="fw-bold">{{ item.count }} ({{ item.share }}%)</span>
           </div>
-        </div>
-        <div class="col-6 col-md-2">
-          <div class="subheader">Connected Clients</div>
-          <div class="h4 mb-0">{{ redis_info.get("connected_clients", "–") }}</div>
-        </div>
-        <div class="col-6 col-md-2">
-          <div class="subheader">Memory Used</div>
-          <div class="h4 mb-0">{{ redis_info.get("used_memory_human", "–") }}</div>
-        </div>
-        <div class="col-6 col-md-2">
-          <div class="subheader">Role</div>
-          <div class="h4 mb-0">{{ redis_info.get("role", "–") | title }}</div>
-        </div>
-        <div class="col-6 col-md-2">
-          <div class="subheader">Total Commands</div>
-          <div class="h4 mb-0">{{ redis_info.get("total_commands_processed", "–") }}</div>
-        </div>
-      </div>
-
-      <div class="row g-4 mt-1">
-        <div class="col-6 col-md-3">
-          <div class="subheader">Cached Operator Keys</div>
-          <div class="h4 mb-0">
-            <span class="badge bg-teal-lt fs-6">{{ redis_operators_count }}</span>
+          <div class="progress progress-sm mb-3">
+            <div class="progress-bar {% if item.name == 'ANSWERED' %}bg-green{% elif item.name in ['BUSY', 'NO ANSWER'] %}bg-yellow{% else %}bg-secondary{% endif %}" style="width: {{ item.share }}%"></div>
           </div>
-        </div>
-        <div class="col-6 col-md-3">
-          <div class="subheader">Cached Call Keys</div>
-          <div class="h4 mb-0">
-            <span class="badge bg-blue-lt fs-6">{{ redis_calls_count }}</span>
-          </div>
-        </div>
-        {% if redis_info.get("keyspace_hits") is not none %}
-        <div class="col-6 col-md-3">
-          <div class="subheader">Cache Hits</div>
-          <div class="h4 mb-0">{{ redis_info.get("keyspace_hits", 0) }}</div>
-        </div>
-        <div class="col-6 col-md-3">
-          <div class="subheader">Cache Misses</div>
-          <div class="h4 mb-0">{{ redis_info.get("keyspace_misses", 0) }}</div>
-        </div>
-        {% endif %}
-      </div>
-    </div>
-
-    {% elif not redis_online %}
-    <div class="card-body">
-      <div class="alert alert-danger mb-0">
-        <i class="fa fa-exclamation-triangle me-2"></i>
-        Cannot connect to Redis. Operator state reads will fall back to MySQL.
-      </div>
-    </div>
-    {% endif %}
-  </div>
-</div>
-
-{# ── CDR KPIs ─────────────────────────────────────────────────────────── #}
-<div class="col-12">
-  <div class="row row-cards">
-    <div class="col-6 col-lg-3">
-      <div class="card">
-        <div class="card-body">
-          <div class="subheader">Today Calls</div>
-          <div class="h3 mb-0">{{ cdr_reports.today.total_calls }}</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-6 col-lg-3">
-      <div class="card">
-        <div class="card-body">
-          <div class="subheader">Today Answered</div>
-          <div class="h3 mb-0">{{ cdr_reports.today.answered_calls }}</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-6 col-lg-3">
-      <div class="card">
-        <div class="card-body">
-          <div class="subheader">Today Failed</div>
-          <div class="h3 mb-0">{{ cdr_reports.today.failed_calls }}</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-6 col-lg-3">
-      <div class="card">
-        <div class="card-body">
-          <div class="subheader">Avg Billsec</div>
-          <div class="h3 mb-0">{{ cdr_reports.today.avg_billsec | round(1) }}</div>
-        </div>
+        {% else %}
+          <div class="text-muted">No monthly CDR rows yet.</div>
+        {% endfor %}
       </div>
     </div>
   </div>
-</div>
 
-{# ── CDR Month + Operators summary ───────────────────────────────────── #}
-<div class="col-12 col-lg-8">
-  <div class="card">
-    <div class="card-header">
-      <h3 class="card-title">
-        <i class="fa fa-chart-bar me-2"></i>CDR Monthly Report
-        <span class="badge bg-secondary-lt ms-2">{{ cdr_reports.month_label }}</span>
-      </h3>
-      <div class="card-options">
-        <span class="badge bg-success-lt me-1">{{ cdr_reports.month.answered_calls }} answered</span>
-        <span class="badge bg-blue-lt">{{ cdr_reports.month.answered_minutes }} min</span>
+  <div class="col-12 col-lg-5">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fa fa-chart-bar me-2"></i>Carrier Minutes ({{ cdr_reports.month_label }})</h3>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-borderless card-table">
+          <tbody>
+            {% for carrier in cdr_reports.carrier_breakdown %}
+              <tr>
+                <td class="w-25"><span class="text-muted">{{ carrier.label }}</span></td>
+                <td class="w-50">
+                  <div class="progress progress-sm">
+                    <div class="progress-bar bg-primary" style="width: {{ carrier.share }}%"></div>
+                  </div>
+                </td>
+                <td class="text-end w-25"><strong>{{ carrier.minutes }}</strong> min <span class="text-muted">({{ carrier.share }}%)</span></td>
+              </tr>
+            {% endfor %}
+            <tr class="table-active fw-bold">
+              <td>Total</td>
+              <td></td>
+              <td class="text-end">{{ cdr_reports.carrier_totals.total }} min</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
-    <div class="table-responsive">
-      <table class="table table-vcenter card-table table-sm">
-        <thead>
-          <tr>
-            <th>Day</th>
-            <th class="text-end">Fonotarot</th>
-            <th class="text-end">Alotarot</th>
-            <th class="text-end">Latam</th>
-            <th class="text-end fw-bold">Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in cdr_reports.carrier_days %}
-          <tr>
-            <td class="text-muted small">{{ row.day }}</td>
-            <td class="text-end">{{ row.fonotarot }}</td>
-            <td class="text-end">{{ row.alotarot }}</td>
-            <td class="text-end">{{ row.latam }}</td>
-            <td class="text-end fw-bold">{{ row.total }}</td>
-          </tr>
+  </div>
+
+  <div class="col-12 col-lg-7">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fa fa-bolt me-2"></i>Live Call Feed</h3>
+      </div>
+      <div class="card-body">
+        <div class="divide-y">
+          {% for call in active_calls[:12] %}
+            <div>
+              <div class="row py-2 align-items-center">
+                <div class="col-auto">
+                  <span class="badge {% if call.source == 'db+redis' %}bg-success-lt{% elif call.source == 'db_only' %}bg-warning-lt text-warning{% else %}bg-azure-lt{% endif %}">
+                    {{ call.source }}
+                  </span>
+                </div>
+                <div class="col">
+                  <div class="text-truncate">
+                    <strong>{{ call.service }}</strong> · ANI <code>{{ call.ani }}</code> → DID <code>{{ call.did }}</code>
+                  </div>
+                  <div class="text-secondary small">Operator {{ call.operator if call.operator else '—' }} · Client {{ call.client_id if call.client_id else '—' }}</div>
+                </div>
+                <div class="col-auto text-secondary small">
+                  {{ call.created_at.strftime('%H:%M:%S') if call.created_at else '—' }}
+                </div>
+              </div>
+            </div>
           {% else %}
-          <tr>
-            <td colspan="5" class="text-center text-muted py-3">No monthly CDR data yet</td>
-          </tr>
+            <div class="text-muted">No active calls at this time.</div>
           {% endfor %}
-        </tbody>
-        <tfoot>
-          <tr class="table-active fw-bold">
-            <td>Totals</td>
-            <td class="text-end">{{ cdr_reports.carrier_totals["fonotarot-cl"] }}</td>
-            <td class="text-end">{{ cdr_reports.carrier_totals.alotarot }}</td>
-            <td class="text-end">{{ cdr_reports.carrier_totals.latam }}</td>
-            <td class="text-end">{{ cdr_reports.carrier_totals.total }}</td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
-  </div>
-</div>
-
-<div class="col-12 col-lg-4">
-  <div class="card">
-    <div class="card-header">
-      <h3 class="card-title"><i class="fa fa-headset me-2"></i>Operator Summary</h3>
-      <div class="card-options">
-        {% set logged_in_count = operators | selectattr("db_loggedin") | list | length %}
-        {% set available_count = operators | selectattr("db_available") | list | length %}
-        <span class="badge bg-success-lt me-1">{{ logged_in_count }} in</span>
-        <span class="badge bg-teal-lt me-1">{{ available_count }} free</span>
-        <span class="badge bg-blue-lt">{{ operators | length }} total</span>
+        </div>
       </div>
     </div>
-    <div class="card-body pb-0">
-      <table class="table table-sm table-borderless mb-0">
-        <tbody>
-          <tr>
-            <td class="text-muted">Today answered minutes</td>
-            <td class="text-end fw-bold">{{ cdr_reports.today.answered_minutes }}</td>
-          </tr>
-          <tr>
-            <td class="text-muted">Month answered minutes</td>
-            <td class="text-end fw-bold">{{ cdr_reports.month.answered_minutes }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="table-responsive">
-      <table class="table table-sm table-vcenter card-table">
-        <thead>
-          <tr>
-            <th>Operator</th>
-            <th class="text-end">Calls</th>
-            <th class="text-end">Min</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for op in cdr_reports.operator_totals %}
-          <tr>
-            <td>
-              <div class="fw-bold">{{ op.operator }}</div>
-              <div class="text-muted small">{{ op.name }}</div>
-            </td>
-            <td class="text-end">{{ op.calls }}</td>
-            <td class="text-end fw-bold">{{ op.minutes }}</td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="3" class="text-center text-muted py-3">No operator CDR data yet</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
   </div>
-</div>
 
-{# ── Recent CDR records ──────────────────────────────────────────────── #}
-<div class="col-12">
-  <div class="card">
-    <div class="card-header">
-      <h3 class="card-title">
-        <i class="fa fa-table me-2"></i>Recent CDR Records
-        <span class="badge bg-blue-lt ms-2">{{ cdr_reports.recent_cdr | length }}</span>
-      </h3>
-    </div>
-    <div class="table-responsive">
-      <table class="table table-vcenter card-table text-nowrap">
-        <thead>
-          <tr>
-            <th>Calldate</th>
-            <th>ANI</th>
-            <th>DID</th>
-            <th>Operator</th>
-            <th>Client</th>
-            <th>Disposition</th>
-            <th class="text-end">Billsec</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in cdr_reports.recent_cdr %}
-          <tr>
-            <td class="text-muted small">{{ row.calldate.strftime('%Y-%m-%d %H:%M:%S') if row.calldate else '—' }}</td>
-            <td><code>{{ row.src }}</code></td>
-            <td><code>{{ row.dst }}</code></td>
-            <td>{{ row.operator if row.operator else '—' }}</td>
-            <td>{{ row.client_id if row.client_id else '—' }}</td>
-            <td>
-              {% if row.disposition == "ANSWERED" %}
-                <span class="badge bg-success-lt">ANSWERED</span>
-              {% else %}
-                <span class="badge bg-secondary-lt">{{ row.disposition }}</span>
-              {% endif %}
-            </td>
-            <td class="text-end fw-bold">{{ row.billsec }}</td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="7" class="text-center text-muted py-3">No CDR rows available</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-{# ── Active Calls ────────────────────────────────────────────────────── #}
-<div class="col-12">
-  <div class="card">
-    <div class="card-header">
-      <h3 class="card-title">
-        <i class="fa fa-phone me-2"></i>Active Calls
-        <span class="badge bg-blue-lt ms-2">{{ active_calls | length }}</span>
-      </h3>
-      <div class="card-options small text-muted">
-        <span class="badge bg-success-lt me-1">DB + Redis</span> = healthy &nbsp;
-        <span class="badge bg-warning me-1">DB only</span> = Redis cache miss &nbsp;
-        <span class="badge bg-azure-lt me-1">Redis only</span> = DB desync
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fa fa-table me-2"></i>Recent CDR Records
+          <span class="badge bg-blue-lt ms-2">{{ cdr_reports.recent_cdr | length }}</span>
+        </h3>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-vcenter card-table table-mobile-md">
+          <thead>
+            <tr>
+              <th>Call</th>
+              <th>Routing</th>
+              <th>State</th>
+              <th class="text-end">Billsec</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in cdr_reports.recent_cdr %}
+              <tr>
+                <td data-label="Call">
+                  <div class="fw-bold">{{ row.calldate.strftime('%Y-%m-%d %H:%M:%S') if row.calldate else '—' }}</div>
+                  <div class="text-secondary small">ANI <code>{{ row.src }}</code> · DID <code>{{ row.dst }}</code></div>
+                </td>
+                <td data-label="Routing">
+                  <div>Operator <strong>{{ row.operator if row.operator else '—' }}</strong></div>
+                  <div class="text-secondary small">Client {{ row.client_id if row.client_id else '—' }}</div>
+                </td>
+                <td data-label="State">
+                  {% if row.disposition == "ANSWERED" %}
+                    <span class="badge bg-success-lt">ANSWERED</span>
+                  {% else %}
+                    <span class="badge bg-secondary-lt">{{ row.disposition }}</span>
+                  {% endif %}
+                </td>
+                <td data-label="Billsec" class="text-end fw-bold">{{ row.billsec }}</td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="4" class="text-center text-muted py-3">No CDR rows available</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
     </div>
-
-    {% if active_calls %}
-    <div class="table-responsive">
-      <table class="table table-vcenter card-table">
-        <thead>
-          <tr>
-            <th>State</th>
-            <th>Service</th>
-            <th>ANI (Caller)</th>
-            <th>DID (Called)</th>
-            <th>Operator</th>
-            <th>Client ID</th>
-            <th>Started</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for call in active_calls %}
-          <tr>
-            <td>
-              {% if call.source == "db+redis" %}
-                <span class="badge bg-success-lt">DB + Redis</span>
-              {% elif call.source == "db_only" %}
-                <span class="badge bg-warning">DB only</span>
-              {% else %}
-                <span class="badge bg-azure-lt">Redis only</span>
-              {% endif %}
-            </td>
-            <td>
-              <span class="badge bg-secondary-lt">{{ call.service }}</span>
-            </td>
-            <td><code>{{ call.ani }}</code></td>
-            <td><code>{{ call.did }}</code></td>
-            <td>{{ call.operator if call.operator else '—' }}</td>
-            <td>{{ call.client_id if call.client_id else '—' }}</td>
-            <td class="text-muted small">
-              {{ call.created_at.strftime('%Y-%m-%d %H:%M:%S') if call.created_at else '—' }}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-
-    {% else %}
-    <div class="card-body text-center text-muted py-4">
-      <i class="fa fa-phone-slash fa-2x mb-2 d-block opacity-50"></i>
-      No active calls at this time
-    </div>
-    {% endif %}
   </div>
 </div>
 
