@@ -650,7 +650,7 @@ class FirenzeAdmin(Admin):
             return RedirectResponse(
                 request.url_for("admin:login").include_query_params(
                     step="code",
-                    error="Passwordless login is disabled.",
+                    error="El inicio de sesión sin contraseña está deshabilitado.",
                 ),
                 status_code=302,
             )
@@ -660,7 +660,7 @@ class FirenzeAdmin(Admin):
         if not identifier:
             return RedirectResponse(
                 request.url_for("admin:login").include_query_params(
-                    error="Please enter your email first.",
+                    error="Por favor, ingresa tu correo primero.",
                 ),
                 status_code=302,
             )
@@ -681,7 +681,7 @@ class FirenzeAdmin(Admin):
             request.url_for("admin:login").include_query_params(
                 step="code",
                 identifier=identifier,
-                message="If the account exists, a login code has been sent.",
+                message="Si la cuenta existe, se ha enviado un código de inicio de sesión.",
             ),
             status_code=302,
         )
@@ -691,7 +691,7 @@ class FirenzeAdmin(Admin):
             return RedirectResponse(
                 request.url_for("admin:login").include_query_params(
                     step="code",
-                    error="Passwordless login is disabled.",
+                    error="El inicio de sesión sin contraseña está deshabilitado.",
                 ),
                 status_code=302,
             )
@@ -702,7 +702,7 @@ class FirenzeAdmin(Admin):
         if not identifier:
             return RedirectResponse(
                 request.url_for("admin:login").include_query_params(
-                    error="Please enter your email first.",
+                    error="Por favor, ingresa tu correo primero.",
                 ),
                 status_code=302,
             )
@@ -711,7 +711,7 @@ class FirenzeAdmin(Admin):
                 request.url_for("admin:login").include_query_params(
                     step="code",
                     identifier=identifier,
-                    error="Please enter the login code.",
+                    error="Por favor, ingresa el código de inicio de sesión.",
                 ),
                 status_code=302,
             )

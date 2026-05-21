@@ -1,7 +1,7 @@
-"""AGI endpoints — called by Asterisk dialplan via CURL().
+"""Extremos AGI — llamados por el dialplan de Asterisk a través de CURL().
 
-These return flat JSON dicts with the exact variable names the dialplan expects.
-No JWT auth — protected by binding to localhost / LAN only.
+Estos retornan dicts JSON planos con los nombres de variable exactos que el dialplan espera.
+Sin autenticación JWT — protegido por enlace solo a localhost / LAN.
 """
 
 import logging
@@ -45,7 +45,7 @@ agiRouter = APIRouter(prefix="/agi", tags=["agi"])
 
 @agiRouter.get("/dnc/{ani}")
 def agi_dnc_check(ani: str, db: Session = Depends(get_db)):
-    """Check if ANI is in the Do Not Call list."""
+    """Verifica si el ANI está en la lista de No Llamar."""
     in_dnc = check_dnc(db, ani)
     return {"dnc": "YES" if in_dnc else "NO"}
 
@@ -57,16 +57,17 @@ def agi_dnc_check(ani: str, db: Session = Depends(get_db)):
 
 @agiRouter.get("/services/did/{did}")
 def agi_did_lookup(did: str, db: Session = Depends(get_db)):
-    """Resolve a DID to its service config.
+    """Resuelve un DID a su configuración de servicio.
 
-    Returns the full set of channel variables the unified ``[prepago-service]``
-    dialplan context needs — one CURL call instead of multiple AGI spawns.
+    Retorna el conjunto completo de variables de canal que el contexto
+    dialplan unificado ``[prepago-service]`` necesita — una llamada CURL en lugar de
+    múltiples spawns de AGI.
 
-    Response fields:
-        siguiente    — Asterisk context to Goto (``"prepago-service"`` for all new DIDs)
-        servicio     — service slug (e.g. ``"alotarot"``, ``"fonotarot-cl"``)
-        auth_method  — ``"ani"`` or ``"pin"``
-        intro_audio  — Playback-compatible string (e.g. ``"zvn/intro-alotarot"``)
+    Campos de respuesta:
+        siguiente    — contexto de Asterisk para Goto (``"prepago-service"`` para todos los DIDs nuevos)
+        servicio     — slug del servicio (p. ej. ``"alotarot"``, ``"fonotarot-cl"``)
+        auth_method  — ``"ani"`` o ``"pin"``
+        intro_audio  — cadena compatible con Playback (p. ej. ``"zvn/intro-alotarot"``)
     """
     return resolve_did(db, did)
 
@@ -78,9 +79,9 @@ def agi_did_lookup(did: str, db: Session = Depends(get_db)):
 
 @agiRouter.get("/credits/limit")
 def agi_credit_limit(seconds: int = Query(..., description="Credit balance in seconds")):
-    """Compute call timeout and audio file for a given credit balance.
+    """Calcula timeout de llamada y archivo de audio para un saldo de crédito dado.
 
-    Replaces the 150-line ``[limite-saldo]`` dialplan ladder.
+    Reemplaza la escalera ``[limite-saldo]`` de dialplan de 150 líneas.
     """
     return compute_call_limit(seconds)
 
@@ -96,10 +97,10 @@ def agi_client_lookup(
     identifier: str = Query(..., description="Client identifier (ANI or PIN)"),
     db: Session = Depends(get_db),
 ):
-    """Look up a client by service and identifier.
+    """Busca un cliente por servicio e identificador.
 
-    Returns ``{clientid, segundos}`` — the contract the dialplan expects.
-    Returns ``{clientid: 0, segundos: 0}`` if not found (dialplan handles this).
+    Retorna ``{clientid, segundos}`` — el contrato que el dialplan espera.
+    Retorna ``{clientid: 0, segundos: 0}`` si no se encuentra (el dialplan lo maneja).
     """
     svc_ani_stats(db, service, identifier)
     try:
@@ -124,9 +125,9 @@ def agi_client_deduct(
     seconds: int = Form(..., description="Seconds to deduct"),
     db: Session = Depends(get_db),
 ):
-    """Deduct credits (seconds) from a client's balance.
+    """Descuenta créditos (segundos) del saldo de un cliente.
 
-    Called from ``[llama-operador]`` hangup handler after a call ends.
+    Llamado desde el manejador hangup ``[llama-operador]`` después de que termina una llamada.
     """
     try:
         return svc_deduct(db, service, client_id, seconds)
@@ -165,10 +166,10 @@ def agi_call_insert(
     db: Session = Depends(get_db),
     redis_conn: redis.Redis | None = Depends(get_redis),
 ):
-    """Insert an online call record.
+    """Inserta un registro de llamada en línea.
 
-    Called from ``[auth-ani]`` / ``[auth-pin]`` after auth and credit checks pass.
-    Returns ``{"ok": false, "reason": "call-already-active"}`` on duplicate.
+    Llamado desde ``[auth-ani]`` / ``[auth-pin]`` después de pasar verificaciones de autenticación y crédito.
+    Retorna ``{"ok": false, "reason": "call-already-active"}`` en caso de duplicado.
     """
     return insert_call(db, service, ani, did, client_id, operator, redis_conn)
 
@@ -180,11 +181,11 @@ def agi_call_close(
     db: Session = Depends(get_db),
     redis_conn: redis.Redis | None = Depends(get_redis),
 ):
-    """Delete an online call record.
+    """Elimina un registro de llamada en línea.
 
-    Idempotent — safe to call from multiple ``h`` handlers.
-    Called via ``POST /calls/online/{service}/{ani}/close`` with body ``_=1``
-    since Asterisk's CURL() only reliably supports GET and POST-with-body.
+    Idempotente — seguro para llamar desde múltiples manejadores ``h``.
+    Llamado vía ``POST /calls/online/{service}/{ani}/close`` con cuerpo ``_=1``
+    ya que CURL() de Asterisk solo soporta de forma fiable GET y POST-con-cuerpo.
     """
     return delete_call(db, service, ani, redis_conn)
 
@@ -197,19 +198,19 @@ def agi_call_assign_operator(
     db: Session = Depends(get_db),
     redis_conn: redis.Redis | None = Depends(get_redis),
 ):
-    """Update the operator assigned to an active call.
+    """Actualiza el operador asignado a una llamada activa.
 
-    Called after ``[selecciona-operador]`` completes and before dialling.
-    Accepts ``operator`` as a form body field.
+    Llamado después de que ``[selecciona-operador]`` se completa y antes de marcar.
+    Acepta ``operator`` como un campo de cuerpo de formulario.
     """
     return update_call_operator(db, service, ani, operator, redis_conn)
 
 
 @agiRouter.get("/calls/online/{service}/{ani}")
 def agi_call_get(service: str, ani: str, db: Session = Depends(get_db)):
-    """Check whether an ANI has an active call for the service.
+    """Verifica si un ANI tiene una llamada activa para el servicio.
 
-    Returns ``{"llamada_activa": "true"}`` or ``{"llamada_activa": "false"}``.
+    Retorna ``{"llamada_activa": "true"}`` o ``{"llamada_activa": "false"}``.
     """
     return get_active_call(db, service, ani)
 
@@ -224,13 +225,13 @@ def agi_operators_menu(
     db: Session = Depends(get_db),
     redis_conn: redis.Redis | None = Depends(get_redis),
 ):
-    """Return available operator count and a Playback-ready audio string.
+    """Retorna conteo de operadores disponibles y una cadena de audio lista para Playback.
 
-    Replaces ``Agi(${AUDIOTEX},ejecutivos_disponibles,7)`` in the dialplan.
+    Reemplaza ``Agi(${AUDIOTEX},ejecutivos_disponibles,7)`` en el dialplan.
 
-    Response:
-        disponibles  — number of available operators
-        audio_str    — ``&``-joined Playback string of operator audio files
+    Respuesta:
+        disponibles  — número de operadores disponibles
+        audio_str    — cadena Playback unida con ``&`` de archivos de audio de operador
     """
     return svc_get_menu(db, redis_conn)
 
@@ -242,20 +243,20 @@ def agi_operator_select(
     db: Session = Depends(get_db),
     redis_conn: redis.Redis | None = Depends(get_redis),
 ):
-    """Atomically select an available operator and mark them busy.
+    """Selecciona atómicamente un operador disponible y lo marca como ocupado.
 
-    Replaces ``Agi(${AUDIOTEX},ejecutivo_aleatorio,7)`` and
-    ``Agi(${AUDIOTEX},info_ejecutivo,opcion,...)`` in the dialplan.
+    Reemplaza ``Agi(${AUDIOTEX},ejecutivo_aleatorio,7)`` y
+    ``Agi(${AUDIOTEX},info_ejecutivo,opcion,...)`` en el dialplan.
 
-    Response on success:
-        ok                — true
-        operador_numero   — operator's internal number
-        operador_nombre   — operator's name
-        operador_telefono — operator's contact phone number
-        operador_trunk    — SIP trunk to dial via
+    Respuesta en caso de éxito:
+        ok                — verdadero
+        operador_numero   — número interno del operador
+        operador_nombre   — nombre del operador
+        operador_telefono — número de teléfono de contacto del operador
+        operador_trunk    — troncal SIP por el que marcar
 
-    Response on failure:
-        ok      — false
+    Respuesta en caso de fallo:
+        ok      — falso
         reason  — "operator-busy" | "no-operators" | "no-phone-configured"
     """
     return svc_select(db, mode=mode, selection=selection, redis_conn=redis_conn)
@@ -272,46 +273,46 @@ def agi_operator_info_by_option(
     db: Session = Depends(get_db),
     redis_conn: redis.Redis | None = Depends(get_redis),
 ):
-    """Translate an IVR menu digit into the operator's contact info.
+    """Traduce un dígito de menú IVR en la información de contacto del operador.
 
-    Used by the dialplan after the caller picks an operator from the menu
-    played by ``/operators/menu``. The dialplan needs the operator's
-    internal number (to pass to ``/operators/select``), name (for logs and
-    CDR), phone (for ``Dial()``), and trunk (for the outbound channel
-    technology). This endpoint provides all four in one round-trip and
-    does NOT claim the operator -- the atomic claim happens later via
+    Utilizado por el dialplan después de que la persona que llama elige un operador del menú
+    reproducido por ``/operators/menu``. El dialplan necesita el
+    número interno del operador (para pasar a ``/operators/select``), nombre (para logs y
+    CDR), teléfono (para ``Dial()``), y troncal (para la
+    tecnología de canal de salida). Este extremo proporciona los cuatro en un viaje redondo
+    y NO reclama el operador -- el reclamo atómico sucede más tarde a través de
     ``/operators/select``.
 
-    The split exists because there is typically a 5-10 second window
-    between menu render and Dial (caller hears options, picks one, audio
-    finishes). Claiming on selection would lock an operator for that
-    entire window even if the call is later abandoned. Claiming
-    just-before-Dial keeps operators free for as long as possible at the
-    cost of a small race window that ``/operators/select`` resolves with
+    La división existe porque típicamente hay una ventana de 5-10 segundos
+    entre renderizar menú y Dial (la persona que llama oye opciones, elige una, el audio
+    termina). Reclamar en la selección bloquearía un operador durante esa
+    ventana completa incluso si la llamada se abandona después. Reclamar
+    justo antes de Dial mantiene a los operadores libres el mayor tiempo posible al
+    costo de una pequeña ventana de condición de carrera que ``/operators/select`` resuelve con
     ``SELECT FOR UPDATE``.
 
-    Path param:
-        option: the menu digit the caller pressed, e.g. "1" or "01".
-                Compared numerically; both forms work regardless of how
-                the column is stored.
+    Parámetro de ruta:
+        option: el dígito de menú que presionó la persona que llama, p. ej. "1" o "01".
+                Comparado numéricamente; ambas formas funcionan sin importar cómo
+                se almacena la columna.
 
-    Response on success:
-        ok                : true
-        operador_numero   : operator's internal number (string,
-                            pass to ``/operators/select`` as ``selection``)
-        operador_nombre   : operator's display name
-        operador_telefono : operator's contact phone number for Dial()
-        operador_trunk    : SIP trunk to dial via, may be empty string
-        loggedin          : true/false, whether the operator is logged in
-                            (advisory: real claim is in ``/operators/select``)
-        available         : true/false, whether the operator is currently free
-                            (advisory: real claim is in ``/operators/select``)
+    Respuesta en caso de éxito:
+        ok                : verdadero
+        operador_numero   : número interno del operador (cadena,
+                            pasar a ``/operators/select`` como ``selection``)
+        operador_nombre   : nombre de visualización del operador
+        operador_telefono : número de teléfono de contacto del operador para Dial()
+        operador_trunk    : troncal SIP por el que marcar, puede ser cadena vacía
+        loggedin          : verdadero/falso, si el operador está conectado
+                            (asesor: el reclamo real está en ``/operators/select``)
+        available         : verdadero/falso, si el operador está libre actualmente
+                            (asesor: el reclamo real está en ``/operators/select``)
 
-    Response on failure:
-        ok      : false
-        reason  : "not-found"           - no operator has this option digit
-                  "no-phone-configured" - operator exists but has no
-                                          enabled contact phone to Dial()
+    Respuesta en caso de fallo:
+        ok      : falso
+        reason  : "not-found"           - ningún operador tiene este dígito de opción
+                  "no-phone-configured" - el operador existe pero no tiene
+                                          teléfono de contacto habilitado para Dial()
     """
     try:
         op = svc_operator(db, option=option)
@@ -357,36 +358,36 @@ def agi_operator_info_by_ani(
     db: Session = Depends(get_db),
     redis_conn: redis.Redis | None = Depends(get_redis),
 ):
-    """Look up an operator by one of their registered phone numbers (ANI).
+    """Busca un operador por uno de sus números de teléfono registrados (ANI).
 
-    Used when the caller's phone number itself identifies the operator,
-    e.g. an operator dialing in from their own line. Matches against
-    ``OperatorPhone.number`` where ``enabled=True``.
+    Utilizado cuando el número de teléfono de la persona que llama identifica al operador,
+    p. ej. un operador que llama desde su propia línea. Coincide contra
+    ``OperatorPhone.number`` donde ``enabled=True``.
 
-    Returns the same flat shape as ``/operators/by-option/{option}`` so
-    the dialplan can ``JSON_DECODE`` the same field names regardless of
-    which lookup it used. The ``operador_telefono`` field is the
-    operator's contact phone (the one flagged ``contact=True`` and
-    ``enabled=True``), which may differ from the inbound ANI -- the ANI
-    is just the identifier, the contact phone is what you ``Dial()``.
+    Retorna la misma forma plana que ``/operators/by-option/{option}`` así
+    el dialplan puede ``JSON_DECODE`` los mismos nombres de campo sin importar
+    qué búsqueda utilizó. El campo ``operador_telefono`` es el
+    teléfono de contacto del operador (el marcado con ``contact=True`` y
+    ``enabled=True``), que puede diferir del ANI de entrada -- el ANI
+    es solo el identificador, el teléfono de contacto es lo que ``Dial()``.
 
-    Path param:
-        ani: phone number in the format stored on ``OperatorPhone.number``.
+    Parámetro de ruta:
+        ani: número de teléfono en el formato almacenado en ``OperatorPhone.number``.
 
-    Response on success:
-        ok                : true
-        operador_numero   : operator's internal number (string)
-        operador_nombre   : operator's display name
-        operador_telefono : operator's contact phone for Dial()
-        operador_trunk    : SIP trunk to dial via, may be empty string
-        loggedin          : true/false, whether the operator is logged in
-        available         : true/false, whether the operator is currently free
+    Respuesta en caso de éxito:
+        ok                : verdadero
+        operador_numero   : número interno del operador (cadena)
+        operador_nombre   : nombre de visualización del operador
+        operador_telefono : teléfono de contacto del operador para Dial()
+        operador_trunk    : troncal SIP por el que marcar, puede ser cadena vacía
+        loggedin          : verdadero/falso, si el operador está conectado
+        available         : verdadero/falso, si el operador está libre actualmente
 
-    Response on failure:
-        ok      : false
-        reason  : "not-found"           - no enabled phone matches the ANI
-                  "no-phone-configured" - operator exists but has no
-                                          enabled contact phone to Dial()
+    Respuesta en caso de fallo:
+        ok      : falso
+        reason  : "not-found"           - ningún teléfono habilitado coincide con el ANI
+                  "no-phone-configured" - el operador existe pero no tiene
+                                          teléfono de contacto habilitado para Dial()
     """
     try:
         op = svc_operator(db, ani=ani)
@@ -425,10 +426,10 @@ def agi_operator_release(
     db: Session = Depends(get_db),
     redis_conn: redis.Redis | None = Depends(get_redis),
 ):
-    """Mark an operator as available again after a call ends.
+    """Marca un operador como disponible de nuevo después de que termina una llamada.
 
-    Called from the ``[llama-operador]`` hangup handler and on dial failure.
-    Replaces ``Agi(${AUDIOTEX},cambia_estado,${OPERATOR_NUM},1)``.
+    Llamado desde el manejador hangup ``[llama-operador]`` y en fallo de marcación.
+    Reemplaza ``Agi(${AUDIOTEX},cambia_estado,${OPERATOR_NUM},1)``.
     """
     try:
         svc_release(db, number, redis_conn)
@@ -453,9 +454,9 @@ def agi_operator_login(
     db: Session = Depends(get_db),
     redis_conn: redis.Redis | None = Depends(get_redis),
 ):
-    """Mark operator as logged in by their phone number (ANI).
+    """Marca el operador como conectado por su número de teléfono (ANI).
 
-    Called from the ``[tarotista-login]`` dialplan context.
+    Llamado desde el contexto dialplan ``[tarotista-login]``.
     """
     try:
         login_by_phone(db, ani, redis_conn)
@@ -475,9 +476,9 @@ def agi_operator_logout(
     db: Session = Depends(get_db),
     redis_conn: redis.Redis | None = Depends(get_redis),
 ):
-    """Mark operator as logged out by their phone number (ANI).
+    """Marca el operador como desconectado por su número de teléfono (ANI).
 
-    Called from the ``[tarotista-logout]`` dialplan context.
+    Llamado desde el contexto dialplan ``[tarotista-logout]``.
     """
     try:
         logout_by_phone(db, ani, redis_conn)
