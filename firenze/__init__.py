@@ -8,6 +8,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from firenze.admin import FirenzeAdmin, register_admin
+from firenze.api.admin_reports import adminReportsRouter
 from firenze.api.agi import agiRouter
 from firenze.api.clients import clientsRouter
 from firenze.api.payments import paymentsRouter
@@ -77,5 +78,6 @@ def create_app():
 
     # public endpoints
     app.include_router(publicRouter)
+    app.include_router(adminReportsRouter)
 
     return app
