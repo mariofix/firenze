@@ -101,6 +101,8 @@ class DNCAdmin(ModelView, model=DoNotCall):
     name = "DNC"
     name_plural = "DNC List"
     icon = "fa-solid fa-phone-slash"
+    category = "Auth"
+    category_icon = "fa-solid fa-key"
     column_labels = {DoNotCall.created_at: "Date Added"}
     form_args = {
         "ani": {"description": "Phone number in E.164 format, e.g. 56912345678"},
@@ -211,6 +213,8 @@ class OnlineCallsAdmin(ModelView, model=OnlineCalls):
     name = "Online Call"
     name_plural = "Online Calls"
     icon = "fa-solid fa-signal"
+    category = "Reports"
+    category_icon = "fa-solid fa-chart-simple"
 
 
 class AsteriskCDRAdmin(ModelView, model=AsteriskCDR):
@@ -246,6 +250,8 @@ class AsteriskCDRAdmin(ModelView, model=AsteriskCDR):
     name = "CDR"
     name_plural = "CDRs"
     icon = "fa-solid fa-music"
+    category = "Reports"
+    category_icon = "fa-solid fa-chart-simple"
 
 
 class PostCallProcessAdmin(ModelView, model=PostCallProcess):
