@@ -257,7 +257,6 @@
       <table class="table card-table table-vcenter table-sm">
         <thead>
           <tr>
-            <th>ANI (phone)</th>
             <th>Client ID</th>
             <th>Calls</th>
             <th class="w-50">Load</th>
@@ -267,7 +266,6 @@
         <tbody>
           {% for ani in ani_reports.top_callers %}
           <tr>
-            <td><code>{{ ani.ani }}</code></td>
             <td>{{ ani.client_id }}</td>
             <td>{{ ani.q_calls }}</td>
             <td>

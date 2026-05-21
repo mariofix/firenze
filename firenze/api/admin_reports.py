@@ -22,7 +22,7 @@ async def admin_system_status(
         default="current_month",
         description="Operator period. Allowed values: current_month, last_month, last_3_months.",
     ),
-    _user_id: int = Security(loggedin_user, scopes=["admin"]),
+    _user_id: int = Security(loggedin_user, scopes=["admin", "reports"]),
 ):
     top_ani_limit = top_ani if top_ani in {5, 10, 15} else 10
     normalized_operator_period = (
