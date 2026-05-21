@@ -4,16 +4,17 @@ import logging
 
 import redis as redis_lib
 from markupsafe import Markup, escape
+from sqladmin import Admin, BaseView, ModelView, expose
+from sqladmin.authentication import login_required
 from starlette.requests import Request
 from starlette.responses import RedirectResponse
 from starlette.routing import Route
-from sqladmin import BaseView, ModelView, expose, Admin
-from sqladmin.authentication import login_required
 
 from firenze.config import settings
 from firenze.database import SessionLocal
 from firenze.models import (
     ApiCredential,
+    AsteriskCDR,
     Client,
     ClientAni,
     DoNotCall,
@@ -58,14 +59,16 @@ class ClientAdmin(ModelView, model=Client):
         Client.anis: "Teléfono",
     }
     column_formatters = {
-        Client.anis: lambda model, _: [
-            Markup(
-                f'<span class="badge bg-blue-lt text-blue">{escape(client_ani.ani)} ({escape(client_ani.q_calls)})</span>'
-            )
-            for client_ani in model.anis
-        ]
-        if model.anis
-        else []
+        Client.anis: lambda model, _: (
+            [
+                Markup(
+                    f'<span class="badge bg-blue-lt text-blue">{escape(client_ani.ani)} ({escape(client_ani.q_calls)})</span>'
+                )
+                for client_ani in model.anis
+            ]
+            if model.anis
+            else []
+        )
     }
 
 
@@ -113,9 +116,7 @@ class ServiceAdmin(ModelView, model=Service):
     icon = "fa-solid fa-blender-phone"
     form_args = {
         "name": {"description": "Human-readable service name, e.g. FonoTarot Chile"},
-        "slug": {
-            "description": "Unique identifier used in dialplan and API, e.g. fonotarot-cl"
-        },
+        "slug": {"description": "Unique identifier used in dialplan and API, e.g. fonotarot-cl"},
     }
 
 
@@ -163,12 +164,8 @@ class OperatorAdmin(ModelView, model=Operator):
         "number": {"description": "Internal SIP extension number, e.g. 1001"},
         "name": {"description": "Operator display name, used in IVR audio and logs"},
         "description": {"description": "Internal notes about this operator (optional)"},
-        "option": {
-            "description": "1-2 digit code the caller presses to select this operator, e.g. 01"
-        },
-        "enable_valkey": {
-            "description": "Use Redis/Valkey for real-time availability state (recommended)"
-        },
+        "option": {"description": "1-2 digit code the caller presses to select this operator, e.g. 01"},
+        "enable_valkey": {"description": "Use Redis/Valkey for real-time availability state (recommended)"},
     }
 
 
@@ -188,12 +185,8 @@ class OperatorPhoneAdmin(ModelView, model=OperatorPhone):
     form_args = {
         "number": {"description": "Phone number to dial, e.g. 56912345678"},
         "enabled": {"description": "Uncheck to temporarily disable this phone number"},
-        "contact": {
-            "description": "Mark as the primary contact number for this operator"
-        },
-        "pin": {
-            "description": "4-digit PIN used for operator login from phone (optional)"
-        },
+        "contact": {"description": "Mark as the primary contact number for this operator"},
+        "pin": {"description": "4-digit PIN used for operator login from phone (optional)"},
         "trunk": {
             "description": "Outbound SIP trunk to use for this number, e.g. claro1, didww-mia-out. Leave blank to use the default trunk"
         },
@@ -217,6 +210,38 @@ class OnlineCallsAdmin(ModelView, model=OnlineCalls):
     name = "Online Call"
     name_plural = "Online Calls"
     icon = "fa-solid fa-signal"
+
+
+class AsteriskCDRAdmin(ModelView, model=AsteriskCDR):
+    column_list = [
+        AsteriskCDR.calldate,
+        AsteriskCDR.src,
+        AsteriskCDR.dst,
+        AsteriskCDR.billsec,
+        AsteriskCDR.disposition,
+        AsteriskCDR.accountcode,
+        AsteriskCDR.zvn_clientid,
+        AsteriskCDR.zvn_client_ani,
+    ]
+    column_searchable_list = [
+        AsteriskCDR.src,
+        AsteriskCDR.dst,
+        AsteriskCDR.userfield,
+        AsteriskCDR.zvn_clientid,
+        AsteriskCDR.zvn_client_ani,
+    ]
+    column_sortable_list = [
+        AsteriskCDR.calldate,
+        AsteriskCDR.accountcode,
+        AsteriskCDR.zvn_clientid,
+        AsteriskCDR.zvn_client_ani,
+    ]
+    can_create = False
+    can_edit = False
+    can_delete = False
+    name = "CDR"
+    name_plural = "CDRs"
+    icon = "fa-solid fa-music"
 
 
 class PostCallProcessAdmin(ModelView, model=PostCallProcess):
@@ -246,15 +271,11 @@ class UserAdmin(ModelView, model=User):
     form_args = {
         "login": {"description": "Username for SQLAdmin/passwordless authentication"},
         "email": {"description": "Contact email address"},
-        "password": {
-            "description": "Plain text — will be hashed automatically on save"
-        },
+        "password": {"description": "Plain text — will be hashed automatically on save"},
         "allowed_ips": {
             "description": 'Deprecated. Kept for compatibility only; not enforced by auth. Previous format: ["10.0.0.1"].'
         },
-        "enabled": {
-            "description": "Uncheck to disable API access without deleting the user"
-        },
+        "enabled": {"description": "Uncheck to disable API access without deleting the user"},
         "scopes": {
             "description": 'JSON list of scopes, e.g. ["core", "admin"]. Available: core, audiotex, asterisk, firenze, admin'
         },
@@ -290,9 +311,7 @@ class ApiCredentialAdmin(ModelView, model=ApiCredential):
     column_searchable_list = [ApiCredential.api_key, ApiCredential.name]
     form_args = {
         "name": {"description": "Optional internal label for this credential"},
-        "api_key": {
-            "description": "Public key identifier. Create/rotate via CLI users commands."
-        },
+        "api_key": {"description": "Public key identifier. Create/rotate via CLI users commands."},
         "enabled": {"description": "Disable to immediately block this credential"},
         "expires_at": {"description": "Optional expiry timestamp (UTC)"},
     }
@@ -365,9 +384,7 @@ class FirenzeAdmin(Admin):
                 request_ip = request.client.host if request.client else ""
                 user_agent = request.headers.get("user-agent", "")
                 if auth_service.can_issue_passwordless_code(db, user, request_ip):
-                    code = auth_service.create_passwordless_code(
-                        db, user, request_ip, user_agent
-                    )
+                    code = auth_service.create_passwordless_code(db, user, request_ip, user_agent)
                     auth_service.send_passwordless_code_email(user.email, code)
         finally:
             db.close()
@@ -503,9 +520,7 @@ class FirenzeAdmin(Admin):
         db = SessionLocal()
         try:
             operators = db.query(Operator).order_by(Operator.number).all()
-            online_calls = (
-                db.query(OnlineCalls).order_by(OnlineCalls.created_at.desc()).all()
-            )
+            online_calls = db.query(OnlineCalls).order_by(OnlineCalls.created_at.desc()).all()
         finally:
             db.close()
 
@@ -514,9 +529,7 @@ class FirenzeAdmin(Admin):
         for op in operators:
             rs = redis_operators.get(op.number)
             if op.enable_valkey and rs is not None:
-                synced = (
-                    rs["loggedin"] == op.loggedin and rs["available"] == op.available
-                )
+                synced = rs["loggedin"] == op.loggedin and rs["available"] == op.available
             else:
                 synced = None
             enriched_operators.append(
@@ -541,11 +554,7 @@ class FirenzeAdmin(Admin):
         for call in online_calls:
             enriched_calls.append(
                 {
-                    "source": (
-                        "db+redis"
-                        if (call.service, call.ani) in redis_call_keys
-                        else "db_only"
-                    ),
+                    "source": ("db+redis" if (call.service, call.ani) in redis_call_keys else "db_only"),
                     "service": call.service,
                     "ani": call.ani,
                     "did": call.did,
@@ -565,9 +574,7 @@ class FirenzeAdmin(Admin):
                         "did": rc["did"],
                         "operator": rc["operator"],
                         "client_id": rc["client_id"],
-                        "created_at": (
-                            datetime.datetime.fromtimestamp(ts) if ts else None
-                        ),
+                        "created_at": (datetime.datetime.fromtimestamp(ts) if ts else None),
                     }
                 )
 
@@ -593,5 +600,6 @@ def register_admin(admin):
     admin.add_view(OperatorAdmin)
     admin.add_view(OperatorPhoneAdmin)
     admin.add_view(OnlineCallsAdmin)
+    admin.add_view(AsteriskCDRAdmin)
     # admin.add_view(PostCallProcessAdmin)
     # admin.add_view(EventAdmin)

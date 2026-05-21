@@ -21,9 +21,7 @@ app = typer.Typer()
 
 
 @app.command("login")
-def login(
-    ctx: typer.Context, number: int = typer.Argument(..., help="Operator Number")
-):
+def login(ctx: typer.Context, number: int = typer.Argument(..., help="Operator Number")):
     """Mark operator as logged in and available."""
     session = ctx.obj.get("dbsession")
     redis_conn = ctx.obj.get("redis")
@@ -38,9 +36,7 @@ def login(
 
 
 @app.command("logout")
-def logout(
-    ctx: typer.Context, number: int = typer.Argument(..., help="Operator Number")
-):
+def logout(ctx: typer.Context, number: int = typer.Argument(..., help="Operator Number")):
     """Mark operator as logged out and unavailable."""
     session = ctx.obj.get("dbsession")
     redis_conn = ctx.obj.get("redis")
@@ -100,9 +96,7 @@ def list_operators(ctx: typer.Context):
             str(op.number),
             str(op.name),
             str(op.option),
-            "\n".join(
-                f"{p.number}/E:{p.enabled}/C:{p.contact}/P:{p.pin}" for p in op.numbers
-            ),
+            "\n".join(f"{p.number}/E:{p.enabled}/C:{p.contact}/P:{p.pin}" for p in op.numbers),
             str(op.lastcall),
             str(op.loggedin),
             str(op.available),
@@ -144,9 +138,7 @@ def info(
     table.add_row("Last Call", str(op.lastcall), str(kv["lastcall"]) if kv else "N/A")
     table.add_row(
         "Phones",
-        "\n".join(
-            f"{p.number}/E:{p.enabled}/C:{p.contact}/P:{p.pin}" for p in op.numbers
-        ),
+        "\n".join(f"{p.number}/E:{p.enabled}/C:{p.contact}/P:{p.pin}" for p in op.numbers),
         "",
     )
 

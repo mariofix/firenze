@@ -23,9 +23,7 @@ class User(Base, TimestampMixin):
     allowed_ips: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
     enabled: Mapped[bool] = mapped_column(default=True)
     scopes: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
-    api_credentials: Mapped[list["ApiCredential"]] = relationship(
-        back_populates="user", cascade="all, delete-orphan"
-    )
+    api_credentials: Mapped[list["ApiCredential"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
     def __str__(self):
         return self.login

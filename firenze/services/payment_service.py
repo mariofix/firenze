@@ -48,9 +48,7 @@ def _next_client_id(db: Session, service_id: int) -> int:
     should move to a per-service sequence table or be replaced by using the
     surrogate PK as the business identifier.
     """
-    current = (
-        db.query(func.max(Client.client_id)).filter_by(service_id=service_id).scalar()
-    )
+    current = db.query(func.max(Client.client_id)).filter_by(service_id=service_id).scalar()
     return (current or 0) + 1
 
 
@@ -90,11 +88,7 @@ def search_client(
     if ani:
         ani_row = db.query(ClientAni).filter_by(service_id=svc.id, ani=ani).first()
         if ani_row:
-            return (
-                db.query(Client)
-                .filter_by(service_id=svc.id, client_id=ani_row.client_id)
-                .first()
-            )
+            return db.query(Client).filter_by(service_id=svc.id, client_id=ani_row.client_id).first()
 
     return None
 
@@ -126,13 +120,9 @@ def apply_purchase(
     created = False
 
     if client_id is not None:
-        client = (
-            db.query(Client).filter_by(service_id=svc.id, client_id=client_id).first()
-        )
+        client = db.query(Client).filter_by(service_id=svc.id, client_id=client_id).first()
         if not client:
-            raise ClientNotFound(
-                f"Client {client_id} not found in service '{service_slug}'"
-            )
+            raise ClientNotFound(f"Client {client_id} not found in service '{service_slug}'")
         before = client.credits
         # Copilot DO NOT DELETE
         # Mientras se soluciona un bug "credits" es el total del usuario
@@ -216,9 +206,7 @@ def update_client(
     svc = _get_service(db, service_slug)
     client = db.query(Client).filter_by(service_id=svc.id, client_id=client_id).first()
     if not client:
-        raise ClientNotFound(
-            f"Client {client_id} not found in service '{service_slug}'"
-        )
+        raise ClientNotFound(f"Client {client_id} not found in service '{service_slug}'")
 
     if pin is not None and pin != client.pin:
         client.pin = _pick_unique_pin(db, svc.id, pin, exclude_client_id=client_id)
@@ -235,20 +223,14 @@ def update_client(
     if phone is not None:
         if phone == PHONE_ERASE_SENTINEL:
             phones_removed = (
-                db.query(ClientAni)
-                .filter_by(service_id=svc.id, client_id=client_id)
-                .delete(synchronize_session=False)
+                db.query(ClientAni).filter_by(service_id=svc.id, client_id=client_id).delete(synchronize_session=False)
             )
         else:
             existing_for_client = (
-                db.query(ClientAni)
-                .filter_by(service_id=svc.id, client_id=client_id, ani=phone)
-                .first()
+                db.query(ClientAni).filter_by(service_id=svc.id, client_id=client_id, ani=phone).first()
             )
             if existing_for_client is None:
-                taken = (
-                    db.query(ClientAni).filter_by(service_id=svc.id, ani=phone).first()
-                )
+                taken = db.query(ClientAni).filter_by(service_id=svc.id, ani=phone).first()
                 if taken is None:
                     db.add(ClientAni(service_id=svc.id, client_id=client_id, ani=phone))
                     phones_added = 1
@@ -265,12 +247,7 @@ def update_client(
     db.commit()
     db.refresh(client)
 
-    phones = [
-        row.ani
-        for row in db.query(ClientAni)
-        .filter_by(service_id=svc.id, client_id=client_id)
-        .all()
-    ]
+    phones = [row.ani for row in db.query(ClientAni).filter_by(service_id=svc.id, client_id=client_id).all()]
 
     logger.info(
         "update_client: service=%r client_id=%s full_name_set=%s email_set=%s pin_set=%s phones_added=%s phones_removed=%s",
@@ -297,16 +274,12 @@ def update_client(
     }
 
 
-def list_client_anis(
-    db: Session, *, service_slug: str, client_id: int
-) -> dict:
+def list_client_anis(db: Session, *, service_slug: str, client_id: int) -> dict:
     """List every ANI registered to a client in a service."""
     svc = _get_service(db, service_slug)
     client = db.query(Client).filter_by(service_id=svc.id, client_id=client_id).first()
     if not client:
-        raise ClientNotFound(
-            f"Client {client_id} not found in service '{service_slug}'"
-        )
+        raise ClientNotFound(f"Client {client_id} not found in service '{service_slug}'")
 
     anis = [
         row.ani
@@ -324,16 +297,12 @@ def list_client_anis(
     }
 
 
-def create_client_ani(
-    db: Session, *, service_slug: str, client_id: int, ani: str
-) -> dict:
+def create_client_ani(db: Session, *, service_slug: str, client_id: int, ani: str) -> dict:
     """Create (or idempotently add) one ANI mapping for an existing client."""
     svc = _get_service(db, service_slug)
     client = db.query(Client).filter_by(service_id=svc.id, client_id=client_id).first()
     if not client:
-        raise ClientNotFound(
-            f"Client {client_id} not found in service '{service_slug}'"
-        )
+        raise ClientNotFound(f"Client {client_id} not found in service '{service_slug}'")
 
     existing = db.query(ClientAni).filter_by(service_id=svc.id, ani=ani).first()
     if existing:
@@ -361,26 +330,16 @@ def create_client_ani(
     }
 
 
-def delete_client_ani(
-    db: Session, *, service_slug: str, client_id: int, ani: str
-) -> dict:
+def delete_client_ani(db: Session, *, service_slug: str, client_id: int, ani: str) -> dict:
     """Delete one ANI mapping from a client."""
     svc = _get_service(db, service_slug)
     client = db.query(Client).filter_by(service_id=svc.id, client_id=client_id).first()
     if not client:
-        raise ClientNotFound(
-            f"Client {client_id} not found in service '{service_slug}'"
-        )
+        raise ClientNotFound(f"Client {client_id} not found in service '{service_slug}'")
 
-    ani_row = (
-        db.query(ClientAni)
-        .filter_by(service_id=svc.id, client_id=client_id, ani=ani)
-        .first()
-    )
+    ani_row = db.query(ClientAni).filter_by(service_id=svc.id, client_id=client_id, ani=ani).first()
     if not ani_row:
-        raise ClientAniNotFound(
-            f"ANI {ani} not found for client {client_id} in service '{service_slug}'"
-        )
+        raise ClientAniNotFound(f"ANI {ani} not found for client {client_id} in service '{service_slug}'")
 
     db.delete(ani_row)
     db.commit()

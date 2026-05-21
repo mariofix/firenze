@@ -22,7 +22,7 @@ class CombinedAccessFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         try:
             client_addr, method, full_path, http_version, status_code = record.args
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             return super().format(record)
 
         recordcopy = copy(record)
@@ -31,9 +31,7 @@ class CombinedAccessFormatter(logging.Formatter):
                 "h": client_addr,
                 "l": "-",
                 "u": "-",
-                "t": datetime.fromtimestamp(record.created).astimezone().strftime(
-                    "[%d/%b/%Y:%H:%M:%S %z]"
-                ),
+                "t": datetime.fromtimestamp(record.created).astimezone().strftime("[%d/%b/%Y:%H:%M:%S %z]"),
                 "r": f"{method} {full_path} HTTP/{http_version}",
                 "s": status_code,
                 "b": "-",

@@ -44,13 +44,7 @@ def create_user(db: Session, user: schemas.UserCreate):
 
 def get_events(db: Session, skip: int = 0, limit: int = 100):
     logger.debug(f"get_events(db, {skip}, {limit})")
-    return (
-        db.query(models.Event)
-        .order_by(models.Event.id.desc())
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
+    return db.query(models.Event).order_by(models.Event.id.desc()).offset(skip).limit(limit).all()
 
 
 def create_event(event_name: str, extra: str, data: str, request: Request, db: Session):

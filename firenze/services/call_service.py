@@ -34,9 +34,7 @@ def insert_call(
     Idempotent on the happy path - the unique constraint on ``(service, ani)``
     is the authority.
     """
-    call = OnlineCalls(
-        service=service, ani=ani, did=did, client_id=client_id, operator=operator
-    )
+    call = OnlineCalls(service=service, ani=ani, did=did, client_id=client_id, operator=operator)
     db.add(call)
     try:
         db.commit()

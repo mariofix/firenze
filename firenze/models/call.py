@@ -34,9 +34,7 @@ class PostCallProcess(Base, TimestampMixin):
     client_id: Mapped[int] = mapped_column()
     processed: Mapped[bool] = mapped_column(default=False)
 
-    __table_args__ = (
-        UniqueConstraint("service", "client_id", name="oc_unique_process"),
-    )
+    __table_args__ = (UniqueConstraint("service", "client_id", name="oc_unique_process"),)
 
     def __str__(self):
         return str(self.id)

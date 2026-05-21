@@ -116,13 +116,9 @@ class AdminAuth(AuthenticationBackend):
         form = await request.form()
         db = SessionLocal()
         try:
-            user = auth_service.authenticate_password_user(
-                db, form["username"], form["password"]
-            )
+            user = auth_service.authenticate_password_user(db, form["username"], form["password"])
             if not user:
-                logger.warning(
-                    "AdminAuth: bad credentials for %r", form.get("username")
-                )
+                logger.warning("AdminAuth: bad credentials for %r", form.get("username"))
                 return False
             if not auth_service.has_required_scopes(user, ["admin"]):
                 logger.warning("AdminAuth: user %r lacks admin scope", user.login)
@@ -147,9 +143,7 @@ class AdminAuth(AuthenticationBackend):
             if not user or not user.enabled:
                 return RedirectResponse(request.url_for("admin:login"), status_code=302)
             if not auth_service.has_required_scopes(user, ["admin"]):
-                return RedirectResponse(
-                    request.url_for("admin:logout"), status_code=302
-                )
+                return RedirectResponse(request.url_for("admin:logout"), status_code=302)
             return True
         finally:
             db.close()

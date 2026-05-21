@@ -51,12 +51,8 @@ def clients_search(
     service: str = Query(..., description="Service slug, e.g. fonotarot-cl"),
     client_id: int | None = Query(default=None),
     email: str | None = Query(default=None),
-    phone: str | None = Query(
-        default=None, description="Deprecated; accepted but ignored"
-    ),
-    ani: str | None = Query(
-        default=None, description="Caller-ID registered to ClientAni"
-    ),
+    phone: str | None = Query(default=None, description="Deprecated; accepted but ignored"),
+    ani: str | None = Query(default=None, description="Caller-ID registered to ClientAni"),
     pin: str | None = Query(default=None, description="PIN for PIN-auth services"),
     db: Session = Depends(get_db),
     _user_id: int = Security(loggedin_user, scopes=["firenze"]),
@@ -132,11 +128,7 @@ def clients_create(
     db: Session = Depends(get_db),
     _user_id: int = Security(loggedin_user, scopes=["firenze"]),
 ):
-    extra_config = (
-        payload.extra_config.model_dump(exclude_none=True)
-        if payload.extra_config is not None
-        else None
-    )
+    extra_config = payload.extra_config.model_dump(exclude_none=True) if payload.extra_config is not None else None
     try:
         return create_client(
             db,
@@ -168,6 +160,7 @@ def clients_create(
         )
         raise HTTPException(status_code=422, detail=str(exc))
 
+
 @clientsRouter.patch(
     "/{service}/{client_id}",
     response_model=ClientResponse,
@@ -181,11 +174,7 @@ def clients_update(
     _user_id: int = Security(loggedin_user, scopes=["firenze"]),
 ):
     extra_config_provided = "extra_config" in payload.model_fields_set
-    extra_config = (
-        payload.extra_config.model_dump(exclude_none=True)
-        if payload.extra_config is not None
-        else None
-    )
+    extra_config = payload.extra_config.model_dump(exclude_none=True) if payload.extra_config is not None else None
     try:
         return update_client_record(
             db,
@@ -217,6 +206,7 @@ def clients_update(
             exc,
         )
         raise HTTPException(status_code=422, detail=str(exc))
+
 
 @clientsRouter.delete(
     "/{service}/{client_id}",

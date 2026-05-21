@@ -20,9 +20,7 @@ cli.add_typer(did.app, name="did", help="DID resolution")
 cli.add_typer(operators.app, name="operator", help="Operator login, logout, and status")
 cli.add_typer(client.app, name="client", help="Client management tools")
 cli.add_typer(calls.app, name="calls", help="Online call tracking (debug)")
-cli.add_typer(
-    migration.app, name="migration", help="Migrate data from the legacy Firenze API"
-)
+cli.add_typer(migration.app, name="migration", help="Migrate data from the legacy Firenze API")
 cli.add_typer(fastapi.app, name="fastapi", help="various tools for fastapi")
 
 
@@ -37,7 +35,5 @@ def main(ctx: typer.Context):
     try:
         ctx.obj["redis"] = get_redis()
     except Exception:
-        logger.warning(
-            "Redis unavailable — operator state commands will skip Redis sync"
-        )
+        logger.warning("Redis unavailable — operator state commands will skip Redis sync")
         ctx.obj["redis"] = None

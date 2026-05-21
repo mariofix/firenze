@@ -65,9 +65,7 @@ def thanks(
     tags=["core"],
     include_in_schema=True,
 )
-def get_events(
-    uid=Security(auth.loggedin_user, scopes=["core"]), db: Session = Depends(get_db)
-):
+def get_events(uid=Security(auth.loggedin_user, scopes=["core"]), db: Session = Depends(get_db)):
     events = crud.get_events(db)
 
     return events
@@ -87,9 +85,7 @@ async def create_event(
     tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    if "content-type" in request.headers and "application/json" in request.headers.get(
-        "content-type"
-    ):
+    if "content-type" in request.headers and "application/json" in request.headers.get("content-type"):
         data = await request.body()
     else:
         data = await request.form()

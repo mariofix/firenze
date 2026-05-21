@@ -25,15 +25,9 @@ class PurchaseRequest(BaseModel):
 
     model_config = ConfigDict(str_strip_whitespace=True)
 
-    service: str = Field(
-        ..., min_length=1, description="Service slug, e.g. fonotarot-cl"
-    )
-    credits: int = Field(
-        ..., gt=0, description="Seconds of airtime to add to the balance"
-    )
-    client_id: Optional[int] = Field(
-        default=None, description="Existing client_id; omit to create"
-    )
+    service: str = Field(..., min_length=1, description="Service slug, e.g. fonotarot-cl")
+    credits: int = Field(..., gt=0, description="Seconds of airtime to add to the balance")
+    client_id: Optional[int] = Field(default=None, description="Existing client_id; omit to create")
     email: Optional[EmailStr] = None
     full_name: Optional[str] = Field(default=None, max_length=128)
     phone_number: Optional[str] = Field(default=None, max_length=16)
@@ -51,9 +45,7 @@ class PurchaseRequest(BaseModel):
     @model_validator(mode="after")
     def _require_email_when_creating(self) -> "PurchaseRequest":
         if self.client_id is None and not self.email:
-            raise ValueError(
-                "email is required when client_id is omitted (creating a new client)"
-            )
+            raise ValueError("email is required when client_id is omitted (creating a new client)")
         return self
 
 
@@ -95,9 +87,7 @@ class ClientUpdateRequest(BaseModel):
         if v is None or v == PHONE_ERASE_SENTINEL:
             return v
         if not v.isdigit() or not (8 <= len(v) <= 15):
-            raise ValueError(
-                "phone must be 8-15 digits or the literal sentinel '::EMPTY::'"
-            )
+            raise ValueError("phone must be 8-15 digits or the literal sentinel '::EMPTY::'")
         return v
 
     @model_validator(mode="after")

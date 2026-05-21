@@ -86,9 +86,7 @@ def _get_operator_by_option(db: Session, option: str) -> Operator:
     return op
 
 
-def login(
-    db: Session, number: int, redis_conn: Optional[redis.Redis] = None
-) -> Operator:
+def login(db: Session, number: int, redis_conn: Optional[redis.Redis] = None) -> Operator:
     """Mark operator as logged in and available in DB and Redis."""
     op = _get_operator(db, number)
     op.loggedin = True
@@ -97,16 +95,12 @@ def login(
     db.refresh(op)
 
     if op.enable_valkey and redis_conn:
-        operator_state.set_state(
-            redis_conn, op.number, loggedin=True, available=True, lastcall=0
-        )
+        operator_state.set_state(redis_conn, op.number, loggedin=True, available=True, lastcall=0)
 
     return op
 
 
-def logout(
-    db: Session, number: int, redis_conn: Optional[redis.Redis] = None
-) -> Operator:
+def logout(db: Session, number: int, redis_conn: Optional[redis.Redis] = None) -> Operator:
     """Mark operator as logged out and unavailable in DB and Redis."""
     op = _get_operator(db, number)
     op.loggedin = False
@@ -120,17 +114,13 @@ def logout(
     return op
 
 
-def login_by_phone(
-    db: Session, ani: str, redis_conn: Optional[redis.Redis] = None
-) -> Operator:
+def login_by_phone(db: Session, ani: str, redis_conn: Optional[redis.Redis] = None) -> Operator:
     """Look up operator by phone ANI and mark as logged in and available."""
     op = _get_operator_by_phone(db, ani)
     return login(db, op.number, redis_conn)
 
 
-def logout_by_phone(
-    db: Session, ani: str, redis_conn: Optional[redis.Redis] = None
-) -> Operator:
+def logout_by_phone(db: Session, ani: str, redis_conn: Optional[redis.Redis] = None) -> Operator:
     """Look up operator by phone ANI and mark as logged out and unavailable."""
     op = _get_operator_by_phone(db, ani)
     return logout(db, op.number, redis_conn)
@@ -244,15 +234,10 @@ def select_operator(
     else:
         # Get candidates without lock first to avoid locking the whole table.
         candidate_numbers = [
-            row[0]
-            for row in db.query(Operator.number)
-            .filter_by(loggedin=True, available=True)
-            .all()
+            row[0] for row in db.query(Operator.number).filter_by(loggedin=True, available=True).all()
         ]
         if not candidate_numbers:
-            logger.warning(
-                "select_operator: no candidates (no operator has loggedin=True AND available=True)"
-            )
+            logger.warning("select_operator: no candidates (no operator has loggedin=True AND available=True)")
             return {"ok": False, "reason": "no-operators"}
 
         remaining = list(candidate_numbers)
@@ -261,10 +246,7 @@ def select_operator(
             num = secrets.choice(remaining)
             remaining.remove(num)
             candidate = (
-                db.query(Operator)
-                .filter_by(number=num, loggedin=True, available=True)
-                .with_for_update()
-                .first()
+                db.query(Operator).filter_by(number=num, loggedin=True, available=True).with_for_update().first()
             )
             if candidate:
                 op = candidate
@@ -309,9 +291,7 @@ def select_operator(
     }
 
 
-def release_operator(
-    db: Session, number: int, redis_conn: Optional[redis.Redis] = None
-) -> Operator:
+def release_operator(db: Session, number: int, redis_conn: Optional[redis.Redis] = None) -> Operator:
     """Mark operator as available again after a call ends.
 
     Stamps ``lastcall`` in Redis so we can see when the operator last wrapped

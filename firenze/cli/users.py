@@ -60,9 +60,7 @@ def create_user(
     login: str = typer.Option(..., prompt="Username"),
     email: str = typer.Option(..., prompt="Email"),
     scopes: str = typer.Option(..., prompt="Scopes (comma separated)"),
-    password: str = typer.Option(
-        ..., prompt="Password", hide_input=True, confirmation_prompt="Again"
-    ),
+    password: str = typer.Option(..., prompt="Password", hide_input=True, confirmation_prompt="Again"),
     enabled: bool = typer.Option(False, help="Enable the user immediately"),
 ):
     """Create a new API user (disabled by default)."""

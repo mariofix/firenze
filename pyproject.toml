@@ -58,6 +58,9 @@ timezone = "America/Santiago"
 [tool.ruff]
 line-length = 119
 
+[tool.black]
+line-length = 119
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

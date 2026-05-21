@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 import bcrypt
 from argon2 import PasswordHasher
-from argon2.exceptions import InvalidHashError, VerifyMismatchError, VerificationError
+from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
 from daleks.contrib.client import DaleksClient
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
@@ -22,7 +22,7 @@ def hash_secret(secret: str) -> str:
 def verify_secret(secret: str, secret_hash: str) -> bool:
     try:
         return _argon2_hasher.verify(secret_hash, secret)
-    except (VerifyMismatchError, VerificationError, InvalidHashError):
+    except VerifyMismatchError, VerificationError, InvalidHashError:
         return False
 
 
@@ -58,11 +58,7 @@ def create_api_credential(
     api_key = generate_api_key()
     # Retry collisions defensively; key is public identifier.
     for _ in range(5):
-        exists = (
-            db.query(models.ApiCredential)
-            .filter(models.ApiCredential.api_key == api_key)
-            .first()
-        )
+        exists = db.query(models.ApiCredential).filter(models.ApiCredential.api_key == api_key).first()
         if not exists:
             break
         api_key = generate_api_key()
@@ -95,11 +91,7 @@ def revoke_api_credential(db: Session, credential: models.ApiCredential) -> mode
 def authenticate_api_credential(
     db: Session, api_key: str, api_secret: str
 ) -> tuple[models.User, models.ApiCredential] | None:
-    credential = (
-        db.query(models.ApiCredential)
-        .filter(models.ApiCredential.api_key == api_key)
-        .first()
-    )
+    credential = db.query(models.ApiCredential).filter(models.ApiCredential.api_key == api_key).first()
     if not credential:
         return None
     if not _is_credential_active(credential):
@@ -146,14 +138,8 @@ def has_required_scopes(user: models.User, required_scopes: list[str]) -> bool:
     return True
 
 
-def find_user_for_passwordless_identifier(
-    db: Session, identifier: str
-) -> models.User | None:
-    return (
-        db.query(models.User)
-        .filter(or_(models.User.login == identifier, models.User.email == identifier))
-        .first()
-    )
+def find_user_for_passwordless_identifier(db: Session, identifier: str) -> models.User | None:
+    return db.query(models.User).filter(or_(models.User.login == identifier, models.User.email == identifier)).first()
 
 
 def can_issue_passwordless_code(db: Session, user: models.User, request_ip: str) -> bool:
@@ -187,9 +173,7 @@ def can_issue_passwordless_code(db: Session, user: models.User, request_ip: str)
     return True
 
 
-def create_passwordless_code(
-    db: Session, user: models.User, request_ip: str, user_agent: str
-) -> str:
+def create_passwordless_code(db: Session, user: models.User, request_ip: str, user_agent: str) -> str:
     now = datetime.now(timezone.utc)
     db.query(AuthLoginCode).filter(
         AuthLoginCode.user_id == user.id,
@@ -234,9 +218,7 @@ def send_passwordless_code_email(recipient: str, code: str) -> None:
         )
 
 
-def verify_passwordless_code(
-    db: Session, identifier: str, code: str
-) -> models.User | None:
+def verify_passwordless_code(db: Session, identifier: str, code: str) -> models.User | None:
     now = datetime.now(timezone.utc)
     user = find_user_for_passwordless_identifier(db, identifier)
     if not user or not user.enabled:

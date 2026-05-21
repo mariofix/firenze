@@ -1,8 +1,10 @@
+import datetime
 import secrets
 import string
 from typing import Optional
 
 from sqlalchemy import (
+    JSON,
     ForeignKey,
     ForeignKeyConstraint,
     Index,
@@ -10,13 +12,12 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     event,
-    JSON
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from firenze.database import Base
 from firenze.models.base import TimestampMixin
-import datetime
+
 
 def _generate_pin() -> str:
     """Generate a random 8-digit PIN string."""
@@ -45,9 +46,7 @@ class Client(Base, TimestampMixin):
     extra_config: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True, default=None)
 
     service: Mapped[Optional["Service"]] = relationship()
-    anis: Mapped[list["ClientAni"]] = relationship(
-        back_populates="client", cascade="all, delete-orphan"
-    )
+    anis: Mapped[list["ClientAni"]] = relationship(back_populates="client", cascade="all, delete-orphan")
 
     __table_args__ = (
         UniqueConstraint("service_id", "client_id", name="uq_client_service_clientid"),

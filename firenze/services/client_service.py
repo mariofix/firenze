@@ -62,15 +62,12 @@ def lookup(db: Session, service_slug: str, identifier: str) -> dict:
         if client_id:
             client = db.query(Client).filter_by(service_id=svc.id, client_id=client_id.client_id).first()
 
-
     if not client:
         return {"clientid": 0, "segundos": 0}
     return {"clientid": client.client_id, "segundos": client.credits}
 
 
-def deduct_credits(
-    db: Session, service_slug: str, client_id: int, seconds: int
-) -> dict:
+def deduct_credits(db: Session, service_slug: str, client_id: int, seconds: int) -> dict:
     """Deduct seconds from a client's credit balance.
 
     Returns dict with ``ok`` and ``remaining``.
@@ -78,16 +75,12 @@ def deduct_credits(
     svc = _get_service(db, service_slug)
     client = db.query(Client).filter_by(service_id=svc.id, client_id=client_id).first()
     if not client:
-        raise ClientNotFound(
-            f"Client {client_id} not found in service '{service_slug}'"
-        )
+        raise ClientNotFound(f"Client {client_id} not found in service '{service_slug}'")
     if client.credits <= 0:
         # Per-client one-call-at-a-time enforcement upstream should make this
         # unreachable. If we land here, the customer made a call without
         # credits - log loudly and notify, but don't fail the deduction.
-        logger.warning(
-            f"deduct_credits called with no balance: {service_slug=} {client_id=} {seconds=} {credits=}"
-        )
+        logger.warning(f"deduct_credits called with no balance: {service_slug=} {client_id=} {seconds=} {credits=}")
         notify(
             subject=f"[firenze] deduct on zero balance: client {client_id}",
             body=(
@@ -109,25 +102,21 @@ def deduct_credits(
     db.refresh(client)
     return {"ok": True, "remaining": client.credits, "before": before_call}
 
-def update_ani_stats(
-    db: Session, service_slug: str, ani: str 
-) -> None:
-    """Update client_ani.q_calls y client_ani.lastcall
-    """
+
+def update_ani_stats(db: Session, service_slug: str, ani: str) -> None:
+    """Update client_ani.q_calls y client_ani.lastcall"""
     svc = _get_service(db, service_slug)
 
     ani = db.query(ClientAni).filter_by(ani=ani, service_id=svc.id).first()
     if ani:
-        ani.q_calls = ani.q_calls+1
+        ani.q_calls = ani.q_calls + 1
         ani.last_call = datetime.datetime.now()
         db.flush()
         db.commit()
 
 
 def _next_client_id(db: Session, service_id: int) -> int:
-    current = (
-        db.query(func.max(Client.client_id)).filter_by(service_id=service_id).scalar()
-    )
+    current = db.query(func.max(Client.client_id)).filter_by(service_id=service_id).scalar()
     return (current or 0) + 1
 
 
@@ -213,9 +202,7 @@ def get_client(db: Session, service_slug: str, client_id: int) -> dict:
     svc = _get_service(db, service_slug)
     client = db.query(Client).filter_by(service_id=svc.id, client_id=client_id).first()
     if not client:
-        raise ClientNotFound(
-            f"Client {client_id} not found in service '{service_slug}'"
-        )
+        raise ClientNotFound(f"Client {client_id} not found in service '{service_slug}'")
     return _client_payload(client, service_slug, _client_anis(db, svc.id, client_id))
 
 
@@ -236,13 +223,9 @@ def create_client(
     if client_id is None:
         client_id = _next_client_id(db, svc.id)
     else:
-        existing = (
-            db.query(Client).filter_by(service_id=svc.id, client_id=client_id).first()
-        )
+        existing = db.query(Client).filter_by(service_id=svc.id, client_id=client_id).first()
         if existing:
-            raise ClientAlreadyExists(
-                f"Client {client_id} already exists in service '{service_slug}'"
-            )
+            raise ClientAlreadyExists(f"Client {client_id} already exists in service '{service_slug}'")
 
     pin = _pick_unique_pin(db, svc.id, pin)
 
@@ -260,9 +243,7 @@ def create_client(
         db.commit()
     except IntegrityError as exc:
         db.rollback()
-        raise ClientAlreadyExists(
-            f"Client {client_id} already exists in service '{service_slug}'"
-        ) from exc
+        raise ClientAlreadyExists(f"Client {client_id} already exists in service '{service_slug}'") from exc
     db.refresh(client)
     return _client_payload(client, service_slug, [])
 
@@ -284,9 +265,7 @@ def update_client_record(
         _validate_extra_config(db, extra_config)
     client = db.query(Client).filter_by(service_id=svc.id, client_id=client_id).first()
     if not client:
-        raise ClientNotFound(
-            f"Client {client_id} not found in service '{service_slug}'"
-        )
+        raise ClientNotFound(f"Client {client_id} not found in service '{service_slug}'")
 
     if pin is not None and pin != client.pin:
         pin = _pick_unique_pin(db, svc.id, pin, exclude_client_id=client_id)
@@ -310,9 +289,7 @@ def delete_client(db: Session, service_slug: str, *, client_id: int) -> dict:
     svc = _get_service(db, service_slug)
     client = db.query(Client).filter_by(service_id=svc.id, client_id=client_id).first()
     if not client:
-        raise ClientNotFound(
-            f"Client {client_id} not found in service '{service_slug}'"
-        )
+        raise ClientNotFound(f"Client {client_id} not found in service '{service_slug}'")
 
     db.delete(client)
     db.commit()

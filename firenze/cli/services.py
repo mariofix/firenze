@@ -2,7 +2,6 @@ import logging.config
 
 import typer
 
-
 from firenze.config import LOGGING_CONFIG
 from firenze.models import ServiceNumber
 
