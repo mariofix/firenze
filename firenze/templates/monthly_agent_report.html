@@ -1,0 +1,132 @@
+{% extends "sqladmin/layout.html" %}
+
+{% block content_header %}
+<div class="row align-items-center">
+  <div class="col-auto">
+    <h2 class="page-title">Reporte Agentes</h2>
+    <div class="page-pretitle">Minutos respondidos por agente y día</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row row-cards">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fa fa-filter me-2"></i>Filtros</h3>
+      </div>
+      <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+          <div class="col-auto">
+            <label class="form-label">Mes</label>
+            <select name="month" class="form-select">
+              {% for m_num, m_name in months_es.items() %}
+              <option value="{{ m_num }}"{% if m_num == month %} selected{% endif %}>{{ m_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-auto">
+            <label class="form-label">Año</label>
+            <input
+              type="number"
+              name="year"
+              value="{{ year }}"
+              min="{{ min_year }}"
+              max="{{ today.year + 1 }}"
+              class="form-control"
+              style="width: 110px"
+            />
+          </div>
+          <div class="col-12 col-lg">
+            <label class="form-label">Agentes (vacío = todos)</label>
+            <div class="d-flex flex-wrap gap-2">
+              {% for agent in data.all_agents if data %}
+              <label class="form-check form-check-inline mb-0">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  name="agents"
+                  value="{{ agent.number }}"
+                  {% if not selected_agents or agent.number in selected_agents %}checked{% endif %}
+                />
+                <span class="form-check-label">
+                  <strong>{{ agent.number }}</strong>
+                  <span class="text-muted small ms-1">{{ agent.name }}</span>
+                </span>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="col-auto">
+            <button type="submit" class="btn btn-primary">
+              <i class="fa fa-search me-1"></i>Ver reporte
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12">
+    {% if error %}
+    <div class="alert alert-danger">
+      <i class="fa fa-triangle-exclamation me-2"></i>
+      No se pudo generar el reporte: <code>{{ error }}</code>
+    </div>
+    {% elif data and data.agents %}
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fa fa-users me-2"></i>{{ months_es[month] }} {{ year }} — Minutos por Agente</h3>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-vcenter card-table">
+          <thead>
+            <tr>
+              <th>Día</th>
+              {% for agent in data.agents %}
+              <th class="text-end" title="{{ agent.name }}">{{ agent.number }}</th>
+              {% endfor %}
+              <th class="text-end fw-bold">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in data.days %}
+            <tr{% if row.total == 0 %} class="text-muted"{% endif %}>
+              <td>{{ row.date }}</td>
+              {% for agent in data.agents %}
+              <td class="text-end">
+                {% set mins = row.minutes_by_agent.get(agent.number, 0) %}
+                {% if mins %}<strong>{{ mins }}</strong>{% else %}<span class="text-muted">—</span>{% endif %}
+              </td>
+              {% endfor %}
+              <td class="text-end fw-bold">
+                {% if row.total %}{{ row.total }}{% else %}<span class="text-muted">—</span>{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr class="table-active fw-bold">
+              <td>Totales</td>
+              {% for agent in data.agents %}
+              <td class="text-end">{{ data.totals.by_agent.get(agent.number, 0) }}</td>
+              {% endfor %}
+              <td class="text-end">{{ data.totals.total }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+    {% elif data and not data.agents %}
+    <div class="alert alert-warning">
+      <i class="fa fa-circle-exclamation me-2"></i>Ningún agente seleccionado.
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+      <i class="fa fa-circle-info me-2"></i>Sin datos para este período.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -35,6 +35,151 @@ from firenze.services import auth_service
 _log = logging.getLogger("firenze")
 
 _TIMESTAMP_EXCLUDED = ["created_at", "modified_at"]
+_REPORT_MIN_YEAR = 2024
+_MONTHS_ES = {
+    1: "Enero",
+    2: "Febrero",
+    3: "Marzo",
+    4: "Abril",
+    5: "Mayo",
+    6: "Junio",
+    7: "Julio",
+    8: "Agosto",
+    9: "Septiembre",
+    10: "Octubre",
+    11: "Noviembre",
+    12: "Diciembre",
+}
+
+
+def _collect_monthly_report(year: int, month: int) -> dict:
+    month_start = datetime.datetime(year, month, 1)
+    next_month = (month_start + datetime.timedelta(days=32)).replace(day=1)
+
+    db = SessionLocal()
+    try:
+        services = db.query(Service).order_by(Service.id).all()
+        service_catalog = [{"slug": svc.slug, "name": svc.name} for svc in services if svc.slug]
+        service_slugs = [svc["slug"] for svc in service_catalog]
+        if service_slugs:
+            rows = (
+                db.query(
+                    func.date(AsteriskCDR.calldate).label("day"),
+                    AsteriskCDR.accountcode,
+                    func.coalesce(func.floor(func.sum(AsteriskCDR.billsec) / 60), 0).label("minutes"),
+                )
+                .filter(
+                    AsteriskCDR.calldate >= month_start,
+                    AsteriskCDR.calldate < next_month,
+                    AsteriskCDR.disposition == "ANSWERED",
+                    AsteriskCDR.zvn_clientid.is_not(None),
+                    AsteriskCDR.zvn_clientid > 1,
+                    AsteriskCDR.accountcode.in_(service_slugs),
+                )
+                .group_by(func.date(AsteriskCDR.calldate), AsteriskCDR.accountcode)
+                .all()
+            )
+        else:
+            rows = []
+    finally:
+        db.close()
+
+    by_day: dict[str, dict[str, int]] = {}
+    for row in rows:
+        day_key = row.day.isoformat()
+        by_day.setdefault(day_key, {})
+        by_day[day_key][row.accountcode] = int(row.minutes or 0)
+
+    days = []
+    totals_by_service = {svc["slug"]: 0 for svc in service_catalog}
+    days_in_month = calendar.monthrange(year, month)[1]
+    for day_number in range(1, days_in_month + 1):
+        day_key = month_start.replace(day=day_number).date().isoformat()
+        service_minutes = {svc["slug"]: by_day.get(day_key, {}).get(svc["slug"], 0) for svc in service_catalog}
+        day_total = sum(service_minutes.values())
+        days.append(
+            {
+                "date": day_key,
+                "services": service_minutes,
+                "total": day_total,
+            }
+        )
+        for slug, minutes in service_minutes.items():
+            totals_by_service[slug] += minutes
+
+    return {
+        "services": service_catalog,
+        "days": days,
+        "totals": {
+            "services": totals_by_service,
+            "total": sum(totals_by_service.values()),
+        },
+    }
+
+
+def _collect_monthly_agent_report(year: int, month: int, selected_agents: tuple[int, ...] | None = None) -> dict:
+    month_start = datetime.datetime(year, month, 1)
+    next_month = (month_start + datetime.timedelta(days=32)).replace(day=1)
+
+    db = SessionLocal()
+    try:
+        operators = db.query(Operator).order_by(Operator.number).all()
+        all_agents = [{"number": int(op.number), "name": op.name} for op in operators]
+
+        rows_query = (
+            db.query(
+                func.date(AsteriskCDR.calldate).label("day"),
+                AsteriskCDR.zvn_operator.label("operator"),
+                func.coalesce(func.floor(func.sum(AsteriskCDR.billsec) / 60), 0).label("minutes"),
+            )
+            .filter(
+                AsteriskCDR.calldate >= month_start,
+                AsteriskCDR.calldate < next_month,
+                AsteriskCDR.disposition == "ANSWERED",
+                AsteriskCDR.zvn_operator.is_not(None),
+                AsteriskCDR.zvn_clientid.is_not(None),
+                AsteriskCDR.zvn_clientid > 1,
+            )
+        )
+        if selected_agents:
+            rows_query = rows_query.filter(AsteriskCDR.zvn_operator.in_(selected_agents))
+        rows = rows_query.group_by(func.date(AsteriskCDR.calldate), AsteriskCDR.zvn_operator).all()
+    finally:
+        db.close()
+
+    if selected_agents:
+        agent_set = set(selected_agents)
+        agents = [agent for agent in all_agents if agent["number"] in agent_set]
+    else:
+        agents = all_agents
+
+    by_day: dict[str, dict[int, int]] = {}
+    for row in rows:
+        day_key = row.day.isoformat()
+        operator_number = int(row.operator or 0)
+        by_day.setdefault(day_key, {})
+        by_day[day_key][operator_number] = int(row.minutes or 0)
+
+    days = []
+    totals_by_agent = {agent["number"]: 0 for agent in agents}
+    days_in_month = calendar.monthrange(year, month)[1]
+    for day_number in range(1, days_in_month + 1):
+        day_key = month_start.replace(day=day_number).date().isoformat()
+        minutes_by_agent = {agent["number"]: by_day.get(day_key, {}).get(agent["number"], 0) for agent in agents}
+        day_total = sum(minutes_by_agent.values())
+        days.append({"date": day_key, "minutes_by_agent": minutes_by_agent, "total": day_total})
+        for operator_number, minutes in minutes_by_agent.items():
+            totals_by_agent[operator_number] += minutes
+
+    return {
+        "agents": agents,
+        "all_agents": all_agents,
+        "days": days,
+        "totals": {
+            "by_agent": totals_by_agent,
+            "total": sum(totals_by_agent.values()),
+        },
+    }
 
 
 class ClientAdmin(ModelView, model=Client):
@@ -118,6 +263,8 @@ class ServiceAdmin(ModelView, model=Service):
     name = "Service"
     name_plural = "Services"
     icon = "fa-solid fa-blender-phone"
+    category = "FonoTarot"
+    category_icon = "fa-solid fa-eye"
     form_args = {
         "name": {"description": "Human-readable service name, e.g. FonoTarot Chile"},
         "slug": {"description": "Unique identifier used in dialplan and API, e.g. fonotarot-cl"},
@@ -136,6 +283,8 @@ class ServiceNumberAdmin(ModelView, model=ServiceNumber):
     name = "DID"
     name_plural = "Service DIDs"
     icon = "fa-solid fa-mobile-retro"
+    category = "FonoTarot"
+    category_icon = "fa-solid fa-eye"
     form_args = {
         "did": {"description": "Full E.164 DID number, e.g. 56229402147"},
         "active": {"description": "Uncheck to stop routing calls to this DID"},
@@ -164,6 +313,8 @@ class OperatorAdmin(ModelView, model=Operator):
     name = "Operator"
     name_plural = "Operators"
     icon = "fa-solid fa-headphones"
+    category = "FonoTarot"
+    category_icon = "fa-solid fa-eye"
     form_args = {
         "number": {"description": "Internal SIP extension number, e.g. 1001"},
         "name": {"description": "Operator display name, used in IVR audio and logs"},
@@ -186,6 +337,8 @@ class OperatorPhoneAdmin(ModelView, model=OperatorPhone):
     name = "Operator Phone"
     name_plural = "Operator Phones"
     icon = "fa-solid fa-phone"
+    category = "FonoTarot"
+    category_icon = "fa-solid fa-eye"
     form_args = {
         "number": {"description": "Phone number to dial, e.g. 56912345678"},
         "enabled": {"description": "Uncheck to temporarily disable this phone number"},
@@ -350,6 +503,97 @@ class AdminIndex(BaseView):
     @expose("/index", methods=["GET"])
     async def admin(self, request):
         return RedirectResponse(url="/admin")
+
+
+class MonthlyReportIndex(BaseView):
+    name = "Reporte Mensual"
+    icon = "fa fa-calendar-days"
+    category = "Reports"
+    category_icon = "fa-solid fa-chart-simple"
+
+    @expose("/monthly-report", methods=["GET"], identity="monthly-report")
+    @login_required
+    async def index(self, request):
+        today = datetime.date.today()
+        try:
+            year = int(request.query_params.get("year", today.year))
+            month = int(request.query_params.get("month", today.month))
+        except (TypeError, ValueError):
+            year, month = today.year, today.month
+
+        month = max(1, min(12, month))
+        year = max(_REPORT_MIN_YEAR, min(today.year + 1, year))
+
+        report = None
+        error = None
+        try:
+            report = await asyncio.to_thread(_collect_monthly_report, year, month)
+        except Exception as exc:  # noqa: BLE001
+            _log.exception("monthly_report failed")
+            error = str(exc)
+
+        return await self.templates.TemplateResponse(
+            request,
+            "monthly_report.html",
+            context={
+                "title": "Reporte Mensual",
+                "year": year,
+                "month": month,
+                "months_es": _MONTHS_ES,
+                "min_year": _REPORT_MIN_YEAR,
+                "today": today,
+                "data": report,
+                "error": error,
+            },
+        )
+
+
+class MonthlyAgentReportIndex(BaseView):
+    name = "Reporte Agentes"
+    icon = "fa fa-users"
+    category = "Reports"
+    category_icon = "fa-solid fa-chart-simple"
+
+    @expose("/monthly-agent-report", methods=["GET"], identity="monthly-agent-report")
+    @login_required
+    async def index(self, request):
+        today = datetime.date.today()
+        try:
+            year = int(request.query_params.get("year", today.year))
+            month = int(request.query_params.get("month", today.month))
+        except (TypeError, ValueError):
+            year, month = today.year, today.month
+
+        month = max(1, min(12, month))
+        year = max(_REPORT_MIN_YEAR, min(today.year + 1, year))
+
+        selected_raw = request.query_params.getlist("agents")
+        selected_agents = tuple(int(v) for v in selected_raw if v.isdigit())
+        selected_agents = selected_agents or None
+
+        report = None
+        error = None
+        try:
+            report = await asyncio.to_thread(_collect_monthly_agent_report, year, month, selected_agents)
+        except Exception as exc:  # noqa: BLE001
+            _log.exception("monthly_agent_report failed")
+            error = str(exc)
+
+        return await self.templates.TemplateResponse(
+            request,
+            "monthly_agent_report.html",
+            context={
+                "title": "Reporte Agentes",
+                "year": year,
+                "month": month,
+                "months_es": _MONTHS_ES,
+                "min_year": _REPORT_MIN_YEAR,
+                "today": today,
+                "data": report,
+                "error": error,
+                "selected_agents": set(selected_agents) if selected_agents else set(),
+            },
+        )
 
 
 class FirenzeAdmin(Admin):
@@ -920,7 +1164,9 @@ def register_admin(admin):
     admin.add_view(ServiceNumberAdmin)
     admin.add_view(OperatorAdmin)
     admin.add_view(OperatorPhoneAdmin)
-    admin.add_view(OnlineCallsAdmin)
     admin.add_view(AsteriskCDRAdmin)
+    admin.add_view(MonthlyReportIndex)
+    admin.add_view(MonthlyAgentReportIndex)
+    admin.add_view(OnlineCallsAdmin)
     # admin.add_view(PostCallProcessAdmin)
     # admin.add_view(EventAdmin)
