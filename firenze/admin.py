@@ -220,8 +220,10 @@ class AsteriskCDRAdmin(ModelView, model=AsteriskCDR):
         AsteriskCDR.billsec,
         AsteriskCDR.disposition,
         AsteriskCDR.accountcode,
+        AsteriskCDR.userfield,
         AsteriskCDR.zvn_clientid,
-        AsteriskCDR.zvn_client_ani,
+        AsteriskCDR.zvn_client_ani
+        AsteriskCDR.zvn_operator,
     ]
     column_searchable_list = [
         AsteriskCDR.src,
@@ -229,12 +231,14 @@ class AsteriskCDRAdmin(ModelView, model=AsteriskCDR):
         AsteriskCDR.userfield,
         AsteriskCDR.zvn_clientid,
         AsteriskCDR.zvn_client_ani,
+        AsteriskCDR.zvn_operator,
     ]
     column_sortable_list = [
         AsteriskCDR.calldate,
         AsteriskCDR.accountcode,
         AsteriskCDR.zvn_clientid,
         AsteriskCDR.zvn_client_ani,
+        AsteriskCDR.zvn_operator,
     ]
     column_default_sort = (AsteriskCDR.calldate, True)
     can_create = False
