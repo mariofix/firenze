@@ -463,7 +463,13 @@ class FirenzeAdmin(Admin):
 
     @login_required
     async def index(self, request):
-        data = await asyncio.to_thread(self._collect_data)
+        top_ani_raw = request.query_params.get("top_ani", "10")
+        try:
+            requested_top_ani = int(top_ani_raw)
+        except (TypeError, ValueError):
+            requested_top_ani = 10
+        top_ani_limit = requested_top_ani if requested_top_ani in {5, 10, 50} else 10
+        data = await asyncio.to_thread(self._collect_data, top_ani_limit)
         return await self.templates.TemplateResponse(
             request,
             "system_status.html",
@@ -475,7 +481,7 @@ class FirenzeAdmin(Admin):
         )
 
     @staticmethod
-    def _collect_data() -> dict:
+    def _collect_data(top_ani_limit: int = 10) -> dict:
         now = datetime.datetime.now()
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         tomorrow_start = today_start + datetime.timedelta(days=1)
@@ -588,11 +594,12 @@ class FirenzeAdmin(Admin):
             ani_top_rows = (
                 db.query(
                     ClientAni.ani,
+                    ClientAni.client_id,
                     ClientAni.q_calls,
                     ClientAni.last_call,
                 )
                 .order_by(ClientAni.q_calls.desc(), ClientAni.last_call.desc(), ClientAni.id.asc())
-                .limit(8)
+                .limit(top_ani_limit)
                 .all()
             )
             cdr_month_answered = (
@@ -778,16 +785,24 @@ class FirenzeAdmin(Admin):
             carrier_breakdown.append({"key": svc["slug"], "label": svc["name"], "minutes": minutes, "share": share})
         carrier_breakdown.sort(key=lambda row: row["minutes"], reverse=True)
 
+        service_color_map = {
+            "fonotarot-cl": "var(--tblr-purple)",
+            "alotarot": "var(--tblr-blue)",
+            "fonotarot-latam": "var(--tblr-green)",
+            "admin-stuff": "var(--tblr-yellow)",
+        }
         chart_services = carrier_breakdown[:3]
         carrier_chart = {
             "labels": [row["day"] for row in carrier_days],
             "series": [
                 {
+                    "key": service["key"],
                     "name": service["label"],
                     "data": [int(day["services"].get(service["key"], 0)) for day in carrier_days],
                 }
                 for service in chart_services
             ],
+            "colors": [service_color_map.get(service["key"], "var(--tblr-primary)") for service in chart_services],
         }
         carrier_totals = {"total": total_carrier_minutes}
 
@@ -820,6 +835,7 @@ class FirenzeAdmin(Admin):
         ani_top_callers = [
             {
                 "ani": row.ani,
+                "client_id": int(row.client_id or 0),
                 "q_calls": int(row.q_calls or 0),
                 "share": round((int(row.q_calls or 0) / top_ani_calls) * 100, 1) if top_ani_calls else 0.0,
                 "last_call": row.last_call,
@@ -865,6 +881,8 @@ class FirenzeAdmin(Admin):
                 "stale_30d": int(ani_usage.stale_30d or 0),
                 "latest_last_call": latest_last_call,
                 "latest_last_call_hours": latest_last_call_hours,
+                "top_limit": top_ani_limit,
+                "top_options": [5, 10, 50],
                 "top_callers": ani_top_callers,
             },
             "cdr_reports": {

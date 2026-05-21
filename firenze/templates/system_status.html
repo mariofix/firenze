@@ -175,30 +175,66 @@
     </div>
   </div>
 
-  <div class="col-12 col-lg-4">
+  <div class="col-12 col-lg-6">
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-headset me-2"></i>Operator Availability</h3>
+        <h3 class="card-title"><i class="fa fa-chart-bar me-2"></i>Reporte Servicios</h3>
       </div>
       <div class="card-body">
-        {% set total_ops = operator_summary.total if operator_summary.total else 1 %}
-
-        {% set logged_in_pct = (operator_summary.logged_in * 100 / total_ops) | round(1) %}
-        <div class="d-flex justify-content-between mb-1"><span>Logged in</span><span class="fw-bold">{{ operator_summary.logged_in }}/{{ operator_summary.total }}</span></div>
-        <div class="progress progress-sm mb-3"><div class="progress-bar bg-blue" style="width: {{ logged_in_pct }}%"></div></div>
-
-        {% set available_pct = (operator_summary.available * 100 / total_ops) | round(1) %}
-        <div class="d-flex justify-content-between mb-1"><span>Available</span><span class="fw-bold">{{ operator_summary.available }}/{{ operator_summary.total }}</span></div>
-        <div class="progress progress-sm mb-3"><div class="progress-bar bg-teal" style="width: {{ available_pct }}%"></div></div>
-
-        {% set synced_pct = (operator_summary.synced * 100 / total_ops) | round(1) %}
-        <div class="d-flex justify-content-between mb-1"><span>Cache synced</span><span class="fw-bold">{{ operator_summary.synced }}/{{ operator_summary.total }}</span></div>
-        <div class="progress progress-sm mb-3"><div class="progress-bar bg-green" style="width: {{ synced_pct }}%"></div></div>
-
-        {% set drift_pct = (operator_summary.drift * 100 / total_ops) | round(1) %}
-        <div class="d-flex justify-content-between mb-1"><span>Cache drift</span><span class="fw-bold">{{ operator_summary.drift }}/{{ operator_summary.total }}</span></div>
-        <div class="progress progress-sm"><div class="progress-bar bg-yellow" style="width: {{ drift_pct }}%"></div></div>
+        <div id="chart-mentions" class="position-relative chart-lg"></div>
       </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-6">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fa fa-mobile-screen-button me-2"></i>Top ANI Activity</h3>
+        <div class="card-actions">
+          {% for opt in ani_reports.top_options %}
+            <a
+              href="{{ request.url.include_query_params(top_ani=opt) }}"
+              class="btn btn-sm {% if ani_reports.top_limit == opt %}btn-primary{% else %}btn-outline-primary{% endif %}"
+            >Top {{ opt }}</a>
+          {% endfor %}
+        </div>
+      </div>
+      <table class="table card-table table-vcenter table-sm">
+        <thead>
+          <tr>
+            <th>ANI</th>
+            <th>Client ID</th>
+            <th>Calls</th>
+            <th class="w-50">Load</th>
+            <th>Last Call</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ani in ani_reports.top_callers %}
+          <tr>
+            <td><code>{{ ani.ani }}</code></td>
+            <td>{{ ani.client_id }}</td>
+            <td>{{ ani.q_calls }}</td>
+            <td>
+              <div class="progress progress-xs">
+                <div class="progress-bar bg-cyan" style="width: {{ ani.share }}%"></div>
+              </div>
+            </td>
+            <td class="text-secondary">
+              {% if ani.last_call %}
+                {{ ani.last_call.strftime('%Y-%m-%d %H:%M') }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="text-center text-muted py-3">No ANI activity tracked yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
 
@@ -247,10 +283,26 @@
   <div class="col-12 col-lg-5">
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-chart-bar me-2"></i>Traffic summary</h3>
+        <h3 class="card-title"><i class="fa fa-headset me-2"></i>Operator Availability</h3>
       </div>
       <div class="card-body">
-        <div id="chart-mentions" class="position-relative chart-lg"></div>
+        {% set total_ops = operator_summary.total if operator_summary.total else 1 %}
+
+        {% set logged_in_pct = (operator_summary.logged_in * 100 / total_ops) | round(1) %}
+        <div class="d-flex justify-content-between mb-1"><span>Logged in</span><span class="fw-bold">{{ operator_summary.logged_in }}/{{ operator_summary.total }}</span></div>
+        <div class="progress progress-sm mb-3"><div class="progress-bar bg-blue" style="width: {{ logged_in_pct }}%"></div></div>
+
+        {% set available_pct = (operator_summary.available * 100 / total_ops) | round(1) %}
+        <div class="d-flex justify-content-between mb-1"><span>Available</span><span class="fw-bold">{{ operator_summary.available }}/{{ operator_summary.total }}</span></div>
+        <div class="progress progress-sm mb-3"><div class="progress-bar bg-teal" style="width: {{ available_pct }}%"></div></div>
+
+        {% set synced_pct = (operator_summary.synced * 100 / total_ops) | round(1) %}
+        <div class="d-flex justify-content-between mb-1"><span>Cache synced</span><span class="fw-bold">{{ operator_summary.synced }}/{{ operator_summary.total }}</span></div>
+        <div class="progress progress-sm mb-3"><div class="progress-bar bg-green" style="width: {{ synced_pct }}%"></div></div>
+
+        {% set drift_pct = (operator_summary.drift * 100 / total_ops) | round(1) %}
+        <div class="d-flex justify-content-between mb-1"><span>Cache drift</span><span class="fw-bold">{{ operator_summary.drift }}/{{ operator_summary.total }}</span></div>
+        <div class="progress progress-sm"><div class="progress-bar bg-yellow" style="width: {{ drift_pct }}%"></div></div>
       </div>
     </div>
   </div>
@@ -286,48 +338,6 @@
           {% endfor %}
         </div>
       </div>
-    </div>
-  </div>
-
-  <div class="col-12">
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-mobile-screen-button me-2"></i>Top ANI Activity</h3>
-      </div>
-      <table class="table card-table table-vcenter">
-        <thead>
-          <tr>
-            <th>ANI</th>
-            <th>Calls</th>
-            <th class="w-50">Load</th>
-            <th>Last Call</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for ani in ani_reports.top_callers %}
-          <tr>
-            <td><code>{{ ani.ani }}</code></td>
-            <td>{{ ani.q_calls }}</td>
-            <td>
-              <div class="progress progress-xs">
-                <div class="progress-bar bg-cyan" style="width: {{ ani.share }}%"></div>
-              </div>
-            </td>
-            <td class="text-secondary">
-              {% if ani.last_call %}
-                {{ ani.last_call.strftime('%Y-%m-%d %H:%M') }}
-              {% else %}
-                —
-              {% endif %}
-            </td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="4" class="text-center text-muted py-3">No ANI activity tracked yet.</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
     </div>
   </div>
 
@@ -372,17 +382,11 @@
 {% block tail %}
 {{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-<style>
-  :root {
-    --chart-mentions-color-0: color-mix(in srgb, transparent, var(--tblr-primary) 100%);
-    --chart-mentions-color-1: color-mix(in srgb, transparent, var(--tblr-primary) 80%);
-    --chart-mentions-color-2: color-mix(in srgb, transparent, var(--tblr-green) 80%);
-  }
-</style>
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const labels = {{ cdr_reports.carrier_chart.labels | tojson }};
     const chartSeries = {{ cdr_reports.carrier_chart.series | tojson }};
+    const chartColors = {{ cdr_reports.carrier_chart.colors | tojson }};
 
     window.ApexCharts &&
       new ApexCharts(document.getElementById("chart-mentions"), {
@@ -422,7 +426,7 @@
           labels: { padding: 4 },
         },
         labels: labels,
-        colors: ["var(--chart-mentions-color-0)", "var(--chart-mentions-color-1)", "var(--chart-mentions-color-2)"],
+        colors: chartColors,
         legend: { show: true, position: "top" },
       }).render();
   });
