@@ -1,53 +1,53 @@
-# Asterisk Visual Dialplan Designer — UX Architecture Proposal
+# Diseñador Visual de Dialplan de Asterisk — Propuesta de Arquitectura UX
 
-Open source replacement for [Apstel Visual Dialplan](https://www.apstel.com/features/) (discontinued). A browser-based drag-and-drop call flow designer for Asterisk.
+Reemplazo de código abierto para [Apstel Visual Dialplan](https://www.apstel.com/features/) (descontinuado). Un diseñador de flujo de llamadas de arrastrar y soltar basado en navegador para Asterisk.
 
-## What It Is
+## Qué es
 
-A visual editor where you design Asterisk call flows by dragging, dropping, and connecting components. The output is a call flow diagram that an admin implements in the actual dialplan via CLI. The app never touches the Asterisk server directly.
+Un editor visual donde diseñas flujos de llamadas de Asterisk arrastrando, soltando y conectando componentes. La salida es un diagrama de flujo de llamadas que un administrador implementa en el dialplan real a través de CLI. La aplicación nunca toca el servidor Asterisk directamente.
 
-**Workflow:**
+**Flujo de trabajo:**
 ```
-Designer builds flow visually → exports diagram / dialplan snippets
-→ Admin reads the flow → implements in extensions.conf via CLI
-→ Admin runs `dialplan reload`
+El diseñador construye el flujo visualmente → exporta diagrama / fragmentos de dialplan
+→ El administrador lee el flujo → implementa en extensions.conf a través de CLI
+→ El administrador ejecuta `dialplan reload`
 ```
 
-An optional **integration server** can connect to a live Asterisk instance to import existing dialplans or push changes, but it's not required. The core app is a static SPA that runs entirely in the browser.
+Un **servidor de integración** opcional puede conectarse a una instancia de Asterisk en vivo para importar dialplans existentes o empujar cambios, pero no es obligatorio. La aplicación principal es un SPA estático que se ejecuta completamente en el navegador.
 
-## What It Is Not
+## Qué es Not
 
-- Not a PBX admin panel (FreePBX, Elastix, FusionPBX)
-- Not a runtime call manager — it doesn't handle live calls
-- Not tied to any specific Asterisk installation or framework
+- No es un panel de administración PBX (FreePBX, Elastix, FusionPBX)
+- No es un administrador de llamadas de tiempo de ejecución — no maneja llamadas en vivo
+- No está vinculado a ninguna instalación específica de Asterisk o marco de trabajo
 
 ---
 
-## Inspiration: Apstel Visual Dialplan
+## Inspiración: Visual Dialplan de Apstel
 
-What Apstel offered (and we aim to replace):
+Lo que Apstel ofreció (y lo que apuntamos a reemplazar):
 
-| Feature | Apstel | This Project |
+| Característica | Apstel | Este Proyecto |
 |---------|--------|--------------|
-| Drag-and-drop flow editor | Yes | Yes |
-| Component library (IVR, Queue, Dial, etc.) | Yes, proprietary | Yes, open source |
-| Database integrations (MySQL, PostgreSQL) | Yes | Planned (via integration server) |
-| FreePBX/Elastix compatibility | Yes | Agnostic — works with any Asterisk |
-| ASR/TTS components | Yes | Planned |
-| Export to dialplan | Unclear | Yes — snippets + full conf |
-| License | Commercial, discontinued | Open source (MIT or Apache-2.0) |
-| Runtime | Desktop app (Windows) | Browser SPA — runs anywhere |
+| Editor de flujo de arrastrar y soltar | Yes | Yes |
+| Biblioteca de componentes (IVR, Cola, Marcar, etc.) | Sí, propietario | Sí, código abierto |
+| Integraciones de base de datos (MySQL, PostgreSQL) | Yes | Planeado (a través del servidor de integración) |
+| Compatibilidad con FreePBX/Elastix | Yes | Agnóstico — funciona con cualquier Asterisk |
+| Componentees ASR/TTS | Yes | Planeado |
+| Exportar a dialplan | Poco claro | Sí — fragmentos + conf completo |
+| Licencia | Comercial, descontinuado | Código abierto (MIT o Apache-2.0) |
+| Tiempo de ejecución | Aplicación de escritorio (Windows) | SPA del navegador — se ejecuta en cualquier lugar |
 
 ---
 
-## Architecture
+## Arquitectura
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        Browser (SPA)                                │
 │                                                                     │
 │  ┌──────────────┐  ┌──────────────────┐  ┌───────────────────────┐ │
-│  │  Flow Canvas  │  │  Component       │  │  Properties Panel    │ │
+│  │  Flow Canvas  │  │  Componente       │  │  Propiedades Panel    │ │
 │  │  (React Flow) │  │  Library Panel   │  │  (per-node config)   │ │
 │  └──────┬───────┘  └────────┬─────────┘  └──────────┬────────────┘ │
 │         │                   │                        │              │
@@ -74,7 +74,7 @@ What Apstel offered (and we aim to replace):
                       │
 ┌─────────────────────┼───────────────────────────────────────────────┐
 │              ┌──────┴──────┐                                        │
-│              │ Integration  │  (FastAPI / Flask / Express — your    │
+│              │ Integración  │  (FastAPI / Flask / Express — your    │
 │              │ Server       │   choice, self-hosted, open source)   │
 │              └──────┬──────┘                                        │
 │                     │                                               │
@@ -89,145 +89,145 @@ What Apstel offered (and we aim to replace):
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-**Key point:** The SPA works standalone. No server, no login, no install. Open index.html in a browser and start designing. The integration server is a separate, optional project.
+**Punto clave:** El SPA funciona de forma independiente. Sin servidor, sin inicio de sesión, sin instalación. Abre index.html en un navegador y comienza a diseñar. El servidor de integración es un proyecto separado, opcional.
 
 ---
 
-## Tech Stack
+## Pila de Tecnología
 
-All open source, all free:
+Todo código abierto, todo gratuito:
 
-| Layer | Tool | License | Why |
+| Capa | Herramienta | Licencia | Por qué |
 |-------|------|---------|-----|
-| **Flow editor** | [React Flow](https://reactflow.dev/) | MIT | Drag-and-drop node editor with handles, zoom, pan, minimap. Built for exactly this. |
-| **Auto layout** | [ELK.js](https://github.com/kieler/elkjs) | EPL-2.0 | Automatic hierarchical layout. One click to auto-arrange a messy graph. |
-| **Frontend** | React 18 + TypeScript + Vite | MIT | React Flow requires React. Vite builds fast, outputs small bundles. |
-| **UI components** | [shadcn/ui](https://ui.shadcn.com/) | MIT | Clean components, copy-pasted into the project (no runtime dependency). |
-| **State** | [Zustand](https://github.com/pmndrs/zustand) | MIT | Flow state, undo/redo, project management. Lightweight. |
-| **Persistence** | localStorage + JSON export/import | — | No server needed. Projects saved in the browser or exported as `.json` files. |
-| **Code preview** | [CodeMirror 6](https://codemirror.net/) | MIT | Read-only preview of generated dialplan snippets. |
-| **Integration server** (optional) | FastAPI / Flask / Express | MIT | Self-hosted. Connects to Asterisk AMI, imports `.conf` files, pushes changes. |
+| **Editor de flujo** | [React Flow](https://reactflow.dev/) | MIT | Editor de nodos de arrastrar y soltar con mangos, zoom, pan, minimapa. Construido para exactamente esto. |
+| **Diseño automático** | [ELK.js](https://github.com/kieler/elkjs) | EPL-2.0 | Diseño jerárquico automático. Un clic para reorganizar automáticamente un gráfico desordenado. |
+| **Frontend** | React 18 + TypeScript + Vite | MIT | React Flow requiere React. Vite construye rápido, genera paquetes pequeños. |
+| **Componentees de UI** | [shadcn/ui](https://ui.shadcn.com/) | MIT | Componentees limpios, copiados y pegados en el proyecto (sin dependencia de tiempo de ejecución). |
+| **Estado** | [Zustand](https://github.com/pmndrs/zustand) | MIT | Estado de flujo, deshacer/rehacer, gestión de proyectos. Ligero. |
+| **Persistencia** | localStorage + JSON export/import | — | Sin servidor necesario. Proyectos guardados en el navegador o exportados como archivos `.json`. |
+| **Vista previa de código** | [CodeMirror 6](https://codemirror.net/) | MIT | Vista previa de solo lectura de fragmentos de dialplan generados. |
+| **Servidor de integración** (opcional) | FastAPI / Flask / Express | MIT | Auto hospedado. Se conecta a Asterisk AMI, importa archivos `.conf`, empuja cambios. |
 
 ---
 
-## Component Library
+## Biblioteca de Componentees
 
-The heart of the app. Each component is a React Flow node with typed input/output handles and a configuration form.
+El corazón de la aplicación. Cada componente es un nodo de React Flow con mangos de entrada/salida tipados y un formulario de configuración.
 
-### Call Flow Components
+### Componentees de Flujo de Llamadas
 
-| Component | Inputs | Outputs | Description |
+| Componente | Entradas | Salidas | Descripción |
 |-----------|--------|---------|-------------|
-| **Inbound** | — | 1 (call enters) | Entry point. Configures: DID pattern, trunk name, caller ID handling. |
-| **Answer** | 1 | 1 | Answer the channel. Optional: delay before answer. |
-| **Hangup** | 1 | — | End the call. Configures: hangup cause code. |
-| **Playback** | 1 | 1 | Play an audio file. Configures: filename, language. |
-| **Background** | 1 | 1 + per-digit | Play audio, accept DTMF. Outputs: one handle per expected digit. |
-| **Read** | 1 | 1 (valid) + 1 (timeout) | Read DTMF input. Configures: max digits, timeout, retries, prompt file. |
-| **Set Variable** | 1 | 1 | Set a channel variable. Configures: variable name, value/expression. |
-| **GotoIf** | 1 | 2 (true/false) | Conditional branch. Configures: expression. |
-| **Switch** | 1 | N (per case) | Multi-way branch. Configures: variable, case values. |
+| **Entrante** | — | 1 (call enters) | Punto de entrada. Configura: patrón DID, nombre de troncal, manejo de ID de llamada. |
+| **Responder** | 1 | 1 | Responde al canal. Opcional: retraso antes de responder. |
+| **Colgar** | 1 | — | Terminar la llamada. Configura: código de causa de cuelgue. |
+| **Reproducción** | 1 | 1 | Reproduce un archivo de audio. Configura: nombre de archivo, idioma. |
+| **Fondo** | 1 | 1 + per-digit | Play audio, accept DTMF. Salidas: one handle per expected digit. |
+| **Leer** | 1 | 1 (valid) + 1 (timeout) | Lee entrada DTMF. Configura: dígitos máximos, tiempo de espera, reintentos, archivo de solicitud. |
+| **Establecer Variable** | 1 | 1 | Establece una variable de canal. Configura: nombre de variable, valor/expresión. |
+| **SiVa** | 1 | 2 (true/false) | Rama condicional. Configura: expresión. |
+| **Cambiar** | 1 | N (per case) | Rama de múltiples caminos. Configura: variable, valores de caso. |
 
-### Telephony Components
+### Telefonía Componentes
 
-| Component | Inputs | Outputs | Description |
+| Componente | Entradas | Salidas | Descripción |
 |-----------|--------|---------|-------------|
-| **Dial** | 1 | 3 (answered, busy, no-answer) | Dial a destination. Configures: tech/resource, timeout, options, caller ID. |
-| **Queue** | 1 | 2 (answered, timeout) | Send to a call queue. Configures: queue name, timeout, announce files. |
-| **Voicemail** | 1 | 1 | Send to voicemail. Configures: mailbox, options (busy/unavail greeting). |
-| **Transfer** | 1 | 1 | Blind/attended transfer. Configures: destination, type. |
-| **Park** | 1 | 1 | Park the call. Configures: parking lot. |
-| **Conference** | 1 | 1 | Enter a conference bridge. Configures: room number, PIN, options. |
-| **MixMonitor** | 1 | 1 | Start/stop recording. Configures: filename pattern, options. |
+| **Marcar** | 1 | 3 (answered, busy, no-answer) | Marca un destino. Configura: tech/resource, tiempo de espera, opciones, ID de llamada. |
+| **Cola** | 1 | 2 (answered, timeout) | Envía a una cola de llamadas. Configura: nombre de cola, tiempo de espera, archivos de anuncio. |
+| **Correo de Voz** | 1 | 1 | Envía al correo de voz. Configura: buzón, opciones (saludo ocupado/no disponible). |
+| **Transferencia** | 1 | 1 | Transferencia ciega/atendida. Configura: destino, tipo. |
+| **Estacionar** | 1 | 1 | Estaciona la llamada. Configura: lote de estacionamiento. |
+| **Conferencia** | 1 | 1 | Ingresa a un puente de conferencia. Configura: número de sala, PIN, opciones. |
+| **MixMonitor** | 1 | 1 | Inicia/detiene la grabación. Configura: patrón de nombre de archivo, opciones. |
 
-### IVR Components
+### IVR Componentes
 
-| Component | Inputs | Outputs | Description |
+| Componente | Entradas | Salidas | Descripción |
 |-----------|--------|---------|-------------|
-| **Menu** | 1 | N (per option) + 1 (invalid) + 1 (timeout) | Full IVR menu. Configures: prompt, valid options, retries, timeout. |
-| **Announce** | 1 | 1 | Play announcement then continue. Configures: file list, interruptible. |
-| **SayDigits** | 1 | 1 | Speak a number. Configures: source variable. |
-| **SayDateTime** | 1 | 1 | Speak date/time. Configures: format, timezone. |
+| **Menú** | 1 | N (per option) + 1 (invalid) + 1 (timeout) | Menú IVR completo. Configura: solicitud, opciones válidas, reintentos, tiempo de espera. |
+| **Anunciar** | 1 | 1 | Reproduce anuncio y continúa. Configura: lista de archivos, interrumpible. |
+| **DecirDígitos** | 1 | 1 | Habla un número. Configura: variable fuente. |
+| **DecirFechaHora** | 1 | 1 | Habla fecha/hora. Configura: formato, zona horaria. |
 
-### Advanced Components
+### Advanced Componentes
 
-| Component | Inputs | Outputs | Description |
+| Componente | Entradas | Salidas | Descripción |
 |-----------|--------|---------|-------------|
-| **AGI** | 1 | 1 (success) + 1 (failure) | Run an AGI script. Configures: script path, arguments. |
-| **HTTP Request** | 1 | 1 (success) + 1 (failure) | CURL + JSON_DECODE. Configures: URL, method, response variable mapping. |
-| **Database Lookup** | 1 | 1 (found) + 1 (not found) | func_odbc or CURL to DB API. Configures: query, result variable. |
-| **Set CDR** | 1 | 1 | Set CDR fields. Configures: field name, value. |
-| **Subroutine** | 1 | 1 (return) | Gosub to a reusable sub-flow. Configures: target sub-flow. |
-| **Return** | 1 | — | Return from a subroutine. |
-| **Label** | 1 | 1 | Named label for Goto targets. Configures: label name. |
-| **Comment** | — | — | Non-functional annotation node. Configures: text, color. |
+| **AGI** | 1 | 1 (success) + 1 (failure) | Ejecuta un script AGI. Configura: ruta de script, argumentos. |
+| **Solicitud HTTP** | 1 | 1 (success) + 1 (failure) | CURL + JSON_DECODE. Configura: URL, método, mapeo de variable de respuesta. |
+| **Búsqueda en Base de Datos** | 1 | 1 (found) + 1 (not found) | func_odbc o CURL a API de BD. Configura: consulta, variable de resultado. |
+| **Establecer CDR** | 1 | 1 | Establece campos CDR. Configura: nombre de campo, valor. |
+| **Subrutina** | 1 | 1 (return) | Gosub a un sub-flujo reutilizable. Configura: sub-flujo objetivo. |
+| **Retorno** | 1 | — | Retorna de una subrutina. |
+| **Etiqueta** | 1 | 1 | Etiqueta nombrada para objetivos Goto. Configura: nombre de etiqueta. |
+| **Comentario** | — | — | Nodo de anotación no funcional. Configura: texto, color. |
 
-### Grouping
+### Agrupación
 
-| Component | Description |
+| Componente | Descripción |
 |-----------|-------------|
-| **Context Group** | Visual container that represents a `[context]`. Child nodes become extensions within it. |
-| **Sub-flow** | Reusable group of components. Becomes a `Gosub()` target. Configures: name, arguments. |
+| **Grupo de Contexto** | Contenedor visual que representa un `[context]`. Los nodos secundarios se convierten en extensiones dentro de él. |
+| **Sub-flujo** | Grupo reutilizable de componentes. Se convierte en un objetivo `Gosub()`. Configura: nombre, argumentos. |
 
 ---
 
-## Node Design
+## Diseño de Nodo
 
-Each component node in React Flow has:
+Cada nodo de componente en React Flow tiene:
 
 ```
 ┌──────────────────────────────┐
-│ ● input handle(s)           │
+│ ● mango(s) de entrada           │
 ├──────────────────────────────┤
-│  [icon]  Component Name      │
-│  Brief config summary        │
-│  e.g. "Dial SIP/trunk, 30s" │
+│  [icon]  Componente Name      │
+│  Resumen breve de configuración        │
+│  p. ej. "Marcar SIP/troncal, 30s" │
 ├──────────────────────────────┤
-│ ○ output handle(s)          │
-│   labeled: "answered"        │
-│   labeled: "busy"            │
-│   labeled: "no-answer"       │
+│ ○ mango(s) de salida          │
+│   etiquetado: "answered"        │
+│   etiquetado: "busy"            │
+│   etiquetado: "no-answer"       │
 └──────────────────────────────┘
 ```
 
-**Color coding by category:**
+**Codificación de color por categoría:**
 
-| Category | Color | Examples |
+| Categoría | Color | Ejemplos |
 |----------|-------|---------|
-| Call flow | Blue (`#dae8fc`) | Inbound, Answer, Hangup, GotoIf |
-| Telephony | Green (`#d5e8d4`) | Dial, Queue, Transfer, Park |
-| IVR / Audio | Yellow (`#fff2cc`) | Menu, Playback, Read, SayDigits |
-| Integration | Purple (`#e1d5e7`) | AGI, HTTP Request, Database Lookup |
-| Utility | Gray (`#f5f5f5`) | Set Variable, Label, Comment, Set CDR |
+| Flujo de llamadas | Azul (`#dae8fc`) | Entrante, Responder, Colgar, SiVa |
+| Telefonía | Verde (`#d5e8d4`) | Marcar, Cola, Transferencia, Estacionar |
+| IVR / Audio | Amarillo (`#fff2cc`) | Menú, Reproducción, Leer, DecirDígitos |
+| Integración | Púrpura (`#e1d5e7`) | AGI, Solicitud HTTP, Búsqueda en Base de Datos |
+| Utilidad | Gris (`#f5f5f5`) | Establecer Variable, Etiqueta, Comentario, Establecer CDR |
 
 ---
 
-## UI Layout
+## Diseño de UI
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────┐
-│ [☰] Asterisk Flow Designer    [Project ▼]   [Undo] [Redo]   [Export ▼]   │
+│ [☰] Diseñador de Flujo de Asterisk    [Proyecto ▼]   [Deshacer] [Rehacer]   [Exportar ▼]   │
 ├──────────┬─────────────────────────────────────────────┬───────────────────┤
 │          │                                             │                   │
-│ Component│              Flow Canvas                    │   Properties      │
+│ Componente│              Flow Canvas                    │   Propiedades      │
 │ Library  │                                             │   Panel           │
 │          │  ┌──────────┐       ┌──────────┐           │                   │
 │ ┌──────┐ │  │ Inbound  │──────▶│ Answer   │           │ ┌───────────────┐ │
 │ │Inbnd │ │  │ DID: _X. │       │          │           │ │ Dial          │ │
 │ ├──────┤ │  └──────────┘       └────┬─────┘           │ ├───────────────┤ │
 │ │Answer│ │                          │                  │ │ Tech: SIP     │ │
-│ ├──────┤ │                     ┌────▼─────┐           │ │ Resource:     │ │
-│ │ Dial │ │                     │ Menu     │           │ │ [trunk/num  ] │ │
-│ ├──────┤ │                     │ prompt:  │           │ │ Timeout: [30] │ │
-│ │ Menu │ │                     │ welcome  │           │ │ CallerID:     │ │
+│ ├──────┤ │                     ┌────▼─────┐           │ │ Recurso:     │ │
+│ │ Dial │ │                     │ Menu     │           │ │ [troncal/núm  ] │ │
+│ ├──────┤ │                     │ prompt:  │           │ │ Tiempo de espera: [30] │ │
+│ │ Menu │ │                     │ welcome  │           │ │ ID de Llamada:     │ │
 │ ├──────┤ │                     └┬───┬───┬─┘           │ │ [${CALLERID}] │ │
-│ │Queue │ │                      │   │   │             │ │ Options: [tT] │ │
+│ │Queue │ │                      │   │   │             │ │ Opciones: [tT] │ │
 │ ├──────┤ │                      1   2   *             │ │               │ │
-│ │ Read │ │                      │   │   │             │ │ Outputs:      │ │
-│ ├──────┤ │              ┌───────┘   │   └──────┐      │ │ ● Answered    │ │
-│ │ AGI  │ │              ▼           ▼          ▼      │ │ ● Busy        │ │
-│ ├──────┤ │         ┌────────┐ ┌────────┐ ┌────────┐  │ │ ● No Answer   │ │
-│ │ HTTP │ │         │ Queue  │ │  Dial  │ │Hangup  │  │ │ ● Congestion  │ │
+│ │ Read │ │                      │   │   │             │ │ Salidas:      │ │
+│ ├──────┤ │              ┌───────┘   │   └──────┐      │ │ ● Respondida    │ │
+│ │ AGI  │ │              ▼           ▼          ▼      │ │ ● Ocupado        │ │
+│ ├──────┤ │         ┌────────┐ ┌────────┐ ┌────────┐  │ │ ● Sin Respuesta   │ │
+│ │ HTTP │ │         │ Queue  │ │  Dial  │ │Hangup  │  │ │ ● Congestión  │ │
 │ ├──────┤ │         │ sales  │ │operator│ │        │  │ └───────────────┘ │
 │ │ ...  │ │         └────────┘ └────────┘ └────────┘  │                   │
 │ └──────┘ │                                             │                   │
@@ -235,7 +235,7 @@ Each component node in React Flow has:
 │          │  │ [  ·  ]       │                         │                   │
 │          │  └───────────────┘                         │                   │
 ├──────────┴─────────────────────────────────────────────┴───────────────────┤
-│ [Dialplan Preview]  Generated extensions.conf snippet (read-only)         │
+│ [Vista previa de Dialplan]  Fragmento de extensions.conf generado (solo lectura)         │
 │ ┌────────────────────────────────────────────────────────────────────────┐ │
 │ │ [inbound-main]                                                        │ │
 │ │ exten => _X.,1,Answer()                                               │ │
@@ -248,36 +248,36 @@ Each component node in React Flow has:
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Panel behavior
+### Comportamiento del Panel
 
-- **Component Library** (left): drag components onto the canvas. Searchable. Grouped by category.
-- **Flow Canvas** (center): React Flow. Drag to connect output handles → input handles. Zoom, pan, minimap.
-- **Properties Panel** (right): appears when a node is selected. Form fields for that component's configuration.
-- **Dialplan Preview** (bottom): live-generated `extensions.conf` snippet. Updates as you edit the flow. Read-only, copy-to-clipboard.
+- **Biblioteca de Componentes** (left): arrastra componentes al lienzo. Buscable. Agrupado por categoría.
+- **Flow Canvas** (center): React Flow. Arrastra para conectar mangos de salida → mangos de entrada. Zoom, pan, minimapa.
+- **Propiedades Panel** (right): aparece cuando se selecciona un nodo. Campos de formulario para la configuración de ese componente.
+- **Dialplan Preview** (bottom): fragmento `extensions.conf` generado en vivo. Se actualiza mientras editas el flujo. Solo lectura, copiar al portapapeles.
 
 ---
 
-## Project Management
+## Gestión de Proyectos
 
-Projects are self-contained JSON files. No server, no account.
+Los proyectos son archivos JSON autónomos. Sin servidor, sin cuenta.
 
-### Save/Load
+### Guardar/Cargar
 
-- **localStorage**: auto-saves the current project. Survives browser refresh.
-- **Export `.json`**: download the full project (flow graph + component configs) as a file.
-- **Import `.json`**: load a previously exported project.
-- **Multiple projects**: project switcher in the toolbar. Each project is independent.
+- **localStorage**: guarda automáticamente el proyecto actual. Sobrevive a la actualización del navegador.
+- **Export `.json`**: descarga el proyecto completo (gráfico de flujo + configuraciones de componentes) como archivo.
+- **Import `.json`**: carga un proyecto exportado previamente.
+- **Multiple projects**: selector de proyectos en la barra de herramientas. Cada proyecto es independiente.
 
-### Export formats
+### Formatos de Exportación
 
-| Format | Use Case |
+| Format | Caso de Uso |
 |--------|----------|
-| **`.json`** | Full project — reimport into the editor later |
-| **`.conf`** | Generated `extensions.conf` snippet — copy into your Asterisk config |
-| **`.drawio`** | Open in draw.io for further diagram editing or documentation |
-| **`.png` / `.svg`** | Static image for docs, wikis, Slack |
+| **`.json`** | Proyecto completo — reimportar en el editor posteriormente |
+| **`.conf`** | Fragmento `extensions.conf` generado — copia en tu configuración de Asterisk |
+| **`.drawio`** | Abre en draw.io para edición de diagrama adicional o documentación |
+| **`.png` / `.svg`** | Imagen estática para documentos, wikis, Slack |
 
-### Project file structure
+### Estructura del Archivo de Proyecto
 
 ```json
 {
@@ -319,23 +319,23 @@ Projects are self-contained JSON files. No server, no account.
 
 ---
 
-## Dialplan Code Generation
+## Generación de Código de Dialplan
 
-The bottom panel generates `extensions.conf` syntax in real time from the visual flow.
+El panel inferior genera sintaxis `extensions.conf` en tiempo real desde el flujo visual.
 
-### Generation rules
+### Reglas de Generación
 
-Each **Context Group** node becomes a `[context]` section. Nodes inside it become extensions and priorities.
+Cada nodo de **Grupo de Contexto** se convierte en una sección `[context]`. Los nodos dentro se convierten en extensiones y prioridades.
 
 ```
-Context Group "inbound-main"
-  └─ Inbound (_X.) → Answer → Menu (welcome, options: 1,2,*)
-       ├─ 1 → Queue (sales)
-       ├─ 2 → Dial (SIP/operator, 30s)
-       └─ * → Hangup
+Grupo de Contexto "inbound-main"
+  └─ Entrante (_X.) → Responder → Menú (bienvenida, opciones: 1,2,*)
+       ├─ 1 → Cola (ventas)
+       ├─ 2 → Marcar (SIP/operador, 30s)
+       └─ * → Colgar
 ```
 
-Generates:
+Genera:
 
 ```ini
 [inbound-main]
@@ -350,78 +350,78 @@ exten => 2,1,Dial(SIP/operator,30,tT)
 exten => *,1,Hangup()
 ```
 
-### What it handles
+### Lo que maneja
 
-- Sequential nodes → `same => n` priority chaining
-- Branch nodes (GotoIf, Switch, Menu) → separate `exten =>` lines per branch
-- Sub-flows → `Gosub(sub-flow-name,s,1)` + separate `[sub-flow-name]` context
-- Context Groups → `[context-name]` sections
-- Variables → `Set()` applications with the configured name=value
-- HTTP calls → `Set(response=${CURL(url)})` + `Set(var=${JSON_DECODE(response,key)})`
+- Nodos secuenciales → encadenamiento de prioridad `same => n`
+- Nodos de rama (SiVa, Cambiar, Menú) → líneas `exten =>` separadas por rama
+- Sub-flujos → `Gosub(sub-flow-name,s,1)` + contexto `[sub-flow-name]` separado
+- Grupos de Contexto → secciones `[context-name]`
+- Variables → aplicaciones `Set()` con el name=value configurado
+- Llamadas HTTP → `Set(response=${CURL(url)})` + `Set(var=${JSON_DECODE(response,key)})`
 
-### What it doesn't handle (yet)
+### Lo que no maneja (aún)
 
-- Optimization (e.g., collapsing redundant Set() calls)
-- AEL or Lua output (extensions.conf only for now)
-- Full validation against a running Asterisk (that's the integration server's job)
+- Optimización (p. ej., colapsar llamadas Set() redundantes)
+- Salida AEL o Lua (solo extensions.conf por ahora)
+- Validación completa contra un Asterisk en ejecución (ese es el trabajo del servidor de integración)
 
 ---
 
-## Optional Integration Server
+## Servidor de Integración Opcional
 
-A separate, self-hosted service. Not required for the core editor.
+Un servicio separado auto hospedado. No requerido para el editor principal.
 
-### What it does
+### Lo que hace
 
-| Feature | Description |
+| Característica | Descripción |
 |---------|-------------|
-| **Import existing dialplan** | Parse `.conf` files → project JSON. Load an existing Asterisk setup into the visual editor. |
-| **Push to Asterisk** | Write generated `.conf` to the server, run `dialplan reload`. |
-| **AMI bridge** | Connect to Asterisk Manager Interface for live channel state, originate calls for testing. |
-| **Database proxy** | Query MySQL/PostgreSQL from the editor (for DB Lookup component configuration). |
+| **Importar dialplan existente** | Analiza archivos `.conf` → proyecto JSON. Carga una configuración existente de Asterisk en el editor visual. |
+| **Empujar a Asterisk** | Escribe `.conf` generado en el servidor, ejecuta `dialplan reload`. |
+| **Puente AMI** | Conecta con la Interfaz del Gestor de Asterisk para estado de canal en vivo, origina llamadas para pruebas. |
+| **Proxy de base de datos** | Consulta MySQL/PostgreSQL desde el editor (para configuración del componente Búsqueda en BD). |
 
-### Architecture
+### Arquitectura
 
-Any language, any framework. A reference implementation in Python (FastAPI) or Node (Express):
+Cualquier lenguaje, cualquier marco de trabajo. Una implementación de referencia en Python (FastAPI) o Node (Express):
 
 ```
-GET  /api/dialplan/import          → parse .conf files → return project JSON
-POST /api/dialplan/deploy          → receive .conf content → write + reload
-GET  /api/asterisk/channels        → AMI: list active channels
-POST /api/asterisk/originate       → AMI: originate a test call
-GET  /api/db/query                 → proxy a DB query for the DB Lookup component
+GET  /api/dialplan/import          → analiza archivos .conf → retorna proyecto JSON
+POST /api/dialplan/deploy          → recibe contenido .conf → escribe + recarga
+GET  /api/asterisk/channels        → AMI: lista canales activos
+POST /api/asterisk/originate       → AMI: origina una llamada de prueba
+GET  /api/db/query                 → proxy una consulta BD para el componente Búsqueda BD
 ```
 
-### Security
+### Seguridad
 
-- Authentication required (API key or JWT)
-- Deploy requires elevated permissions
-- No shell injection — `dialplan reload` is a hardcoded AMI command
-- DB proxy uses parameterized queries only, read-only by default
-- The integration server is optional and self-hosted — you control who has access
+- Autenticación requerida (clave API o JWT)
+- El despliegue requiere permisos elevados
+- Sin inyección de shell — `dialplan reload` es un comando AMI codificado
+- El proxy BD usa solo consultas parametrizadas, solo lectura por defecto
+- El servidor de integración es opcional y auto hospedado — controlas quién tiene acceso
 
 ---
 
-## Tech Stack
+## Pila de Tecnología
 
-All open source, all free:
+Todo código abierto, todo gratuito:
 
-| Layer | Tool | License |
+| Capa | Herramienta | Licencia |
 |-------|------|---------|
-| **Flow editor** | [React Flow](https://reactflow.dev/) | MIT |
-| **Auto layout** | [ELK.js](https://github.com/kieler/elkjs) | EPL-2.0 |
+| **Editor de flujo** | [React Flow](https://reactflow.dev/) | MIT |
+| **Diseño automático** | [ELK.js](https://github.com/kieler/elkjs) | EPL-2.0 |
 | **Frontend** | React 18 + TypeScript + Vite | MIT |
-| **UI components** | [shadcn/ui](https://ui.shadcn.com/) | MIT |
+| **Componentees de UI** | [shadcn/ui](https://ui.shadcn.com/) | MIT |
 | **State + undo/redo** | [Zustand](https://github.com/pmndrs/zustand) | MIT |
-| **Code preview** | [CodeMirror 6](https://codemirror.net/) | MIT |
-| **Persistence** | localStorage + file export | — |
-| **Integration server** (optional) | FastAPI / Express / your choice | MIT |
+| **Vista previa de código** | [CodeMirror 6](https://codemirror.net/) | MIT |
+| **Persistencia** | localStorage + file export | — |
+| **Servidor de integración** (opcional) | FastAPI / Express / your choice | MIT |
 
-**Deployment:** Static files. Host on GitHub Pages, Netlify, any CDN, or just open `index.html` locally. Zero server cost for the core editor.
+**Despliegue:** Archivos estáticos. Hospeda en GitHub Pages, Netlify, cualquier CDN, o simplemente abre `index.html` localmente. Costo de servidor cero para el editor principal.
 
 ---
 
-## File Structure
+## Estructura de Archivo
 
 ```
 asterisk-flow-designer/
@@ -441,52 +441,52 @@ asterisk-flow-designer/
 │   │
 │   ├── components/
 │   │   ├── Canvas.tsx             # React Flow wrapper
-│   │   ├── ComponentLibrary.tsx   # Left panel: draggable component list
-│   │   ├── PropertiesPanel.tsx    # Right panel: selected node config form
-│   │   ├── DialplanPreview.tsx    # Bottom panel: generated .conf (CodeMirror)
-│   │   ├── Toolbar.tsx            # Top: project switcher, undo/redo, export
-│   │   └── ExportDialog.tsx       # Export format picker
+│   │   ├── BibliiotecaComponentes.tsx   # Left panel: draggable component list
+│   │   ├── PropiedadesPanel.tsx    # Right panel: selected node config form
+│   │   ├── VistaPreviewaDialplan.tsx    # Bottom panel: generated .conf (CodeMirror)
+│   │   ├── BarraHerramientas.tsx            # Top: project switcher, undo/redo, export
+│   │   └── DiálogoExportar.tsx       # Export format picker
 │   │
 │   ├── nodes/                     # Custom React Flow node types
-│   │   ├── InboundNode.tsx
-│   │   ├── AnswerNode.tsx
-│   │   ├── HangupNode.tsx
-│   │   ├── DialNode.tsx
-│   │   ├── MenuNode.tsx
-│   │   ├── QueueNode.tsx
-│   │   ├── PlaybackNode.tsx
-│   │   ├── ReadNode.tsx
-│   │   ├── GotoIfNode.tsx
-│   │   ├── SwitchNode.tsx
-│   │   ├── AGINode.tsx
-│   │   ├── HTTPRequestNode.tsx
-│   │   ├── DatabaseLookupNode.tsx
-│   │   ├── SetVariableNode.tsx
-│   │   ├── SubroutineNode.tsx
-│   │   ├── CommentNode.tsx
-│   │   └── ContextGroupNode.tsx
+│   │   ├── NodoEntrante.tsx
+│   │   ├── NodoResponder.tsx
+│   │   ├── NodoColgar.tsx
+│   │   ├── NodoMarcar.tsx
+│   │   ├── NodoMenú.tsx
+│   │   ├── NodoCola.tsx
+│   │   ├── NodoReproducción.tsx
+│   │   ├── NodoLeer.tsx
+│   │   ├── NodoSiVa.tsx
+│   │   ├── NodoCambiar.tsx
+│   │   ├── NodoAGI.tsx
+│   │   ├── NodoSolicitudHTTP.tsx
+│   │   ├── NodoBúsquedaBaseDatos.tsx
+│   │   ├── NodoEstablecerVariable.tsx
+│   │   ├── NodoSubrutina.tsx
+│   │   ├── NodoComentario.tsx
+│   │   └── NodoGrupoContexto.tsx
 │   │
 │   ├── generators/
-│   │   ├── conf-generator.ts      # Flow graph → extensions.conf syntax
-│   │   ├── drawio-generator.ts    # Flow graph → .drawio XML
-│   │   └── image-generator.ts     # Flow graph → PNG/SVG via React Flow export
+│   │   ├── generador-conf.ts      # Flow graph → extensions.conf syntax
+│   │   ├── generador-drawio.ts    # Flow graph → .drawio XML
+│   │   └── generador-imagen.ts     # Flow graph → PNG/SVG via React Flow export
 │   │
 │   ├── properties/                # Per-component property forms
-│   │   ├── InboundProperties.tsx
-│   │   ├── DialProperties.tsx
-│   │   ├── MenuProperties.tsx
-│   │   ├── QueueProperties.tsx
+│   │   ├── InboundPropiedades.tsx
+│   │   ├── DialPropiedades.tsx
+│   │   ├── MenuPropiedades.tsx
+│   │   ├── QueuePropiedades.tsx
 │   │   └── ...
 │   │
 │   └── utils/
-│       ├── layout.ts              # ELK.js auto-layout config
-│       ├── validation.ts          # Flow validation (disconnected nodes, cycles, etc.)
-│       └── types.ts               # TypeScript types for components and flow graph
+│       ├── diseño.ts              # ELK.js auto-layout config
+│       ├── validación.ts          # Flow validation (disconnected nodes, cycles, etc.)
+│       └── tipos.ts               # TypeScript types for components and flow graph
 │
-├── integration-server/            # Optional — separate project
+├── servidor-integración/            # Optional — separate project
 │   ├── requirements.txt           # or package.json
-│   ├── server.py                  # FastAPI / Express
-│   ├── parser.py                  # .conf → project JSON
+│   ├── servidor.py                  # FastAPI / Express
+│   ├── analizador.py                  # .conf → project JSON
 │   └── ami.py                     # Asterisk Manager Interface bridge
 │
 └── dist/                          # Built SPA — deploy anywhere
@@ -494,63 +494,63 @@ asterisk-flow-designer/
 
 ---
 
-## Implementation Phases
+## Fases de Implementación
 
-### Phase 1: Parser + visual import (MVP)
+### Fase 1: Analizador + importación visual (MVP)
 
-**Goal:** Paste your existing dialplan, see it as a visual graph. Instant value, no manual redrawing.
+**Objetivo:** Pega tu dialplan existente, ve como un gráfico visual. Valor instantáneo, sin redibujo manual.
 
-1. Dialplan parser (Python, standalone module — no Asterisk dependency)
-   - Input: `.conf` text (paste into textarea or upload files)
-   - Output: project JSON (nodes + edges + component configs)
-   - Handles: `[context]`, `exten =>`, `same => n`, `include =>`, `#include`, `[globals]`
-   - Extracts edges from `Goto()`, `GotoIf()`, `Gosub()`, `include =>`
-   - Classifies steps: noop, variable, playback, dial, agi, branch, http
-   - Detects dynamic Goto targets (`Goto(${var},s,1)`)
-2. React Flow canvas rendering the parsed graph
-3. Auto-layout (ELK.js) — imported flows arranged automatically
-4. Properties panel — click a node, see its parsed config (read-only at this stage)
-5. Basic validation: broken Goto targets, unreachable contexts, undefined variables
-6. Export: `.json` (reimport later), `.png`/`.svg` (documentation)
+1. Analizador de dialplan (Python, módulo autónomo — sin dependencia de Asterisk)
+   - Entrada: texto `.conf` (pega en área de texto o carga archivos)
+   - Salida: proyecto JSON (nodos + bordes + configuraciones de componentes)
+   - Maneja: `[context]`, `exten =>`, `same => n`, `include =>`, `#include`, `[globals]`
+   - Extrae bordes de `Goto()`, `SiVa()`, `Gosub()`, `include =>`
+   - Clasifica pasos: noop, variable, reproducción, marcar, agi, rama, http
+   - Detecta objetivos Goto dinámicos (`Goto(${var},s,1)`)
+2. Lienzo de React Flow renderizando el gráfico analizado
+3. Diseño automático (ELK.js) — flujos importados organizados automáticamente
+4. Propiedades panel — click a node, see its parsed config (read-only at this stage)
+5. Validación básica: objetivos Goto rotos, contextos inaccesibles, variables indefinidas
+6. Exportar: `.json` (reimportar después), `.png`/`.svg` (documentación)
 
-**Value:** "Paste your `extensions.conf`, get a visual map of your call flow." This is the hook — every Asterisk admin has a dialplan they've never fully visualized. The parser does half the work; React Flow does the other half.
+**Valor:** "Pega tu `extensions.conf`, obtén un mapa visual de tu flujo de llamadas." Este es el gancho — cada administrador de Asterisk tiene un dialplan que nunca ha visualizado completamente. El analizador hace la mitad del trabajo; React Flow hace la otra mitad.
 
-### Phase 2: Visual editor + code generation
+### Fase 2: Editor visual + generación de código
 
-**Goal:** Edit the imported flow visually. Design new flows from scratch. Generate dialplan.
+**Objetivo:** Edita el flujo importado visualmente. Diseña nuevos flujos desde cero. Genera dialplan.
 
-1. Drag-and-drop from component library (start with 5-6 core nodes: Inbound, Answer, Dial, Menu, Hangup, Playback)
-2. Properties panel becomes editable — configure each component via forms
-3. `conf-generator.ts` — live dialplan preview in bottom panel (flow → `.conf`)
-4. Save/load to localStorage
-5. Export as `.conf` (generated dialplan snippets)
-6. Round-trip: import `.conf` → edit visually → export `.conf` → diff against original
+1. Arrastra y suelta de la biblioteca de componentes (comienza con 5-6 nodos principales: Entrante, Responder, Marcar, Menú, Colgar, Reproducción)
+2. Propiedades panel becomes editable — configure each component via forms
+3. `generador-conf.ts` — vista previa de dialplan en vivo en panel inferior (flujo → `.conf`)
+4. Guardar/cargar a localStorage
+5. Exportar como `.conf` (fragmentos de dialplan generados)
+6. Viaje redondo: importa `.conf` → edita visualmente → exporta `.conf` → diferencia del original
 
-**Value:** The full design loop. Import, tweak, export. Or start from scratch.
+**Valor:** El bucle de diseño completo. Importa, ajusta, exporta. O comienza desde cero.
 
-### Phase 3: Full component library + polish
+### Fase 3: Biblioteca de componentes completa + pulido
 
-**Goal:** Cover all common Asterisk applications. Production-quality tool.
+**Objetivo:** Cubre todas las aplicaciones comunes de Asterisk. Herramienta de calidad de producción.
 
-1. Add remaining components: Queue, Read, GotoIf, Switch, Voicemail, Transfer, Park, Conference, MixMonitor, AGI, HTTP Request, Database Lookup, Set Variable, Set CDR, Subroutine, Label, Comment
-2. Context Group nodes (visual containers for `[context]` sections)
-3. Sub-flow support (reusable component groups)
-4. Undo/redo
-5. Multiple projects with project switcher
-6. Component search/filter in library panel
-7. Keyboard shortcuts (delete, copy/paste, undo/redo)
-8. Export to `.drawio`
+1. Agrega componentes restantes: Cola, Leer, SiVa, Cambiar, Correo de Voz, Transferencia, Estacionar, Conferencia, MixMonitor, AGI, Solicitud HTTP, Búsqueda en Base de Datos, Establecer Variable, Establecer CDR, Subrutina, Etiqueta, Comentario
+2. Nodos de Grupo de Contexto (contenedores visuales para secciones `[context]`)
+3. Soporte de sub-flujo (grupos de componentes reutilizables)
+4. Deshacer/Rehacer
+5. Múltiples proyectos con selector de proyectos
+6. Búsqueda/filtro de componentes en panel de biblioteca
+7. Atajos de teclado (eliminar, copiar/pegar, deshacer/rehacer)
+8. Exportar a `.drawio`
 
-**Value:** Can design any Asterisk call flow, not just simple IVRs.
+**Valor:** Puede diseñar cualquier flujo de llamadas de Asterisk, no solo IVRs simples.
 
-### Phase 4: Integration server (optional)
+### Fase 4: Servidor de integración (opcional)
 
-**Goal:** Connect to a live Asterisk for import/deploy/test.
+**Objetivo:** Conecta a un Asterisk en vivo para importación/despliegue/prueba.
 
-1. Serve the parser as an API endpoint (paste `.conf` in browser → POST to server → get project JSON)
-2. File-based import: point at a directory of `.conf` files on the server
-3. Deploy endpoint → write generated `.conf` + `dialplan reload`
-4. AMI bridge → show live channel state, originate test calls
-5. Database proxy → configure DB Lookup components against real data
+1. Sirve el analizador como un endpoint API (pega `.conf` en navegador → POST a servidor → obtén proyecto JSON)
+2. Importación basada en archivos: apunta a un directorio de archivos `.conf` en el servidor
+3. Endpoint de despliegue → escribe `.conf` generado + `dialplan reload`
+4. Puente AMI → muestra estado de canal en vivo, origina llamadas de prueba
+5. Proxy de BD → configura componentes de Búsqueda en BD contra datos reales
 
-**Value:** Full round-trip workflow for teams managing Asterisk installations.
+**Valor:** Flujo de trabajo de viaje redondo completo para equipos que manejan instalaciones de Asterisk.
