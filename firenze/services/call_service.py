@@ -1,8 +1,8 @@
-"""Online call tracking - insert, delete, update, and active-call lookup.
+"""Seguimiento de llamadas en línea - insertar, eliminar, actualizar, y búsqueda de llamadas activas.
 
-Both the API and CLI call these functions - no business logic lives in
-routers or CLI commands. MySQL is the source of truth; Redis is a hot
-cache consumed by legacy PHP readers and dashboards.
+Tanto la API como la CLI llaman a estas funciones - ninguna lógica comercial vive en
+enrutadores o comandos CLI. MySQL es la fuente de verdad; Redis es una
+caché caliente consumida por lectores PHP heredados y tableros.
 """
 
 import logging
@@ -26,12 +26,12 @@ def insert_call(
     operator: int = 0,
     redis_conn: redis.Redis | None = None,
 ) -> dict:
-    """Insert an online call record.
+    """Inserta un registro de llamada en línea.
 
-    Returns ``{"ok": False, "reason": "call-already-active"}`` if a call for
-    this ANI is already registered for the service (duplicate call protection).
-    Idempotent on the happy path - the unique constraint on ``(service, ani)``
-    is the authority.
+    Retorna ``{"ok": False, "reason": "call-already-active"}`` si una llamada para
+    este ANI ya está registrada para el servicio (protección contra llamadas duplicadas).
+    Idempotente en el camino feliz - la restricción única en ``(service, ani)``
+    es la autoridad.
     """
     call = OnlineCalls(service=service, ani=ani, did=did, client_id=client_id, operator=operator)
     db.add(call)
@@ -70,10 +70,10 @@ def delete_call(
     ani: str,
     redis_conn: redis.Redis | None = None,
 ) -> dict:
-    """Delete an online call record.
+    """Elimina un registro de llamada en línea.
 
-    Idempotent - no error if the record does not exist (covers cases where
-    the dialplan h-handler fires even if insert never ran).
+    Idempotente - sin error si el registro no existe (cubre casos donde
+    el manejador h de dialplan se dispara incluso si insert nunca se ejecutó).
     """
     call = db.query(OnlineCalls).filter_by(service=service, ani=ani).first()
     if call:
