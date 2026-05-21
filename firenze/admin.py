@@ -272,6 +272,8 @@ class UserAdmin(ModelView, model=User):
     name = "API User"
     name_plural = "API Users"
     icon = "fa-solid fa-user-gear"
+    category = "Auth"
+    category_icon = "fa-solid fa-key"
     form_args = {
         "login": {"description": "Username for SQLAdmin/passwordless authentication"},
         "email": {"description": "Contact email address"},
@@ -296,6 +298,8 @@ class ApiCredentialAdmin(ModelView, model=ApiCredential):
     name = "API Credential"
     name_plural = "API Credentials"
     icon = "fa-solid fa-key"
+    category = "Auth"
+    category_icon = "fa-solid fa-key"
     form_excluded_columns = _TIMESTAMP_EXCLUDED + [
         "api_secret_hash",
         "last_used_at",

@@ -192,30 +192,48 @@
 
   <div class="col-12 col-lg-5">
     <div class="card">
-      <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-chart-bar me-2"></i>Carrier Minutes ({{ cdr_reports.month_label }})</h3>
-      </div>
-      <div class="table-responsive">
-        <table class="table table-sm table-borderless card-table">
-          <tbody>
+      <div class="card-body">
+        <div class="d-flex">
+          <h3 class="card-title"><i class="fa fa-chart-area me-2"></i>Monthly 3-Carrier ({{ cdr_reports.month_label }})</h3>
+          <div class="ms-auto text-secondary">Answered traffic</div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <div class="mb-3">
+              <div class="d-flex justify-content-between text-secondary small mb-1">
+                <span>Total minutes</span>
+                <span class="fw-bold">{{ cdr_reports.carrier_totals.total }}</span>
+              </div>
+              <div class="progress progress-sm">
+                <div class="progress-bar bg-indigo" style="width: 100%"></div>
+              </div>
+            </div>
             {% for carrier in cdr_reports.carrier_breakdown %}
-              <tr>
-                <td class="w-25"><span class="text-muted">{{ carrier.label }}</span></td>
-                <td class="w-50">
-                  <div class="progress progress-sm">
-                    <div class="progress-bar bg-primary" style="width: {{ carrier.share }}%"></div>
-                  </div>
-                </td>
-                <td class="text-end w-25"><strong>{{ carrier.minutes }}</strong> min <span class="text-muted">({{ carrier.share }}%)</span></td>
-              </tr>
+            <div class="mb-3">
+              <div class="d-flex justify-content-between text-secondary small mb-1">
+                <span>{{ carrier.label }}</span>
+                <span class="fw-bold">{{ carrier.share }}%</span>
+              </div>
+              <div class="progress progress-sm">
+                <div class="progress-bar {% if carrier.key == 'fonotarot-cl' %}bg-primary{% elif carrier.key == 'alotarot' %}bg-azure{% else %}bg-green{% endif %}" style="width: {{ carrier.share }}%"></div>
+              </div>
+            </div>
             {% endfor %}
-            <tr class="table-active fw-bold">
-              <td>Total</td>
-              <td></td>
-              <td class="text-end">{{ cdr_reports.carrier_totals.total }} min</td>
-            </tr>
-          </tbody>
-        </table>
+          </div>
+          <div class="col-md-auto">
+            <div class="divide-y divide-y-fill">
+              {% for carrier in cdr_reports.carrier_breakdown %}
+              <div class="px-3">
+                <div class="text-secondary">
+                  <span class="status-dot {% if carrier.key == 'fonotarot-cl' %}bg-primary{% elif carrier.key == 'alotarot' %}bg-azure{% else %}bg-green{% endif %}"></span>
+                  {{ carrier.label }}
+                </div>
+                <div class="h2">{{ carrier.minutes }}</div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -256,46 +274,44 @@
 
   <div class="col-12">
     <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">
-          <i class="fa fa-table me-2"></i>Recent CDR Records
-          <span class="badge bg-blue-lt ms-2">{{ cdr_reports.recent_cdr | length }}</span>
-        </h3>
-      </div>
-      <div class="table-responsive">
-        <table class="table table-vcenter card-table table-mobile-md">
+      <div class="card-body">
+        <h3 class="card-title mb-3"><i class="fa fa-users me-2"></i>Monthly Agent Report (Top Pages style)</h3>
+        <table class="table table-sm table-borderless">
           <thead>
             <tr>
-              <th>Call</th>
-              <th>Routing</th>
-              <th>State</th>
-              <th class="text-end">Billsec</th>
+              <th>Agent</th>
+              <th class="text-end">Minutes</th>
             </tr>
           </thead>
           <tbody>
-            {% for row in cdr_reports.recent_cdr %}
-              <tr>
-                <td data-label="Call">
-                  <div class="fw-bold">{{ row.calldate.strftime('%Y-%m-%d %H:%M:%S') if row.calldate else '—' }}</div>
-                  <div class="text-secondary small">ANI <code>{{ row.src }}</code> · DID <code>{{ row.dst }}</code></div>
-                </td>
-                <td data-label="Routing">
-                  <div>Operator <strong>{{ row.operator if row.operator else '—' }}</strong></div>
-                  <div class="text-secondary small">Client {{ row.client_id if row.client_id else '—' }}</div>
-                </td>
-                <td data-label="State">
-                  {% if row.disposition == "ANSWERED" %}
-                    <span class="badge bg-success-lt">ANSWERED</span>
-                  {% else %}
-                    <span class="badge bg-secondary-lt">{{ row.disposition }}</span>
-                  {% endif %}
-                </td>
-                <td data-label="Billsec" class="text-end fw-bold">{{ row.billsec }}</td>
-              </tr>
+            {% set max_agent_minutes = cdr_reports.operator_totals[0].minutes if cdr_reports.operator_totals else 1 %}
+            {% for op in cdr_reports.operator_totals %}
+            {% set share = ((op.minutes * 100) / max_agent_minutes) | round(1) %}
+            <tr>
+              <td>
+                <div class="progressbg">
+                  <div class="progress progress-3 progressbg-progress">
+                    <div
+                      class="progress-bar bg-primary-lt"
+                      style="width: {{ share }}%"
+                      role="progressbar"
+                      aria-valuenow="{{ share }}"
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                      aria-label="{{ share }}% workload"
+                    >
+                      <span class="visually-hidden">{{ share }}% workload</span>
+                    </div>
+                  </div>
+                  <div class="progressbg-text">{{ op.operator }} · {{ op.name }}</div>
+                </div>
+              </td>
+              <td class="w-1 fw-medium text-end">{{ op.minutes }}</td>
+            </tr>
             {% else %}
-              <tr>
-                <td colspan="4" class="text-center text-muted py-3">No CDR rows available</td>
-              </tr>
+            <tr>
+              <td colspan="2" class="text-center text-muted py-3">No monthly operator usage yet.</td>
+            </tr>
             {% endfor %}
           </tbody>
         </table>
