@@ -1,4 +1,4 @@
-"""Client CRUD endpoints."""
+"""Extremos CRUD de clientes."""
 
 import logging
 

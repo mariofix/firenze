@@ -1,4 +1,4 @@
-"""Public endpoints"""
+"""Extremos públicos"""
 
 import logging
 

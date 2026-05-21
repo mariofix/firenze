@@ -1,4 +1,4 @@
-"""Migration commands - import clients from the legacy Firenze API."""
+"""Comandos de migración - importar clientes de la API Firenze heredada."""
 
 import logging
 import re

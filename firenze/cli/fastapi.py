@@ -1,4 +1,4 @@
-"""FastAPI inspection CLI commands."""
+"""Comandos CLI de inspección de FastAPI."""
 
 import os
 

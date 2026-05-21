@@ -1,4 +1,4 @@
-"""Payment endpoints called by the storefront (nuevo-fonotarot)."""
+"""Extremos de pago llamados por la tienda (nuevo-fonotarot)."""
 
 import logging
 

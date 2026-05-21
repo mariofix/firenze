@@ -1,4 +1,4 @@
-"""DID resolution CLI commands."""
+"""Comandos CLI de resolución de DID."""
 
 import logging
 

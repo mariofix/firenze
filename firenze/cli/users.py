@@ -1,4 +1,4 @@
-"""User management CLI commands."""
+"""Comandos CLI de administración de usuarios."""
 
 import datetime
 import logging

@@ -1,4 +1,4 @@
-"""Online call tracking CLI commands (debug)."""
+"""Comandos CLI de seguimiento de llamadas en línea (depuración)."""
 
 import typer
 from rich import box

@@ -1,4 +1,4 @@
-"""Operator management CLI — thin wrapper over operator_service."""
+"""CLI de administración de operadores — envoltorio delgado sobre operator_service."""
 
 import logging
 import logging.config

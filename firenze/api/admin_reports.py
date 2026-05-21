@@ -1,4 +1,4 @@
-"""Protected admin report endpoints."""
+"""Extremos de reportes de administrador protegidos."""
 
 import asyncio
 

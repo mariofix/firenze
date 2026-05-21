@@ -1,4 +1,4 @@
-"""Firenze CLI — admin and debug commands."""
+"""CLI de Firenze — comandos de administración y depuración."""
 
 import logging
 import logging.config

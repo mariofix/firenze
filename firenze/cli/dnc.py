@@ -1,4 +1,4 @@
-"""Do Not Call list CLI commands."""
+"""Comandos CLI de lista de No Llamar."""
 
 import typer
 from rich import box

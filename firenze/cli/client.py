@@ -1,4 +1,4 @@
-"""Client commands - Client Management Commands."""
+"""Comandos de cliente - Comandos de administración de clientes."""
 
 import logging
 import re
