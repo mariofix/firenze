@@ -5,15 +5,12 @@ No JWT auth — protected by binding to localhost / LAN only.
 """
 
 import logging
-from typing import Optional
 
 import redis
 from fastapi import APIRouter, Depends, Form, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from firenze.dependencies import get_db, get_redis
-
-logger = logging.getLogger("firenze")
 from firenze.services.call_service import (
     delete_call,
     get_active_call,
@@ -30,12 +27,13 @@ from firenze.services.client_service import update_ani_stats as svc_ani_stats
 from firenze.services.credit_service import compute_call_limit
 from firenze.services.did_service import resolve_did
 from firenze.services.dnc_service import check_dnc
-from firenze.services.operator_service import OperatorNotFound, OperatorUnavailable
+from firenze.services.operator_service import OperatorNotFound, login_by_phone, logout_by_phone
 from firenze.services.operator_service import get_menu as svc_get_menu
 from firenze.services.operator_service import info_operator as svc_operator
-from firenze.services.operator_service import login_by_phone, logout_by_phone
 from firenze.services.operator_service import release_operator as svc_release
 from firenze.services.operator_service import select_operator as svc_select
+
+logger = logging.getLogger("firenze")
 
 agiRouter = APIRouter(prefix="/agi", tags=["agi"])
 
@@ -165,7 +163,7 @@ def agi_call_insert(
     client_id: int = Form(...),
     operator: int = Form(default=0),
     db: Session = Depends(get_db),
-    redis_conn: Optional[redis.Redis] = Depends(get_redis),
+    redis_conn: redis.Redis | None = Depends(get_redis),
 ):
     """Insert an online call record.
 
@@ -180,7 +178,7 @@ def agi_call_close(
     service: str,
     ani: str,
     db: Session = Depends(get_db),
-    redis_conn: Optional[redis.Redis] = Depends(get_redis),
+    redis_conn: redis.Redis | None = Depends(get_redis),
 ):
     """Delete an online call record.
 
@@ -197,7 +195,7 @@ def agi_call_assign_operator(
     ani: str,
     operator: int = Form(..., description="Operator number assigned to this call"),
     db: Session = Depends(get_db),
-    redis_conn: Optional[redis.Redis] = Depends(get_redis),
+    redis_conn: redis.Redis | None = Depends(get_redis),
 ):
     """Update the operator assigned to an active call.
 
@@ -224,7 +222,7 @@ def agi_call_get(service: str, ani: str, db: Session = Depends(get_db)):
 @agiRouter.get("/operators/menu")
 def agi_operators_menu(
     db: Session = Depends(get_db),
-    redis_conn: Optional[redis.Redis] = Depends(get_redis),
+    redis_conn: redis.Redis | None = Depends(get_redis),
 ):
     """Return available operator count and a Playback-ready audio string.
 
@@ -240,9 +238,9 @@ def agi_operators_menu(
 @agiRouter.post("/operators/select")
 def agi_operator_select(
     mode: str = Form(..., description='"random" or "option"'),
-    selection: Optional[str] = Form(default=None, description="Operator option digits, required when mode=option"),
+    selection: str | None = Form(default=None, description="Operator option digits, required when mode=option"),
     db: Session = Depends(get_db),
-    redis_conn: Optional[redis.Redis] = Depends(get_redis),
+    redis_conn: redis.Redis | None = Depends(get_redis),
 ):
     """Atomically select an available operator and mark them busy.
 
@@ -272,7 +270,7 @@ def agi_operator_select(
 def agi_operator_info_by_option(
     option: str,
     db: Session = Depends(get_db),
-    redis_conn: Optional[redis.Redis] = Depends(get_redis),
+    redis_conn: redis.Redis | None = Depends(get_redis),
 ):
     """Translate an IVR menu digit into the operator's contact info.
 
@@ -328,7 +326,8 @@ def agi_operator_info_by_option(
     phone = next((p for p in op.numbers if p.contact and p.enabled), None)
     if not phone:
         logger.warning(
-            "agi_operator_info_by_option: operator number=%s option=%r has no contact+enabled OperatorPhone (numbers=%d)",
+            "agi_operator_info_by_option: operator number=%s option=%r "
+            "has no contact+enabled OperatorPhone (numbers=%d)",
             op.number,
             option,
             len(op.numbers),
@@ -356,7 +355,7 @@ def agi_operator_info_by_option(
 def agi_operator_info_by_ani(
     ani: str,
     db: Session = Depends(get_db),
-    redis_conn: Optional[redis.Redis] = Depends(get_redis),
+    redis_conn: redis.Redis | None = Depends(get_redis),
 ):
     """Look up an operator by one of their registered phone numbers (ANI).
 
@@ -424,7 +423,7 @@ def agi_operator_info_by_ani(
 def agi_operator_release(
     number: int,
     db: Session = Depends(get_db),
-    redis_conn: Optional[redis.Redis] = Depends(get_redis),
+    redis_conn: redis.Redis | None = Depends(get_redis),
 ):
     """Mark an operator as available again after a call ends.
 
@@ -452,7 +451,7 @@ def agi_operator_release(
 def agi_operator_login(
     ani: str,
     db: Session = Depends(get_db),
-    redis_conn: Optional[redis.Redis] = Depends(get_redis),
+    redis_conn: redis.Redis | None = Depends(get_redis),
 ):
     """Mark operator as logged in by their phone number (ANI).
 
@@ -474,7 +473,7 @@ def agi_operator_login(
 def agi_operator_logout(
     ani: str,
     db: Session = Depends(get_db),
-    redis_conn: Optional[redis.Redis] = Depends(get_redis),
+    redis_conn: redis.Redis | None = Depends(get_redis),
 ):
     """Mark operator as logged out by their phone number (ANI).
 

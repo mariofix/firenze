@@ -17,7 +17,6 @@ from fastapi.testclient import TestClient
 from firenze.api.agi import agiRouter
 from firenze.dependencies import get_db, get_redis
 
-
 SERVICE_SLUG = "fonotarot-cl"
 CALLER_ANI = "56912345678"
 DID = "56229402147"
@@ -109,30 +108,29 @@ def test_incoming_call_happy_path_http(mock_op_state, mock_call_state):
     mock_op_state.get_state.return_value = None
 
     query_chain = session.query.return_value.filter_by.return_value
-    lock_chain = query_chain.with_for_update.return_value
     order_chain = query_chain.order_by.return_value
     filter_lock_chain = session.query.return_value.filter.return_value.with_for_update.return_value
 
     # All the .filter_by().first() results the dialplan sequence triggers,
     # in order across the 12 HTTP requests below.
     query_chain.first.side_effect = [
-        None,       # 1: /agi/dnc/{ani}              - check_dnc
-        did_row,    # 2: /agi/services/did/{did}     - resolve_did
-        svc,        # 3a: /agi/clients/lookup        - update_ani_stats _get_service
-        None,       # 3b: update_ani_stats ANI miss
-        svc,        # 3c: /agi/clients/lookup        - _get_service
-        ani_row,    # 3d: ClientAni match
-        client,     # 3e: Client by client_id
-        None,       # 5: /agi/calls/online/.../?     - get_active_call
-        call_row,   # 9: /agi/calls/online/.../assign - update_call_operator
-        svc,        # 10a: /agi/clients/.../deduct   - _get_service
-        client,     # 10b: Client by client_id
-        operator,   # 11: /agi/operators/{n}/release - _get_operator
-        call_row,   # 12: /agi/calls/online/.../close - delete_call
+        None,  # 1: /agi/dnc/{ani}              - check_dnc
+        did_row,  # 2: /agi/services/did/{did}     - resolve_did
+        svc,  # 3a: /agi/clients/lookup        - update_ani_stats _get_service
+        None,  # 3b: update_ani_stats ANI miss
+        svc,  # 3c: /agi/clients/lookup        - _get_service
+        ani_row,  # 3d: ClientAni match
+        client,  # 3e: Client by client_id
+        None,  # 5: /agi/calls/online/.../?     - get_active_call
+        call_row,  # 9: /agi/calls/online/.../assign - update_call_operator
+        svc,  # 10a: /agi/clients/.../deduct   - _get_service
+        client,  # 10b: Client by client_id
+        operator,  # 11: /agi/operators/{n}/release - _get_operator
+        call_row,  # 12: /agi/calls/online/.../close - delete_call
     ]
     query_chain.all.return_value = [operator]  # 6: operator menu
     order_chain.all.return_value = [operator]  # 6: operator menu
-    filter_lock_chain.first.return_value = operator   # 7: operator select (option mode)
+    filter_lock_chain.first.return_value = operator  # 7: operator select (option mode)
 
     client_http = TestClient(_build_app(session, redis_conn))
 
@@ -224,9 +222,7 @@ def test_incoming_call_happy_path_http(mock_op_state, mock_call_state):
     assert r.status_code == 200
     assert r.json() == {"ok": True}
     assert call_row.operator == OPERATOR_NUMBER
-    mock_call_state.update_operator.assert_called_once_with(
-        redis_conn, SERVICE_SLUG, CALLER_ANI, OPERATOR_NUMBER
-    )
+    mock_call_state.update_operator.assert_called_once_with(redis_conn, SERVICE_SLUG, CALLER_ANI, OPERATOR_NUMBER)
 
     # ... call in progress ...
 
@@ -263,6 +259,4 @@ def test_incoming_call_happy_path_http(mock_op_state, mock_call_state):
     assert r.status_code == 200
     assert r.json() == {"ok": True}
     session.delete.assert_called_once_with(call_row)
-    mock_call_state.delete_call.assert_called_once_with(
-        redis_conn, SERVICE_SLUG, CALLER_ANI
-    )
+    mock_call_state.delete_call.assert_called_once_with(redis_conn, SERVICE_SLUG, CALLER_ANI)

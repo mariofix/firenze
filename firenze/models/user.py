@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from sqlalchemy import String
 from sqlalchemy.dialects.mysql import JSON
@@ -20,10 +20,10 @@ class User(Base, TimestampMixin):
     login: Mapped[str] = mapped_column(String(64), unique=True)
     email: Mapped[str] = mapped_column(String(255))
     password: Mapped[str] = mapped_column(String(255))
-    allowed_ips: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    allowed_ips: Mapped[list | None] = mapped_column(JSON, nullable=True)
     enabled: Mapped[bool] = mapped_column(default=True)
-    scopes: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
-    api_credentials: Mapped[list["ApiCredential"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    scopes: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    api_credentials: Mapped[list[ApiCredential]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
     def __str__(self):
         return self.login

@@ -6,7 +6,6 @@ records the resulting credit delta.
 """
 
 import logging
-from typing import Optional
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -56,12 +55,12 @@ def search_client(
     db: Session,
     service_slug: str,
     *,
-    client_id: Optional[int] = None,
-    email: Optional[str] = None,
-    phone: Optional[str] = None,
-    ani: Optional[str] = None,
-    pin: Optional[str] = None,
-) -> Optional[Client]:
+    client_id: int | None = None,
+    email: str | None = None,
+    phone: str | None = None,
+    ani: str | None = None,
+    pin: str | None = None,
+) -> Client | None:
     """Find a client in ``service_slug`` matching any of the provided fields.
 
     Lookup order: pin, email, ClientAni.ani. ``phone`` is accepted for
@@ -98,12 +97,12 @@ def apply_purchase(
     *,
     service_slug: str,
     credits: int,
-    client_id: Optional[int] = None,
-    email: Optional[str] = None,
-    full_name: Optional[str] = None,
-    phone_number: Optional[str] = None,
-    ani: Optional[str] = None,
-    transaction_id: Optional[str] = None,
+    client_id: int | None = None,
+    email: str | None = None,
+    full_name: str | None = None,
+    phone_number: str | None = None,
+    ani: str | None = None,
+    transaction_id: str | None = None,
 ) -> dict:
     """Apply a completed purchase: create the client or top up an existing one.
 
@@ -148,7 +147,8 @@ def apply_purchase(
             db.add(ClientAni(service_id=svc.id, client_id=client.client_id, ani=ani))
         elif existing_ani.client_id != client.client_id:
             logger.warning(
-                "apply_purchase: ANI %r already registered to client_id=%s in service=%r; skipping registration for client_id=%s",
+                "apply_purchase: ANI %r already registered to client_id=%s in service=%r; "
+                "skipping registration for client_id=%s",
                 ani,
                 existing_ani.client_id,
                 service_slug,
@@ -159,7 +159,8 @@ def apply_purchase(
     db.refresh(client)
 
     logger.info(
-        "apply_purchase: service=%r client_id=%s created=%s credits_before=%s credits_added=%s credits_after=%s transaction_id=%r",
+        "apply_purchase: service=%r client_id=%s created=%s credits_before=%s "
+        "credits_added=%s credits_after=%s transaction_id=%r",
         service_slug,
         client.client_id,
         created,
@@ -185,10 +186,10 @@ def update_client(
     *,
     service_slug: str,
     client_id: int,
-    full_name: Optional[str] = None,
-    email: Optional[str] = None,
-    pin: Optional[str] = None,
-    phone: Optional[str] = None,
+    full_name: str | None = None,
+    email: str | None = None,
+    pin: str | None = None,
+    phone: str | None = None,
 ) -> dict:
     """Update profile fields on an existing client.
 
@@ -218,7 +219,7 @@ def update_client(
 
     phones_added = 0
     phones_removed = 0
-    phone_skipped_reason: Optional[str] = None
+    phone_skipped_reason: str | None = None
 
     if phone is not None:
         if phone == PHONE_ERASE_SENTINEL:
@@ -237,7 +238,8 @@ def update_client(
                 else:
                     phone_skipped_reason = "phone-registered-to-another-client"
                     logger.warning(
-                        "update_client: phone %r already registered to client_id=%s in service=%r; skipped for client_id=%s",
+                        "update_client: phone %r already registered to client_id=%s in service=%r; "
+                        "skipped for client_id=%s",
                         phone,
                         taken.client_id,
                         service_slug,
@@ -250,7 +252,8 @@ def update_client(
     phones = [row.ani for row in db.query(ClientAni).filter_by(service_id=svc.id, client_id=client_id).all()]
 
     logger.info(
-        "update_client: service=%r client_id=%s full_name_set=%s email_set=%s pin_set=%s phones_added=%s phones_removed=%s",
+        "update_client: service=%r client_id=%s full_name_set=%s email_set=%s pin_set=%s "
+        "phones_added=%s phones_removed=%s",
         service_slug,
         client_id,
         full_name is not None,

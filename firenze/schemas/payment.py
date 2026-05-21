@@ -1,7 +1,5 @@
 """Schemas for payment API endpoints consumed by nuevo-fonotarot."""
 
-from typing import Optional
-
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -27,23 +25,23 @@ class PurchaseRequest(BaseModel):
 
     service: str = Field(..., min_length=1, description="Service slug, e.g. fonotarot-cl")
     credits: int = Field(..., gt=0, description="Seconds of airtime to add to the balance")
-    client_id: Optional[int] = Field(default=None, description="Existing client_id; omit to create")
-    email: Optional[EmailStr] = None
-    full_name: Optional[str] = Field(default=None, max_length=128)
-    phone_number: Optional[str] = Field(default=None, max_length=16)
-    ani: Optional[str] = Field(
+    client_id: int | None = Field(default=None, description="Existing client_id; omit to create")
+    email: EmailStr | None = None
+    full_name: str | None = Field(default=None, max_length=128)
+    phone_number: str | None = Field(default=None, max_length=16)
+    ani: str | None = Field(
         default=None,
         max_length=16,
         description="Caller-ID to register against the client",
     )
-    transaction_id: Optional[str] = Field(
+    transaction_id: str | None = Field(
         default=None,
         max_length=128,
         description="Payment-system reference, logged for traceability",
     )
 
     @model_validator(mode="after")
-    def _require_email_when_creating(self) -> "PurchaseRequest":
+    def _require_email_when_creating(self) -> PurchaseRequest:
         if self.client_id is None and not self.email:
             raise ValueError("email is required when client_id is omitted (creating a new client)")
         return self
@@ -69,21 +67,21 @@ class ClientUpdateRequest(BaseModel):
 
     model_config = ConfigDict(str_strip_whitespace=True)
 
-    full_name: Optional[str] = Field(default=None, max_length=128)
-    email: Optional[EmailStr] = None
-    pin: Optional[str] = Field(default=None, min_length=8, max_length=8)
-    phone: Optional[str] = Field(default=None, max_length=16)
+    full_name: str | None = Field(default=None, max_length=128)
+    email: EmailStr | None = None
+    pin: str | None = Field(default=None, min_length=8, max_length=8)
+    phone: str | None = Field(default=None, max_length=16)
 
     @field_validator("pin")
     @classmethod
-    def _pin_must_be_digits(cls, v: Optional[str]) -> Optional[str]:
+    def _pin_must_be_digits(cls, v: str | None) -> str | None:
         if v is not None and not v.isdigit():
             raise ValueError("pin must be 8 digits")
         return v
 
     @field_validator("phone")
     @classmethod
-    def _phone_must_be_sentinel_or_digits(cls, v: Optional[str]) -> Optional[str]:
+    def _phone_must_be_sentinel_or_digits(cls, v: str | None) -> str | None:
         if v is None or v == PHONE_ERASE_SENTINEL:
             return v
         if not v.isdigit() or not (8 <= len(v) <= 15):
@@ -91,7 +89,7 @@ class ClientUpdateRequest(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def _at_least_one_field(self) -> "ClientUpdateRequest":
+    def _at_least_one_field(self) -> ClientUpdateRequest:
         if all(v is None for v in (self.full_name, self.email, self.pin, self.phone)):
             raise ValueError("at least one of full_name, email, pin, phone is required")
         return self
@@ -101,10 +99,10 @@ class ClientUpdateResponse(BaseModel):
     ok: bool
     client_id: int
     service: str
-    full_name: Optional[str] = None
-    email: Optional[str] = None
-    pin: Optional[str] = None
+    full_name: str | None = None
+    email: str | None = None
+    pin: str | None = None
     phones: list[str] = []
     phones_added: int = 0
     phones_removed: int = 0
-    phone_skipped_reason: Optional[str] = None
+    phone_skipped_reason: str | None = None

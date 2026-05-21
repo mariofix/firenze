@@ -283,12 +283,14 @@ class TestUpdateClient:
         #   2. fetch client -> client
         #   3. PIN collision check -> None (free)
         #   4. final phones list -> []
-        session = _build_update_session([
-            {"first": svc},
-            {"first": client},
-            {"first": None},
-            {"all": []},
-        ])
+        session = _build_update_session(
+            [
+                {"first": svc},
+                {"first": client},
+                {"first": None},
+                {"all": []},
+            ]
+        )
 
         result = update_client(
             session,
@@ -315,11 +317,13 @@ class TestUpdateClient:
         svc = _make_service()
         client = _make_client(client_id=42, pin="11111111")
         # service, client, replacement pin lookup (collision then free)
-        session = _build_update_session([
-            {"first": svc},
-            {"first": client},
-            {"all": []},
-        ])
+        session = _build_update_session(
+            [
+                {"first": svc},
+                {"first": client},
+                {"all": []},
+            ]
+        )
 
         with patch("firenze.services.payment_service._pick_unique_pin", return_value="33333333") as mock_pick:
             result = update_client(
@@ -337,11 +341,13 @@ class TestUpdateClient:
         svc = _make_service()
         client = _make_client(client_id=42, pin="11111111")
         # service, client, final phones list. No collision query because pin matches existing.
-        session = _build_update_session([
-            {"first": svc},
-            {"first": client},
-            {"all": []},
-        ])
+        session = _build_update_session(
+            [
+                {"first": svc},
+                {"first": client},
+                {"all": []},
+            ]
+        )
 
         result = update_client(
             session,
@@ -358,13 +364,15 @@ class TestUpdateClient:
         # service, client, ani lookup for-this-client -> None,
         # ani lookup any-client -> None, final phones list
         new_phone_row = _make_phone_row(client_id=42, ani="56912345678")
-        session = _build_update_session([
-            {"first": svc},
-            {"first": client},
-            {"first": None},
-            {"first": None},
-            {"all": [new_phone_row]},
-        ])
+        session = _build_update_session(
+            [
+                {"first": svc},
+                {"first": client},
+                {"first": None},
+                {"first": None},
+                {"all": [new_phone_row]},
+            ]
+        )
         added: list = []
         session.add.side_effect = lambda obj: added.append(obj)
 
@@ -388,12 +396,14 @@ class TestUpdateClient:
         client = _make_client(client_id=42)
         existing_for_me = _make_phone_row(client_id=42, ani="56912345678")
         # service, client, existing ani for this client -> hit, final phones
-        session = _build_update_session([
-            {"first": svc},
-            {"first": client},
-            {"first": existing_for_me},
-            {"all": [existing_for_me]},
-        ])
+        session = _build_update_session(
+            [
+                {"first": svc},
+                {"first": client},
+                {"first": existing_for_me},
+                {"all": [existing_for_me]},
+            ]
+        )
         added: list = []
         session.add.side_effect = lambda obj: added.append(obj)
 
@@ -413,13 +423,15 @@ class TestUpdateClient:
         client = _make_client(client_id=42)
         taken_by_other = _make_phone_row(client_id=99, ani="56912345678")
         # service, client, ani for-this-client -> None, ani any-client -> taken_by_other, final phones
-        session = _build_update_session([
-            {"first": svc},
-            {"first": client},
-            {"first": None},
-            {"first": taken_by_other},
-            {"all": []},
-        ])
+        session = _build_update_session(
+            [
+                {"first": svc},
+                {"first": client},
+                {"first": None},
+                {"first": taken_by_other},
+                {"all": []},
+            ]
+        )
         added: list = []
         session.add.side_effect = lambda obj: added.append(obj)
 
@@ -438,12 +450,14 @@ class TestUpdateClient:
         svc = _make_service()
         client = _make_client(client_id=42)
         # service, client, delete phones (returns 3), final phones list (now empty)
-        session = _build_update_session([
-            {"first": svc},
-            {"first": client},
-            {"delete": 3},
-            {"all": []},
-        ])
+        session = _build_update_session(
+            [
+                {"first": svc},
+                {"first": client},
+                {"delete": 3},
+                {"all": []},
+            ]
+        )
 
         result = update_client(
             session,
@@ -458,10 +472,12 @@ class TestUpdateClient:
 
     def test_raises_client_not_found(self):
         svc = _make_service()
-        session = _build_update_session([
-            {"first": svc},
-            {"first": None},
-        ])
+        session = _build_update_session(
+            [
+                {"first": svc},
+                {"first": None},
+            ]
+        )
 
         with pytest.raises(ClientNotFound):
             update_client(

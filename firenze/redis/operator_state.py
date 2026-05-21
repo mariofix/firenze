@@ -6,7 +6,6 @@ TTL        : 86400s — handles "forgot to logout" scenario
 """
 
 import logging
-from typing import Optional
 
 import redis
 
@@ -25,7 +24,7 @@ def set_state(
     *,
     loggedin: bool,
     available: bool,
-    lastcall: Optional[int] = None,
+    lastcall: int | None = None,
 ) -> None:
     """Write operator state to Redis and reset the 24h TTL.
 
@@ -46,7 +45,7 @@ def set_state(
         _log.warning("Redis unavailable — operator state not persisted: %s", exc)
 
 
-def get_state(conn: redis.Redis, number: int) -> Optional[dict]:
+def get_state(conn: redis.Redis, number: int) -> dict | None:
     """Return operator state dict, or None if the key does not exist or Redis is down."""
     try:
         data = conn.hgetall(_key(number))

@@ -19,7 +19,6 @@ def search_did(
     Search the DID, returns/prints the asterisk context.
     """
     session = ctx.obj.get("dbsession")
-    agi = ctx.obj.get("agi")
     number = session.query(ServiceNumber).filter_by(did=did, active=True).first()
 
     if number:

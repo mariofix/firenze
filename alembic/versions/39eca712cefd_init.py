@@ -1,13 +1,15 @@
 """Init
 
 Revision ID: 39eca712cefd
-Revises: 
+Revises:
 Create Date: 2022-10-08 23:01:25.134559-03:00
 
 """
+
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import mysql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "39eca712cefd"
@@ -151,9 +153,7 @@ def upgrade() -> None:
             server_default=sa.text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"),
             nullable=False,
         ),
-        sa.ForeignKeyConstraint(
-            ["service_id"], ["service.id"], onupdate="CASCADE", ondelete="SET NULL"
-        ),
+        sa.ForeignKeyConstraint(["service_id"], ["service.id"], onupdate="CASCADE", ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("did"),
     )

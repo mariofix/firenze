@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
@@ -16,8 +15,8 @@ class AuthLoginCode(Base, TimestampMixin):
     channel: Mapped[str] = mapped_column(String(16), default="email", nullable=False)
     code_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
-    consumed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
     attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     max_attempts: Mapped[int] = mapped_column(Integer, default=5, nullable=False)
-    requested_ip: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
-    requested_ua: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    requested_ip: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    requested_ua: Mapped[str | None] = mapped_column(String(255), nullable=True)

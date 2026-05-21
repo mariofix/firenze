@@ -8,7 +8,6 @@ import datetime
 import logging
 import secrets
 import time
-from typing import Optional
 
 import redis
 from sqlalchemy import Integer, cast
@@ -86,7 +85,7 @@ def _get_operator_by_option(db: Session, option: str) -> Operator:
     return op
 
 
-def login(db: Session, number: int, redis_conn: Optional[redis.Redis] = None) -> Operator:
+def login(db: Session, number: int, redis_conn: redis.Redis | None = None) -> Operator:
     """Mark operator as logged in and available in DB and Redis."""
     op = _get_operator(db, number)
     op.loggedin = True
@@ -100,7 +99,7 @@ def login(db: Session, number: int, redis_conn: Optional[redis.Redis] = None) ->
     return op
 
 
-def logout(db: Session, number: int, redis_conn: Optional[redis.Redis] = None) -> Operator:
+def logout(db: Session, number: int, redis_conn: redis.Redis | None = None) -> Operator:
     """Mark operator as logged out and unavailable in DB and Redis."""
     op = _get_operator(db, number)
     op.loggedin = False
@@ -114,19 +113,19 @@ def logout(db: Session, number: int, redis_conn: Optional[redis.Redis] = None) -
     return op
 
 
-def login_by_phone(db: Session, ani: str, redis_conn: Optional[redis.Redis] = None) -> Operator:
+def login_by_phone(db: Session, ani: str, redis_conn: redis.Redis | None = None) -> Operator:
     """Look up operator by phone ANI and mark as logged in and available."""
     op = _get_operator_by_phone(db, ani)
     return login(db, op.number, redis_conn)
 
 
-def logout_by_phone(db: Session, ani: str, redis_conn: Optional[redis.Redis] = None) -> Operator:
+def logout_by_phone(db: Session, ani: str, redis_conn: redis.Redis | None = None) -> Operator:
     """Look up operator by phone ANI and mark as logged out and unavailable."""
     op = _get_operator_by_phone(db, ani)
     return logout(db, op.number, redis_conn)
 
 
-def get_menu(db: Session, redis_conn: Optional[redis.Redis] = None) -> dict:
+def get_menu(db: Session, redis_conn: redis.Redis | None = None) -> dict:
     """Return count of available operators and a Playback-ready audio string.
 
     Audio string is ``&``-joined from ``Operator.audio_file``, ordered by
@@ -147,9 +146,9 @@ def get_menu(db: Session, redis_conn: Optional[redis.Redis] = None) -> dict:
 
 def info_operator(
     db: Session,
-    number: Optional[int] = None,
-    ani: Optional[str] = None,
-    option: Optional[str] = None,
+    number: int | None = None,
+    ani: str | None = None,
+    option: str | None = None,
 ) -> Operator:
     """Look up an operator by one of three identifiers.
 
@@ -190,8 +189,8 @@ def info_operator(
 def select_operator(
     db: Session,
     mode: str,
-    redis_conn: Optional[redis.Redis] = None,
-    selection: Optional[str] = None,
+    redis_conn: redis.Redis | None = None,
+    selection: str | None = None,
 ) -> dict:
     """Atomically verify operator availability, mark busy, and return operator info.
 
@@ -274,7 +273,8 @@ def select_operator(
     phone = next((p for p in op.numbers if p.contact and p.enabled), None)
     if not phone:
         logger.error(
-            "select_operator: operator number=%s option=%r has no contact+enabled OperatorPhone; rolling availability back",
+            "select_operator: operator number=%s option=%r has no contact+enabled "
+            "OperatorPhone; rolling availability back",
             op.number,
             op.option,
         )
@@ -291,7 +291,7 @@ def select_operator(
     }
 
 
-def release_operator(db: Session, number: int, redis_conn: Optional[redis.Redis] = None) -> Operator:
+def release_operator(db: Session, number: int, redis_conn: redis.Redis | None = None) -> Operator:
     """Mark operator as available again after a call ends.
 
     Stamps ``lastcall`` in Redis so we can see when the operator last wrapped
@@ -310,8 +310,8 @@ def set_availability(
     db: Session,
     number: int,
     available: bool,
-    redis_conn: Optional[redis.Redis] = None,
-    lastcall: Optional[int] = None,
+    redis_conn: redis.Redis | None = None,
+    lastcall: int | None = None,
 ) -> Operator:
     """Toggle availability without changing login state.
 

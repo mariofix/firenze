@@ -1,5 +1,3 @@
-from typing import Optional
-
 from sqlalchemy import Boolean, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -15,7 +13,7 @@ class Service(Base, TimestampMixin):
     slug: Mapped[str] = mapped_column(String(255), index=True)
     auth_method: Mapped[str] = mapped_column(String(8), default="ani")
     intro_audio: Mapped[str] = mapped_column(String(255), default="")
-    numbers: Mapped[list["ServiceNumber"]] = relationship(back_populates="service")
+    numbers: Mapped[list[ServiceNumber]] = relationship(back_populates="service")
 
     def __str__(self):
         return self.name
@@ -28,10 +26,10 @@ class ServiceNumber(Base, TimestampMixin):
     did: Mapped[str] = mapped_column(String(32), unique=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     asterisk_context: Mapped[str] = mapped_column(String(32))
-    service_id: Mapped[Optional[int]] = mapped_column(
+    service_id: Mapped[int | None] = mapped_column(
         ForeignKey("service.id", ondelete="SET NULL", onupdate="CASCADE"),
     )
-    service: Mapped[Optional["Service"]] = relationship(back_populates="numbers")
+    service: Mapped[Service | None] = relationship(back_populates="numbers")
 
     def __str__(self):
         return self.did

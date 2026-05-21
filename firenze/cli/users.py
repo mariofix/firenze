@@ -2,7 +2,6 @@
 
 import datetime
 import logging
-from typing import Optional
 
 import typer
 from rich import box
@@ -94,7 +93,7 @@ def update_user(
         None,
         help="New password (avoid passing on command line; use change-password instead)",
     ),
-    enable: Optional[bool] = typer.Option(None, help="Enable or disable"),
+    enable: bool | None = typer.Option(None, help="Enable or disable"),
 ):
     """Update an existing user."""
     session = ctx.obj.get("dbsession")

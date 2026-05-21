@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import datetime
 import secrets
 import string
-from typing import Optional
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     JSON,
@@ -11,12 +13,14 @@ from sqlalchemy import (
     Integer,
     String,
     UniqueConstraint,
-    event,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from firenze.database import Base
 from firenze.models.base import TimestampMixin
+
+if TYPE_CHECKING:
+    from firenze.models.service import Service
 
 
 def _generate_pin() -> str:
@@ -39,14 +43,14 @@ class Client(Base, TimestampMixin):
         ForeignKey("service.id", ondelete="CASCADE", onupdate="CASCADE"),
     )
     client_id: Mapped[int] = mapped_column(Integer)
-    pin: Mapped[Optional[str]] = mapped_column(String(8), default=None)
-    full_name: Mapped[Optional[str]] = mapped_column(String(128), default=None)
-    email: Mapped[Optional[str]] = mapped_column(String(512), default=None)
+    pin: Mapped[str | None] = mapped_column(String(8), default=None)
+    full_name: Mapped[str | None] = mapped_column(String(128), default=None)
+    email: Mapped[str | None] = mapped_column(String(512), default=None)
     credits: Mapped[int] = mapped_column(Integer, default=0)
-    extra_config: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True, default=None)
+    extra_config: Mapped[dict | None] = mapped_column(JSON, nullable=True, default=None)
 
-    service: Mapped[Optional["Service"]] = relationship()
-    anis: Mapped[list["ClientAni"]] = relationship(back_populates="client", cascade="all, delete-orphan")
+    service: Mapped[Service | None] = relationship()
+    anis: Mapped[list[ClientAni]] = relationship(back_populates="client", cascade="all, delete-orphan")
 
     __table_args__ = (
         UniqueConstraint("service_id", "client_id", name="uq_client_service_clientid"),
@@ -74,7 +78,7 @@ class ClientAni(Base):
     ani: Mapped[str] = mapped_column(String(16), nullable=False)
     q_calls: Mapped[int] = mapped_column(Integer, nullable=False, default="0")
     last_call: Mapped[datetime.datetime] = mapped_column(nullable=True, default=None)
-    client: Mapped["Client"] = relationship(back_populates="anis")
+    client: Mapped[Client] = relationship(back_populates="anis")
 
     __table_args__ = (
         ForeignKeyConstraint(

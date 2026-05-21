@@ -10,7 +10,7 @@ asterisk_config/legacy-php/onlinecalls_redis.php consumes these keys.
 
 import logging
 import time
-from typing import Iterator, Optional
+from collections.abc import Iterator
 
 import redis
 
@@ -31,7 +31,7 @@ def set_call(
     did: str,
     operator: int,
     client_id: int,
-    created_at: Optional[int] = None,
+    created_at: int | None = None,
 ) -> None:
     """Write call state to Redis and (re)set the 24h TTL.
 
@@ -77,7 +77,7 @@ def update_operator(conn: redis.Redis, service: str, ani: str, operator: int) ->
         _log.warning("Redis unavailable - call operator not updated: %s", exc)
 
 
-def get_call(conn: redis.Redis, service: str, ani: str) -> Optional[dict]:
+def get_call(conn: redis.Redis, service: str, ani: str) -> dict | None:
     """Return the call dict, or None if the key is absent or Redis is down."""
     try:
         data = conn.hgetall(_key(service, ani))

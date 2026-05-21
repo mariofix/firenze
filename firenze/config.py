@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     AUTH_PASSWORDLESS_MAX_REQUESTS_PER_IP_PER_WINDOW: int = 20
 
 
-@lru_cache()
+@lru_cache
 def get_settings():
     return Settings()
 

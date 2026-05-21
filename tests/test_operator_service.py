@@ -56,9 +56,7 @@ class TestLogin:
 
         login(session, 1001, redis_conn)
 
-        mock_state.set_state.assert_called_once_with(
-            redis_conn, 1001, loggedin=True, available=True, lastcall=0
-        )
+        mock_state.set_state.assert_called_once_with(redis_conn, 1001, loggedin=True, available=True, lastcall=0)
 
     @patch("firenze.services.operator_service.operator_state")
     def test_skips_redis_when_valkey_disabled(self, mock_state):
@@ -106,9 +104,7 @@ class TestLogout:
 
         logout(session, 1001, redis_conn)
 
-        mock_state.set_state.assert_called_once_with(
-            redis_conn, 1001, loggedin=False, available=False
-        )
+        mock_state.set_state.assert_called_once_with(redis_conn, 1001, loggedin=False, available=False)
 
 
 class TestSetAvailability:
@@ -126,7 +122,7 @@ class TestSetAvailability:
         op = _make_operator(loggedin=True, available=True)
         session = _mock_session(op)
 
-        result = set_availability(session, 1001, False)
+        set_availability(session, 1001, False)
 
         assert op.available is False
 
@@ -158,9 +154,7 @@ class TestSetAvailability:
 
         set_availability(session, 1001, True, redis_conn)
 
-        mock_state.set_state.assert_called_once_with(
-            redis_conn, 1001, loggedin=True, available=True, lastcall=None
-        )
+        mock_state.set_state.assert_called_once_with(redis_conn, 1001, loggedin=True, available=True, lastcall=None)
 
     @patch("firenze.services.operator_service.operator_state")
     def test_falls_back_to_db_loggedin_when_no_redis_state(self, mock_state):
@@ -171,9 +165,7 @@ class TestSetAvailability:
 
         set_availability(session, 1001, False, redis_conn)
 
-        mock_state.set_state.assert_called_once_with(
-            redis_conn, 1001, loggedin=True, available=False, lastcall=None
-        )
+        mock_state.set_state.assert_called_once_with(redis_conn, 1001, loggedin=True, available=False, lastcall=None)
 
 
 class TestReleaseOperator:

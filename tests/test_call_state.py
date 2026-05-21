@@ -41,9 +41,7 @@ class TestSetCall:
                 "created_at": 1700000000,
             },
         )
-        conn.expire.assert_called_once_with(
-            "firenze:call:alotarot:56912345678", 86400
-        )
+        conn.expire.assert_called_once_with("firenze:call:alotarot:56912345678", 86400)
 
     def test_defaults_created_at_to_now_when_omitted(self):
         conn = MagicMock()
@@ -95,12 +93,8 @@ class TestUpdateOperator:
 
         update_operator(conn, "alotarot", "56912345678", 2002)
 
-        conn.hset.assert_called_once_with(
-            "firenze:call:alotarot:56912345678", "operator", 2002
-        )
-        conn.expire.assert_called_once_with(
-            "firenze:call:alotarot:56912345678", 86400
-        )
+        conn.hset.assert_called_once_with("firenze:call:alotarot:56912345678", "operator", 2002)
+        conn.expire.assert_called_once_with("firenze:call:alotarot:56912345678", 86400)
 
     def test_noop_when_key_missing(self):
         conn = MagicMock()

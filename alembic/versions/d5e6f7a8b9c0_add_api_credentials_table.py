@@ -5,9 +5,9 @@ Revises: c1b2a3d4e5f7
 Create Date: 2026-05-14 22:15:00.000000-04:00
 """
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "d5e6f7a8b9c0"
@@ -38,12 +38,8 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(
-        "ix_api_credential_user_id", "api_credential", ["user_id"], unique=False
-    )
-    op.create_index(
-        "ix_api_credential_api_key", "api_credential", ["api_key"], unique=True
-    )
+    op.create_index("ix_api_credential_user_id", "api_credential", ["user_id"], unique=False)
+    op.create_index("ix_api_credential_api_key", "api_credential", ["api_key"], unique=True)
 
 
 def downgrade() -> None:

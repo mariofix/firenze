@@ -1,7 +1,6 @@
 """Redis/Valkey connection factory."""
 
 import logging
-from typing import Optional
 
 import redis
 
@@ -10,7 +9,7 @@ from firenze.config import settings
 _log = logging.getLogger("firenze")
 
 
-def get_redis() -> Optional[redis.Redis]:
+def get_redis() -> redis.Redis | None:
     """Return a Redis connection, or None if Redis is unreachable.
 
     Applies socket connect/read timeouts from settings so an unreachable

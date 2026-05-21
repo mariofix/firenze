@@ -1,5 +1,5 @@
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import bcrypt
 from argon2 import PasswordHasher
@@ -35,14 +35,14 @@ def generate_api_secret() -> str:
 
 
 def _is_credential_active(credential: models.ApiCredential) -> bool:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     if not credential.enabled:
         return False
     if credential.revoked_at:
         return False
     expires_at = credential.expires_at
     if expires_at and expires_at.tzinfo is None:
-        expires_at = expires_at.replace(tzinfo=timezone.utc)
+        expires_at = expires_at.replace(tzinfo=UTC)
     if expires_at and expires_at <= now:
         return False
     return True
@@ -82,7 +82,7 @@ def create_api_credential(
 
 def revoke_api_credential(db: Session, credential: models.ApiCredential) -> models.ApiCredential:
     credential.enabled = False
-    credential.revoked_at = datetime.now(timezone.utc)
+    credential.revoked_at = datetime.now(UTC)
     db.commit()
     db.refresh(credential)
     return credential
@@ -101,7 +101,7 @@ def authenticate_api_credential(
     user = crud.get_user(db, credential.user_id)
     if not user or not user.enabled:
         return None
-    credential.last_used_at = datetime.now(timezone.utc)
+    credential.last_used_at = datetime.now(UTC)
     db.commit()
     return user, credential
 
@@ -143,7 +143,7 @@ def find_user_for_passwordless_identifier(db: Session, identifier: str) -> model
 
 
 def can_issue_passwordless_code(db: Session, user: models.User, request_ip: str) -> bool:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     cutoff = now - timedelta(seconds=settings.AUTH_PASSWORDLESS_REQUEST_WINDOW_SECONDS)
     user_count = (
         db.query(AuthLoginCode)
@@ -174,7 +174,7 @@ def can_issue_passwordless_code(db: Session, user: models.User, request_ip: str)
 
 
 def create_passwordless_code(db: Session, user: models.User, request_ip: str, user_agent: str) -> str:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     db.query(AuthLoginCode).filter(
         AuthLoginCode.user_id == user.id,
         AuthLoginCode.channel == "email",
@@ -219,7 +219,7 @@ def send_passwordless_code_email(recipient: str, code: str) -> None:
 
 
 def verify_passwordless_code(db: Session, identifier: str, code: str) -> models.User | None:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     user = find_user_for_passwordless_identifier(db, identifier)
     if not user or not user.enabled:
         return None

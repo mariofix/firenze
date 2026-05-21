@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import datetime
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, StrictInt, field_validator
 
@@ -11,23 +10,23 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, StrictInt, field_va
 class ClientExtraConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    tarotista_favorita: Optional[StrictInt] = Field(default=None, gt=0)
-    aviso_creditos: Optional[StrictInt] = Field(default=None, ge=0)
+    tarotista_favorita: StrictInt | None = Field(default=None, gt=0)
+    aviso_creditos: StrictInt | None = Field(default=None, ge=0)
 
 
 class ClientCreateRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, extra="ignore")
 
-    client_id: Optional[int] = Field(default=None, gt=0)
-    full_name: Optional[str] = Field(default=None, max_length=128)
-    email: Optional[EmailStr] = None
-    pin: Optional[str] = Field(default=None, min_length=8, max_length=8)
+    client_id: int | None = Field(default=None, gt=0)
+    full_name: str | None = Field(default=None, max_length=128)
+    email: EmailStr | None = None
+    pin: str | None = Field(default=None, min_length=8, max_length=8)
     credits: int = Field(default=0, ge=0)
-    extra_config: Optional[ClientExtraConfig] = None
+    extra_config: ClientExtraConfig | None = None
 
     @field_validator("pin")
     @classmethod
-    def _pin_must_be_digits(cls, value: Optional[str]) -> Optional[str]:
+    def _pin_must_be_digits(cls, value: str | None) -> str | None:
         if value is not None and not value.isdigit():
             raise ValueError("pin must be 8 digits")
         return value
@@ -36,15 +35,15 @@ class ClientCreateRequest(BaseModel):
 class ClientUpdateRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, extra="ignore")
 
-    full_name: Optional[str] = Field(default=None, max_length=128)
-    email: Optional[EmailStr] = None
-    pin: Optional[str] = Field(default=None, min_length=8, max_length=8)
-    credits: Optional[int] = Field(default=None, ge=0)
-    extra_config: Optional[ClientExtraConfig] = None
+    full_name: str | None = Field(default=None, max_length=128)
+    email: EmailStr | None = None
+    pin: str | None = Field(default=None, min_length=8, max_length=8)
+    credits: int | None = Field(default=None, ge=0)
+    extra_config: ClientExtraConfig | None = None
 
     @field_validator("pin")
     @classmethod
-    def _pin_must_be_digits(cls, value: Optional[str]) -> Optional[str]:
+    def _pin_must_be_digits(cls, value: str | None) -> str | None:
         if value is not None and not value.isdigit():
             raise ValueError("pin must be 8 digits")
         return value
@@ -56,11 +55,11 @@ class ClientResponse(BaseModel):
     id: int
     service: str
     client_id: int
-    full_name: Optional[str] = None
-    email: Optional[EmailStr] = None
-    pin: Optional[str] = None
+    full_name: str | None = None
+    email: EmailStr | None = None
+    pin: str | None = None
     credits: int
-    extra_config: Optional[ClientExtraConfig] = None
+    extra_config: ClientExtraConfig | None = None
     anis: list[str] = Field(default_factory=list)
     created_at: datetime.datetime
     modified_at: datetime.datetime
@@ -75,12 +74,12 @@ class ClientDeleteResponse(BaseModel):
 
 class ClientSearchResponse(BaseModel):
     found: bool
-    client_id: Optional[int] = None
-    service: Optional[str] = None
-    credits: Optional[int] = None
-    email: Optional[str] = None
-    full_name: Optional[str] = None
-    phone_number: Optional[str] = None
+    client_id: int | None = None
+    service: str | None = None
+    credits: int | None = None
+    email: str | None = None
+    full_name: str | None = None
+    phone_number: str | None = None
 
 
 class ClientAniCreateRequest(BaseModel):

@@ -6,9 +6,10 @@ Create Date: 2024-06-05 23:39:13.870555-04:00
 
 """
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import mysql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "3d332fe36da6"
@@ -66,9 +67,7 @@ def upgrade() -> None:
             server_default=sa.text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"),
             nullable=False,
         ),
-        sa.ForeignKeyConstraint(
-            ["operator_id"], ["operator.id"], onupdate="CASCADE", ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["operator_id"], ["operator.id"], onupdate="CASCADE", ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.alter_column(

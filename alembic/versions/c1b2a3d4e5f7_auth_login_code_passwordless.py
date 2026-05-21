@@ -6,8 +6,9 @@ Create Date: 2026-05-13 22:20:00.000000-04:00
 
 """
 
-from alembic import op
 import sqlalchemy as sa
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "c1b2a3d4e5f7"
@@ -35,12 +36,8 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("ix_auth_login_code_user_id", "auth_login_code", ["user_id"], unique=False)
-    op.create_index(
-        "ix_auth_login_code_expires_at", "auth_login_code", ["expires_at"], unique=False
-    )
-    op.create_index(
-        "ix_auth_login_code_consumed_at", "auth_login_code", ["consumed_at"], unique=False
-    )
+    op.create_index("ix_auth_login_code_expires_at", "auth_login_code", ["expires_at"], unique=False)
+    op.create_index("ix_auth_login_code_consumed_at", "auth_login_code", ["consumed_at"], unique=False)
 
 
 def downgrade() -> None:

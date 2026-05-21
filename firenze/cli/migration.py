@@ -2,8 +2,7 @@
 
 import logging
 import re
-from enum import Enum
-from typing import Optional
+from enum import StrEnum
 
 import requests
 import typer
@@ -22,7 +21,7 @@ console = Console()
 logger = logging.getLogger("firenze")
 
 
-class LegacyService(str, Enum):
+class LegacyService(StrEnum):
     fonotarot_cl = "fonotarot-cl"
     alotarot = "alotarot"
 
@@ -302,9 +301,9 @@ def _analyze_ani(ani: str) -> tuple[str | None, str, str]:
 @app.command("check-anis")
 def check_anis(
     ctx: typer.Context,
-    service: Optional[str] = typer.Option(None, "--service", "-s", help="Filter by service slug"),
-    client_id: Optional[int] = typer.Option(None, "--client-id", "-c", help="Filter by client_id"),
-    ani_filter: Optional[str] = typer.Option(None, "--ani", "-a", help="Filter by exact ANI value"),
+    service: str | None = typer.Option(None, "--service", "-s", help="Filter by service slug"),
+    client_id: int | None = typer.Option(None, "--client-id", "-c", help="Filter by client_id"),
+    ani_filter: str | None = typer.Option(None, "--ani", "-a", help="Filter by exact ANI value"),
     fix: bool = typer.Option(False, "--fix", help="Apply fixable corrections to the DB"),
     all_records: bool = typer.Option(False, "--all", help="Scan all ANI records (use with caution)"),
 ):
@@ -446,9 +445,9 @@ def check_anis(
 @app.command("check-phones")
 def check_phones(
     ctx: typer.Context,
-    service: Optional[str] = typer.Option(None, "--service", "-s", help="Filter by service slug"),
-    client_id: Optional[int] = typer.Option(None, "--client-id", "-c", help="Filter by client_id"),
-    ani_filter: Optional[str] = typer.Option(None, "--ani", "-a", help="Filter by exact ANI value"),
+    service: str | None = typer.Option(None, "--service", "-s", help="Filter by service slug"),
+    client_id: int | None = typer.Option(None, "--client-id", "-c", help="Filter by client_id"),
+    ani_filter: str | None = typer.Option(None, "--ani", "-a", help="Filter by exact ANI value"),
     fix: bool = typer.Option(False, "--fix", help="Apply fixable corrections to the DB"),
     all_records: bool = typer.Option(False, "--all", help="Scan all ANI records (use with caution)"),
 ):

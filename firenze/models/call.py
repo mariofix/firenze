@@ -1,6 +1,4 @@
-from typing import Optional
-
-from sqlalchemy import Boolean, String, UniqueConstraint
+from sqlalchemy import String, UniqueConstraint
 from sqlalchemy.dialects.mysql import JSON
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -30,7 +28,7 @@ class PostCallProcess(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(primary_key=True)
     service: Mapped[str] = mapped_column(String(32))
     process_name: Mapped[str] = mapped_column(String(32))
-    parameters: Mapped[Optional[dict]] = mapped_column(JSON)
+    parameters: Mapped[dict | None] = mapped_column(JSON)
     client_id: Mapped[int] = mapped_column()
     processed: Mapped[bool] = mapped_column(default=False)
 

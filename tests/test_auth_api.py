@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -47,8 +47,8 @@ def test_me_accepts_valid_api_headers(monkeypatch):
         email="admin@example.com",
         enabled=True,
         scopes=["firenze"],
-        created_at=datetime.now(timezone.utc),
-        modified_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
+        modified_at=datetime.now(UTC),
     )
     monkeypatch.setattr(
         "firenze.auth.auth_service.authenticate_api_credential",
@@ -133,9 +133,7 @@ def test_passwordless_request_creates_and_sends_code(monkeypatch):
         lambda db, user, request_ip, user_agent: "123456",
     )
     send_mock = MagicMock()
-    monkeypatch.setattr(
-        "firenze.auth.auth_service.send_passwordless_code_email", send_mock
-    )
+    monkeypatch.setattr("firenze.auth.auth_service.send_passwordless_code_email", send_mock)
     client = TestClient(_build_app(MagicMock()))
 
     response = client.post(
@@ -149,9 +147,7 @@ def test_passwordless_request_creates_and_sends_code(monkeypatch):
 
 def test_admin_password_login_sets_cookie_session(monkeypatch):
     monkeypatch.setattr(settings, "AUTH_PASSWORD_LOGIN_ENABLED", True)
-    monkeypatch.setattr(
-        "firenze.auth.SessionLocal", lambda: SimpleNamespace(close=lambda: None)
-    )
+    monkeypatch.setattr("firenze.auth.SessionLocal", lambda: SimpleNamespace(close=lambda: None))
     monkeypatch.setattr(
         "firenze.auth.auth_service.authenticate_password_user",
         lambda db, login, password: SimpleNamespace(id=1, login=login, scopes=["admin"]),
@@ -180,9 +176,7 @@ def test_admin_password_login_sets_cookie_session(monkeypatch):
 def test_admin_passwordless_request_redirects_to_code_step(monkeypatch):
     monkeypatch.setattr(settings, "AUTH_PASSWORDLESS_ENABLED", True)
     fake_user = SimpleNamespace(id=11, enabled=True, email="admin@example.com")
-    monkeypatch.setattr(
-        "firenze.admin.SessionLocal", lambda: SimpleNamespace(close=lambda: None)
-    )
+    monkeypatch.setattr("firenze.admin.SessionLocal", lambda: SimpleNamespace(close=lambda: None))
     monkeypatch.setattr(
         "firenze.admin.auth_service.find_user_for_passwordless_identifier",
         lambda db, identifier: fake_user,
@@ -196,9 +190,7 @@ def test_admin_passwordless_request_redirects_to_code_step(monkeypatch):
         lambda db, user, request_ip, user_agent: "123456",
     )
     send_mock = MagicMock()
-    monkeypatch.setattr(
-        "firenze.admin.auth_service.send_passwordless_code_email", send_mock
-    )
+    monkeypatch.setattr("firenze.admin.auth_service.send_passwordless_code_email", send_mock)
     client = TestClient(_build_admin_app())
 
     response = client.post(
@@ -215,9 +207,7 @@ def test_admin_passwordless_request_redirects_to_code_step(monkeypatch):
 
 def test_admin_passwordless_verify_sets_session_and_redirects(monkeypatch):
     monkeypatch.setattr(settings, "AUTH_PASSWORDLESS_ENABLED", True)
-    monkeypatch.setattr(
-        "firenze.admin.SessionLocal", lambda: SimpleNamespace(close=lambda: None)
-    )
+    monkeypatch.setattr("firenze.admin.SessionLocal", lambda: SimpleNamespace(close=lambda: None))
     monkeypatch.setattr(
         "firenze.admin.auth_service.verify_passwordless_code",
         lambda db, identifier, code: SimpleNamespace(id=42, scopes=["admin"]),

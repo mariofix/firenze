@@ -6,7 +6,6 @@ cache consumed by legacy PHP readers and dashboards.
 """
 
 import logging
-from typing import Optional
 
 import redis
 from sqlalchemy.exc import IntegrityError
@@ -25,7 +24,7 @@ def insert_call(
     did: str,
     client_id: int,
     operator: int = 0,
-    redis_conn: Optional[redis.Redis] = None,
+    redis_conn: redis.Redis | None = None,
 ) -> dict:
     """Insert an online call record.
 
@@ -69,7 +68,7 @@ def delete_call(
     db: Session,
     service: str,
     ani: str,
-    redis_conn: Optional[redis.Redis] = None,
+    redis_conn: redis.Redis | None = None,
 ) -> dict:
     """Delete an online call record.
 
@@ -92,7 +91,7 @@ def update_call_operator(
     service: str,
     ani: str,
     operator: int,
-    redis_conn: Optional[redis.Redis] = None,
+    redis_conn: redis.Redis | None = None,
 ) -> dict:
     """Update the assigned operator number on an active call record.
 

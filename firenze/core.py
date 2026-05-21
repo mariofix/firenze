@@ -1,6 +1,5 @@
 import datetime
 import json
-from typing import List
 
 from fastapi import (
     APIRouter,
@@ -10,14 +9,13 @@ from fastapi import (
     Request,
     Security,
 )
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from thankyou import give_thanks
 
 from firenze import auth, crud, schemas
 from firenze.database import SessionLocal
-from firenze.exceptions import GenericError, ProcessError
 from firenze.models import Event
 
 coreRouter = APIRouter()
@@ -61,7 +59,7 @@ def thanks(
 @coreRouter.get(
     "/events/",
     name="List Events",
-    response_model=List[schemas.Event],
+    response_model=list[schemas.Event],
     tags=["core"],
     include_in_schema=True,
 )
@@ -92,9 +90,9 @@ async def create_event(
         data = json.dumps(data._dict)
 
     try:
-        event = crud.create_event(event_name, extra, data, request, db)
+        crud.create_event(event_name, extra, data, request, db)
     except Exception as e:
-        HTTPException(status_code=500, detail=f"Unable to create Event: {e}")
+        raise HTTPException(status_code=500, detail=f"Unable to create Event: {e}")
 
     return {"message": "OK", "detail": give_thanks()}
 

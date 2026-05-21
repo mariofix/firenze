@@ -1,6 +1,6 @@
 [project]
 name = "firenze"
-version = "2026.5.1"
+version = "2026.5.2"
 description = "Servicio de comunicacion y administracion para servicio Tatot"
 readme = "README.md"
 authors = [{ name = "Mario Hernandez", email = "mariofix@proton.me" }]
@@ -57,6 +57,17 @@ timezone = "America/Santiago"
 
 [tool.ruff]
 line-length = 119
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP"]
+fixable = ["ALL"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+docstring-code-format = true
 
 [tool.black]
 line-length = 119

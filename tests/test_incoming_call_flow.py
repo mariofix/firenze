@@ -30,7 +30,6 @@ from firenze.services.operator_service import (
     select_operator,
 )
 
-
 SERVICE_SLUG = "fonotarot-cl"
 CALLER_ANI = "56912345678"
 DID = "56229402147"
@@ -115,7 +114,6 @@ def test_incoming_call_happy_path(mock_op_state, mock_call_state):
     mock_op_state.get_state.return_value = None
 
     query_chain = session.query.return_value.filter_by.return_value
-    lock_chain = query_chain.with_for_update.return_value
     order_chain = query_chain.order_by.return_value
     filter_lock_chain = session.query.return_value.filter.return_value.with_for_update.return_value
 
@@ -148,9 +146,7 @@ def test_incoming_call_happy_path(mock_op_state, mock_call_state):
 
     # ----- Step 5: No duplicate active call for this ANI ---------------------
     query_chain.first.return_value = None
-    assert get_active_call(session, SERVICE_SLUG, CALLER_ANI) == {
-        "llamada_activa": "false"
-    }
+    assert get_active_call(session, SERVICE_SLUG, CALLER_ANI) == {"llamada_activa": "false"}
 
     # ----- Step 6: Operator menu - one available operator --------------------
     query_chain.all.return_value = [operator]
@@ -198,14 +194,10 @@ def test_incoming_call_happy_path(mock_op_state, mock_call_state):
 
     # ----- Step 9: Assign selected operator to the active call record --------
     query_chain.first.return_value = call_row
-    assign_res = update_call_operator(
-        session, SERVICE_SLUG, CALLER_ANI, OPERATOR_NUMBER, redis_conn
-    )
+    assign_res = update_call_operator(session, SERVICE_SLUG, CALLER_ANI, OPERATOR_NUMBER, redis_conn)
     assert assign_res == {"ok": True}
     assert call_row.operator == OPERATOR_NUMBER
-    mock_call_state.update_operator.assert_called_once_with(
-        redis_conn, SERVICE_SLUG, CALLER_ANI, OPERATOR_NUMBER
-    )
+    mock_call_state.update_operator.assert_called_once_with(redis_conn, SERVICE_SLUG, CALLER_ANI, OPERATOR_NUMBER)
 
     # ... call in progress ...
 
@@ -236,6 +228,4 @@ def test_incoming_call_happy_path(mock_op_state, mock_call_state):
     delete_res = delete_call(session, SERVICE_SLUG, CALLER_ANI, redis_conn)
     assert delete_res == {"ok": True}
     session.delete.assert_called_once_with(call_row)
-    mock_call_state.delete_call.assert_called_once_with(
-        redis_conn, SERVICE_SLUG, CALLER_ANI
-    )
+    mock_call_state.delete_call.assert_called_once_with(redis_conn, SERVICE_SLUG, CALLER_ANI)

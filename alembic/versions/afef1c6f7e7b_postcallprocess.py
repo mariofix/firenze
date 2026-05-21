@@ -5,9 +5,11 @@ Revises: 39eca712cefd
 Create Date: 2023-04-14 21:35:35.265282-04:00
 
 """
+
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import mysql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "afef1c6f7e7b"
@@ -66,9 +68,7 @@ def downgrade() -> None:
             mysql.LONGTEXT(charset="utf8mb4", collation="utf8mb4_bin"),
             nullable=False,
         ),
-        sa.Column(
-            "pin", mysql.INTEGER(display_width=11), autoincrement=False, nullable=False
-        ),
+        sa.Column("pin", mysql.INTEGER(display_width=11), autoincrement=False, nullable=False),
         sa.Column(
             "creditos",
             mysql.INTEGER(display_width=11),
@@ -108,9 +108,7 @@ def downgrade() -> None:
             mysql.LONGTEXT(charset="utf8mb4", collation="utf8mb4_bin"),
             nullable=False,
         ),
-        sa.Column(
-            "pin", mysql.INTEGER(display_width=11), autoincrement=False, nullable=False
-        ),
+        sa.Column("pin", mysql.INTEGER(display_width=11), autoincrement=False, nullable=False),
         sa.Column(
             "creditos",
             mysql.INTEGER(display_width=11),
@@ -146,9 +144,7 @@ def downgrade() -> None:
         sa.Column("nombres", mysql.VARCHAR(length=255), nullable=True),
         sa.Column("correo", mysql.VARCHAR(length=1024), nullable=False),
         sa.Column("telefono", mysql.VARCHAR(length=32), nullable=True),
-        sa.Column(
-            "pin", mysql.INTEGER(display_width=11), autoincrement=False, nullable=True
-        ),
+        sa.Column("pin", mysql.INTEGER(display_width=11), autoincrement=False, nullable=True),
         sa.Column(
             "creditos",
             mysql.INTEGER(display_width=11),

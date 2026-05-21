@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Security, status
 from fastapi.security import SecurityScopes
@@ -132,7 +131,7 @@ class AdminAuth(AuthenticationBackend):
         request.session.clear()
         return True
 
-    async def authenticate(self, request: Request) -> Optional[RedirectResponse]:
+    async def authenticate(self, request: Request) -> RedirectResponse | None:
         user_id = request.session.get("admin_user_id")
         if not user_id:
             return RedirectResponse(request.url_for("admin:login"), status_code=302)

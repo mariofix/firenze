@@ -5,9 +5,9 @@ import logging
 
 import redis as redis_lib
 from markupsafe import Markup, escape
-from sqlalchemy import and_, case, func
 from sqladmin import Admin, BaseView, ModelView, expose
 from sqladmin.authentication import login_required
+from sqlalchemy import and_, case, func
 from starlette.requests import Request
 from starlette.responses import RedirectResponse
 from starlette.routing import Route
@@ -126,20 +126,17 @@ def _collect_monthly_agent_report(year: int, month: int, selected_agents: tuple[
         operators = db.query(Operator).order_by(Operator.number).all()
         all_agents = [{"number": int(op.number), "name": op.name} for op in operators]
 
-        rows_query = (
-            db.query(
-                func.date(AsteriskCDR.calldate).label("day"),
-                AsteriskCDR.zvn_operator.label("operator"),
-                func.coalesce(func.floor(func.sum(AsteriskCDR.billsec) / 60), 0).label("minutes"),
-            )
-            .filter(
-                AsteriskCDR.calldate >= month_start,
-                AsteriskCDR.calldate < next_month,
-                AsteriskCDR.disposition == "ANSWERED",
-                AsteriskCDR.zvn_operator.is_not(None),
-                AsteriskCDR.zvn_clientid.is_not(None),
-                AsteriskCDR.zvn_clientid > 1,
-            )
+        rows_query = db.query(
+            func.date(AsteriskCDR.calldate).label("day"),
+            AsteriskCDR.zvn_operator.label("operator"),
+            func.coalesce(func.floor(func.sum(AsteriskCDR.billsec) / 60), 0).label("minutes"),
+        ).filter(
+            AsteriskCDR.calldate >= month_start,
+            AsteriskCDR.calldate < next_month,
+            AsteriskCDR.disposition == "ANSWERED",
+            AsteriskCDR.zvn_operator.is_not(None),
+            AsteriskCDR.zvn_clientid.is_not(None),
+            AsteriskCDR.zvn_clientid > 1,
         )
         if selected_agents:
             rows_query = rows_query.filter(AsteriskCDR.zvn_operator.in_(selected_agents))
@@ -211,7 +208,8 @@ class ClientAdmin(ModelView, model=Client):
         Client.anis: lambda model, _: (
             [
                 Markup(
-                    f'<span class="badge bg-blue-lt text-blue">{escape(client_ani.ani)} ({escape(client_ani.q_calls)})</span>'
+                    f'<span class="badge bg-blue-lt text-blue">{escape(client_ani.ani)} '
+                    f"({escape(client_ani.q_calls)})</span>"
                 )
                 for client_ani in model.anis
             ]
@@ -349,7 +347,10 @@ class OperatorPhoneAdmin(ModelView, model=OperatorPhone):
         "contact": {"description": "Mark as the primary contact number for this operator"},
         "pin": {"description": "4-digit PIN used for operator login from phone (optional)"},
         "trunk": {
-            "description": "Outbound SIP trunk to use for this number, e.g. claro1, didww-mia-out. Leave blank to use the default trunk"
+            "description": (
+                "Outbound SIP trunk to use for this number, e.g. claro1, didww-mia-out. "
+                "Leave blank to use the default trunk"
+            )
         },
     }
 
@@ -443,11 +444,15 @@ class UserAdmin(ModelView, model=User):
         "email": {"description": "Contact email address"},
         "password": {"description": "Plain text — will be hashed automatically on save"},
         "allowed_ips": {
-            "description": 'Deprecated. Kept for compatibility only; not enforced by auth. Previous format: ["10.0.0.1"].'
+            "description": (
+                'Deprecated. Kept for compatibility only; not enforced by auth. Previous format: ["10.0.0.1"].'
+            )
         },
         "enabled": {"description": "Uncheck to disable API access without deleting the user"},
         "scopes": {
-            "description": 'JSON list of scopes, e.g. ["core", "admin"]. Available: core, audiotex, asterisk, firenze, admin'
+            "description": (
+                'JSON list of scopes, e.g. ["core", "admin"]. Available: core, audiotex, asterisk, firenze, admin'
+            )
         },
     }
 
@@ -522,7 +527,7 @@ class MonthlyReportIndex(BaseView):
         try:
             year = int(request.query_params.get("year", today.year))
             month = int(request.query_params.get("month", today.month))
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             year, month = today.year, today.month
 
         month = max(1, min(12, month))
@@ -708,7 +713,7 @@ class FirenzeAdmin(Admin):
         top_ani_raw = request.query_params.get("top_ani", "10")
         try:
             requested_top_ani = int(top_ani_raw)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             requested_top_ani = 10
         top_ani_limit = requested_top_ani if requested_top_ani in {5, 10, 15} else 10
         operator_period = request.query_params.get("operator_period", "current_month")
@@ -754,9 +759,7 @@ class FirenzeAdmin(Admin):
                 "end": next_month,
             },
         }
-        selected_operator_period = (
-            operator_period if operator_period in operator_period_meta else "current_month"
-        )
+        selected_operator_period = operator_period if operator_period in operator_period_meta else "current_month"
         operator_period_start = operator_period_meta[selected_operator_period]["start"]
         operator_period_end = operator_period_meta[selected_operator_period]["end"]
 
@@ -1012,12 +1015,7 @@ class FirenzeAdmin(Admin):
                 .order_by(func.count(AsteriskCDR.cdrid).desc())
                 .all()
             )
-            recent_cdr_rows = (
-                db.query(AsteriskCDR)
-                .order_by(AsteriskCDR.calldate.desc())
-                .limit(40)
-                .all()
-            )
+            recent_cdr_rows = db.query(AsteriskCDR).order_by(AsteriskCDR.calldate.desc()).limit(40).all()
         finally:
             db.close()
 
@@ -1209,9 +1207,7 @@ class FirenzeAdmin(Admin):
         ]
         latest_last_call = ani_usage.latest_last_call
         latest_last_call_hours = (
-            round((now - latest_last_call).total_seconds() / 3600, 1)
-            if latest_last_call
-            else None
+            round((now - latest_last_call).total_seconds() / 3600, 1) if latest_last_call else None
         )
 
         recent_cdr = [

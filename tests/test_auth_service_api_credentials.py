@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -18,7 +18,7 @@ def test_authenticate_api_credential_returns_user_when_valid(monkeypatch):
         user_id=10,
         enabled=True,
         revoked_at=None,
-        expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
+        expires_at=datetime.now(UTC) + timedelta(minutes=5),
         api_secret_hash="hash",
     )
     user = SimpleNamespace(id=10, enabled=True)
@@ -37,7 +37,7 @@ def test_authenticate_api_credential_rejects_expired(monkeypatch):
         user_id=10,
         enabled=True,
         revoked_at=None,
-        expires_at=datetime.now(timezone.utc) - timedelta(minutes=1),
+        expires_at=datetime.now(UTC) - timedelta(minutes=1),
         api_secret_hash="hash",
     )
     user = SimpleNamespace(id=10, enabled=True)
@@ -54,7 +54,7 @@ def test_authenticate_api_credential_rejects_revoked(monkeypatch):
     credential = SimpleNamespace(
         user_id=10,
         enabled=False,
-        revoked_at=datetime.now(timezone.utc),
+        revoked_at=datetime.now(UTC),
         expires_at=None,
         api_secret_hash="hash",
     )
