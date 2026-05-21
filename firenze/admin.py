@@ -724,7 +724,7 @@ class FirenzeAdmin(Admin):
                     request.url_for("admin:login").include_query_params(
                         step="code",
                         identifier=identifier,
-                        error="Invalid or expired code.",
+                        error="Código inválido o expirado.",
                     ),
                     status_code=302,
                 )
@@ -750,8 +750,8 @@ class FirenzeAdmin(Admin):
             request,
             "system_status.html",
             context={
-                "title": "System Status",
-                "subtitle": "Redis / Valkey health, CDR reports, operator state, and active calls",
+                "title": "Estado del Sistema",
+                "subtitle": "Salud de Redis / Valkey, informes CDR, estado del operador y llamadas activas",
                 **data,
             },
         )
@@ -770,17 +770,17 @@ class FirenzeAdmin(Admin):
 
         operator_period_meta = {
             "current_month": {
-                "label": "Current Month",
+                "label": "Mes Actual",
                 "start": month_start,
                 "end": next_month,
             },
             "last_month": {
-                "label": "Last Month",
+                "label": "Mes Pasado",
                 "start": last_month_start,
                 "end": month_start,
             },
             "last_3_months": {
-                "label": "Last 3 Months",
+                "label": "Últimos 3 Meses",
                 "start": last_3_months_start,
                 "end": next_month,
             },
@@ -816,7 +816,7 @@ class FirenzeAdmin(Admin):
                     except ValueError, redis_lib.RedisError:
                         continue
             except redis_lib.RedisError as exc:
-                _log.warning("Could not scan operator keys: %s", exc)
+                _log.warning("No se pudo escanear las claves del operador: %s", exc)
 
             try:
                 for key in redis_conn.scan_iter("firenze:call:*", count=100):
@@ -842,7 +842,7 @@ class FirenzeAdmin(Admin):
                     except ValueError, redis_lib.RedisError:
                         continue
             except redis_lib.RedisError as exc:
-                _log.warning("Could not scan call keys: %s", exc)
+                _log.warning("No se pudo escanear las claves de llamadas: %s", exc)
 
         # DB queries
         db = SessionLocal()
@@ -1227,7 +1227,7 @@ class FirenzeAdmin(Admin):
                     "operator": operator_ref,
                     "name": operator_name_by_number.get(operator_ref)
                     or operator_name_by_id.get(operator_ref)
-                    or f"Operator {operator_ref}",
+                    or f"Operador {operator_ref}",
                     "calls": int(row.calls or 0),
                     "minutes": int(row.minutes or 0),
                 }
@@ -1247,7 +1247,7 @@ class FirenzeAdmin(Admin):
                     "operator": operator_ref,
                     "name": operator_name_by_number.get(operator_ref)
                     or operator_name_by_id.get(operator_ref)
-                    or f"Operator {operator_ref}",
+                    or f"Operador {operator_ref}",
                     "calls": calls,
                     "share": round((calls * 100 / top_operator_calls_total), 1) if top_operator_calls_total else 0.0,
                     "color_class": operator_activity_colors[idx % len(operator_activity_colors)],
@@ -1346,9 +1346,9 @@ class FirenzeAdmin(Admin):
                 "operator_period": selected_operator_period,
                 "operator_period_label": str(operator_period_meta[selected_operator_period]["label"]),
                 "operator_period_options": [
-                    {"value": "current_month", "label": "Current Month"},
-                    {"value": "last_month", "label": "Last Month"},
-                    {"value": "last_3_months", "label": "Last 3 Months"},
+                    {"value": "current_month", "label": "Mes Actual"},
+                    {"value": "last_month", "label": "Mes Pasado"},
+                    {"value": "last_3_months", "label": "Últimos 3 Meses"},
                 ],
                 "recent_cdr": recent_cdr,
             },
