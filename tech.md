@@ -1,26 +1,26 @@
-# Firenze - Technical Reference
+# Firenze - Referencia Técnica
 
-> Architecture overview: [new-architecture.md](new-architecture.md)
-> Current migration state: [tasks.md](tasks.md)
+> Descripción general de arquitectura: [new-architecture.md](new-architecture.md)
+> Estado actual de migración: [tasks.md](tasks.md)
 
-This file documents what is actually in the repo and how it is wired. If
-something here disagrees with the code, the code wins - update this file.
+Este archivo documenta lo que realmente está en el repositorio y cómo está conectado. Si
+algo aquí está en desacuerdo con el código, el código gana - actualiza este archivo.
 
-## Runtime
+## Tiempo de ejecución
 
 - Python >= 3.14
-- Entry point: `run.py` -> `firenze.create_app()`
-- Service: `gunicorn run:app -k uvicorn.workers.UvicornWorker --workers 1`
-- Bound to `10.0.0.3:9002`
-- systemd unit: `system_files/new-firenze.service`
-- Logs: `/home/zvn/public_apps/new-firenze/logs/gunicorn-{access,error}.log`
-- CLI entry point: `firenze` (installed via `pyproject.toml` scripts)
+- Punto de entrada: `run.py` -> `firenze.create_app()`
+- Servicio: `gunicorn run:app -k uvicorn.workers.UvicornWorker --workers 1`
+- Vinculado a `10.0.0.3:9002`
+- Unidad systemd: `system_files/new-firenze.service`
+- Registros: `/home/zvn/public_apps/new-firenze/logs/gunicorn-{access,error}.log`
+- Punto de entrada CLI: `firenze` (instalado a través de scripts `pyproject.toml`)
 
-Older `asterisk_config/firenze.service` pins port 3002; it is the legacy
-unit for the old Firenze CLI service and is being replaced by
-`system_files/new-firenze.service` on 9002.
+El `asterisk_config/firenze.service` más antiguo fija el puerto 3002; es la
+unidad heredada para el servicio CLI Firenze antiguo y está siendo reemplazado por
+`system_files/new-firenze.service` en el puerto 9002.
 
-## Module layout (current)
+## Distribución de módulos (actual)
 
 ```
 firenze/
@@ -28,12 +28,12 @@ firenze/
   config.py                - Settings (pydantic-settings v2)
   database.py              - engine, SessionLocal, Base
   dependencies.py          - get_db(), get_redis()
-  auth.py                  - API header auth + AdminAuth for sqladmin
-  crud.py                  - user + event CRUD
-  admin.py                 - sqladmin views
+  auth.py                  - Autenticación de encabezado API + AdminAuth para sqladmin
+  crud.py                  - CRUD de usuario + evento
+  admin.py                 - vistas sqladmin
   exceptions.py            - GenericError, ProcessError, ConfigException
-  core.py                  - legacy unused router (cleanup)
-  tarot.py                 - fastapi-crudrouter for legacy client (cleanup)
+  core.py                  - router heredado no utilizado (limpieza)
+  tarot.py                 - fastapi-crudrouter para cliente heredado (limpieza)
 
   models/                  - SQLAlchemy 2.0
     base.py                - TimestampMixin
@@ -48,33 +48,33 @@ firenze/
   schemas/                 - Pydantic v2
     common.py, user.py, client.py
 
-  services/                - business logic
+  services/                - lógica de negocios
     dnc_service.py, credit_service.py, did_service.py,
     operator_service.py, client_service.py, call_service.py
 
   api/
-    agi.py                 - /agi/* endpoints (dialplan-facing)
+    agi.py                 - endpoints /agi/* (orientados al dialplan)
 
   redis/
-    __init__.py            - get_redis() factory
+    __init__.py            - factory get_redis()
     operator_state.py      - firenze:operator:{number}
     call_state.py          - firenze:call:{service}:{ani}
 
-  cli/                     - Typer CLI
+  cli/                     - CLI Typer
     users.py, operators.py, dnc.py, did.py, calls.py,
     migration.py, fastapi.py, services.py, user_management.py,
     fonotarot_latam.py, post_call.py, utils.py
 
-  audiotex/                - legacy Peewee bridge (cleanup)
+  audiotex/                - puente Peewee heredado (limpieza)
     database.py, models.py, schemas.py
 
-  asterisk/                - empty package (cleanup)
+  asterisk/                - paquete vacío (limpieza)
 ```
 
-## Configuration
+## Configuración
 
-`.env` holds secrets + DB URLs. Relevant dialplan-side globals live in
-`asterisk_config/current/new_config/extensions.conf`:
+`.env` contiene secretos + URLs de BD. Los globales relevantes del lado del dialplan
+viven en `asterisk_config/current/new_config/extensions.conf`:
 
 ```ini
 [globals]
@@ -82,19 +82,19 @@ FIRENZE=/home/zvn/public_apps/firenze/.venv/bin/firenze
 AUDIOTEX=/home/zvn/public_apps/firenze/asterisk_agi/audiotex.py
 FIRENZE_API=http://localhost:9002/agi
 
-; Leading chars to strip from E.164 operator number, per trunk.
-; Numbers stored as 56XXXXXXXXX. Undefined trunk -> strip=0.
+; Caracteres iniciales a eliminar del número de operador E.164, por troncal.
+; Números almacenados como 56XXXXXXXXX. Troncal indefinida -> strip=0.
 TRUNK_STRIP_didww-mia-out=0
 TRUNK_STRIP_tecno=2
 ```
 
-`asterisk_config/new/extensions.conf` adds `TRUNK_STRIP_tecnoera=2` and
-`TRUNK_STRIP_claro1=2` and drops `FIRENZE` / `AUDIOTEX` entirely.
+`asterisk_config/new/extensions.conf` agrega `TRUNK_STRIP_tecnoera=2` y
+`TRUNK_STRIP_claro1=2` y elimina completamente `FIRENZE` / `AUDIOTEX`.
 
 ## Alembic
 
-Config in `pyproject.toml` under `[tool.alembic]`. DB URL read from
-`Settings`. Migrations in `alembic/versions/`:
+Configuración en `pyproject.toml` bajo `[tool.alembic]`. URL de BD leída desde
+`Settings`. Migraciones en `alembic/versions/`:
 
 ```
 39eca712cefd  init
@@ -110,19 +110,19 @@ f479283e23a2  unified client model
 a8c5e1f2b9d3  service.auth_method, service.intro_audio, operator.audio_file  <- head
 ```
 
-## AGI endpoints
+## Endpoints AGI
 
-All mounted under `/agi` by `firenze.api.agi.agiRouter`. Responses are
-flat JSON designed for `JSON_DECODE()`. No JWT.
+Todos montados bajo `/agi` por `firenze.api.agi.agiRouter`. Las respuestas son
+JSON plano diseñado para `JSON_DECODE()`. Sin JWT.
 
 ### DNC
 
 ```
 GET /agi/dnc/{ani}
--> {"dnc": "YES"}  or  {"dnc": "NO"}
+-> {"dnc": "YES"}  o  {"dnc": "NO"}
 ```
 
-### Service / DID resolution
+### Resolución de servicio / DID
 
 ```
 GET /agi/services/did/{did}
@@ -131,37 +131,37 @@ GET /agi/services/did/{did}
     "auth_method": "ani",
     "intro_audio": "zvn/intro-alotarot"}
 
-not found:
+no encontrado:
 -> {"siguiente": "", "servicio": "", "auth_method": "", "intro_audio": ""}
 ```
 
-### Credit limit
+### Límite de crédito
 
-Replaces the old `[limite-saldo]` dialplan ladder.
+Reemplaza la escalera dialplan `[limite-saldo]` antigua.
 
 ```
 GET /agi/credits/limit?seconds=N
 -> {"timeout": 900, "audio": "zvn/saldo/15", "minutes": 15}
-zero / negative balance:
+saldo cero / negativo:
 -> {"timeout": 1, "audio": "", "minutes": 0}
 ```
 
-### Client lookup
+### Búsqueda de cliente
 
 ```
 GET /agi/clients/lookup?service={slug}&identifier={ani_or_pin}
-found:
+encontrado:
 -> {"clientid": 42, "segundos": 1800}
-not found:
+no encontrado:
 -> {"clientid": 0, "segundos": 0}
 ```
 
-Lookup order inside `client_service.lookup`:
-1. `Client` where `(service_id, pin=identifier)` - PIN-auth services
-2. `ClientAni` where `(service_id, ani=identifier)` -> parent `Client` - ANI-auth services
-3. otherwise `{clientid: 0, segundos: 0}`
+Orden de búsqueda dentro de `client_service.lookup`:
+1. `Client` donde `(service_id, pin=identifier)` - servicios con autenticación PIN
+2. `ClientAni` donde `(service_id, ani=identifier)` -> `Client` padre - servicios con autenticación ANI
+3. de lo contrario `{clientid: 0, segundos: 0}`
 
-### Credit deduction
+### Deducción de crédito
 
 ```
 POST /agi/clients/{service}/{client_id}/deduct
@@ -169,7 +169,7 @@ form: seconds=N
 -> {"ok": true, "remaining": 1200}
 ```
 
-### Online call tracking
+### Seguimiento de llamadas en línea
 
 ```
 POST /agi/calls/online
@@ -178,18 +178,18 @@ form: service, ani, did, client_id, operator (default 0)
 -> {"ok": false, "reason": "call-already-active"}
 
 GET /agi/calls/online/{service}/{ani}
--> {"llamada_activa": "true"}  or  {"llamada_activa": "false"}
+-> {"llamada_activa": "true"}  o  {"llamada_activa": "false"}
 
 POST /agi/calls/online/{service}/{ani}/assign
 form: operator=N
--> {"ok": true}  or  {"ok": false, "reason": "call-not-found"}
+-> {"ok": true}  o  {"ok": false, "reason": "call-not-found"}
 
 POST /agi/calls/online/{service}/{ani}/close
-form: _=1          (dummy body - Asterisk CURL only does GET or POST-body)
--> {"ok": true}    (idempotent)
+form: _=1          (cuerpo ficticio - CURL de Asterisk solo hace GET o POST-body)
+-> {"ok": true}    (idempotente)
 ```
 
-### Operator menu
+### Menú de operador
 
 ```
 GET /agi/operators/menu
@@ -197,34 +197,34 @@ GET /agi/operators/menu
     "audio_str": "zvn/tarotistas/maria&zvn/tarotistas/jose&zvn/tarotistas/ana"}
 ```
 
-`audio_str` is built from `Operator.audio_file`, ordered by
-`Operator.option`. Operators without an `audio_file` count toward
-`disponibles` but are omitted from the audio string.
+`audio_str` está construido desde `Operator.audio_file`, ordenado por
+`Operator.option`. Los operadores sin un `audio_file` cuentan hacia
+`disponibles` pero se omiten de la cadena de audio.
 
-### Operator select (atomic)
+### Selección de operador (atómica)
 
-Uses `SELECT FOR UPDATE` so two concurrent callers cannot grab the same
-operator. Random mode shuffles candidates and locks one at a time.
+Usa `SELECT FOR UPDATE` para que dos llamadores concurrentes no puedan agarrar el mismo
+operador. El modo aleatorio baraja candidatos y bloquea uno a la vez.
 
 ```
 POST /agi/operators/select
 form: mode=random
 form: mode=option&selection=03
 
-success:
+éxito:
 -> {"ok": true,
     "operador_numero":   "1001",
     "operador_nombre":   "Maria",
     "operador_telefono": "56912345678",
     "operador_trunk":    "claro1"}
 
-failure:
+fallo:
 -> {"ok": false, "reason": "operator-busy"}
 -> {"ok": false, "reason": "no-operators"}
 -> {"ok": false, "reason": "no-phone-configured"}
 ```
 
-### Operator release
+### Liberación de operador
 
 ```
 POST /agi/operators/{number}/release
@@ -232,31 +232,30 @@ form: _=1
 -> {"ok": true}
 ```
 
-Stamps `lastcall` in Redis so "forgot to logout" detection has a signal.
+Sella `lastcall` en Redis para que la detección "operador olvidó cerrar sesión" tenga una señal.
 
-### Operator login / logout (dialplan)
+### Login / logout de operador (dialplan)
 
 ```
 POST /agi/operators/by-phone/{ani}/login   -> {"ok": true}
 POST /agi/operators/by-phone/{ani}/logout  -> {"ok": true}
 ```
 
-### Operator info (lookup, no claim)
+### Información de operador (búsqueda, sin reclamo)
 
-Read-only lookups used between `/operators/menu` and `/operators/select`.
-The dialplan plays the menu, the caller picks an option, the dialplan
-calls one of these to translate the input into the operator's contact
-info, then later calls `/operators/select` to atomically claim. Splitting
-lookup from claim keeps operators free during the 5-10s menu/audio
-window; the atomic `SELECT FOR UPDATE` in `/operators/select` resolves
-the resulting race. `loggedin` and `available` in the response are
-advisory only - trust `/operators/select` for the real claim.
+Búsquedas de solo lectura usadas entre `/operators/menu` y `/operators/select`.
+El dialplan reproduce el menú, la llamada elige una opción, el dialplan
+llama uno de estos para traducir la entrada en la información de contacto del operador,
+luego posteriormente llama a `/operators/select` para reclamar atómicamente. Dividir
+la búsqueda del reclamo mantiene a los operadores libres durante la ventana de 5-10s de menú/audio;
+el `SELECT FOR UPDATE` atómico en `/operators/select` resuelve la carrera resultante.
+`loggedin` y `available` en la respuesta son solo informativos - confía en `/operators/select` para el reclamo real.
 
 ```
-GET /agi/operators/by-option/{option}     (option: "1" or "01", zero-padded internally)
-GET /agi/operators/by-ani/{ani}           (ani: phone number registered to operator)
+GET /agi/operators/by-option/{option}     (option: "1" o "01", relleno de cero internamente)
+GET /agi/operators/by-ani/{ani}           (ani: número de teléfono registrado al operador)
 
-success (same shape from both):
+éxito (misma forma de ambos):
 -> {"ok": true,
     "operador_numero":   "1001",
     "operador_nombre":   "Maria",
@@ -265,108 +264,108 @@ success (same shape from both):
     "loggedin":          true,
     "available":         true}
 
-failure:
+fallo:
 -> {"ok": false, "reason": "not-found"}
 -> {"ok": false, "reason": "no-phone-configured"}
 ```
 
 ## Redis / Valkey
 
-Connection managed by `firenze.redis.get_redis()` (FastAPI dependency).
-Graceful degradation: if Redis is unavailable, service calls log a warning
-and continue with MySQL only.
+Conexión gestionada por `firenze.redis.get_redis()` (dependencia FastAPI).
+Degradación elegante: si Redis no está disponible, las llamadas de servicio registran una advertencia
+y continúan con solo MySQL.
 
-### Keys
+### Claves
 
 ```
-firenze:operator:{number}    Hash fields: loggedin, available, lastcall
-firenze:call:{service}:{ani} Hash fields: did, operator, client_id, created_at
+firenze:operator:{number}    Campos Hash: loggedin, available, lastcall
+firenze:call:{service}:{ani} Campos Hash: did, operator, client_id, created_at
 ```
 
-TTL on both: 24h.
+TTL en ambos: 24h.
 
-### Consumers
+### Consumidores
 
-- `services/operator_service.py` and `services/call_service.py` write both
-  MySQL and Redis.
-- `api/agi.py` reads via those services.
-- `asterisk_config/legacy-php/onlinecalls_redis.php` and
-  `operators_redis.php` are external readers used by legacy dashboards.
-  They consume the same keys.
+- `services/operator_service.py` y `services/call_service.py` escriben en
+  MySQL y Redis.
+- `api/agi.py` lee a través de esos servicios.
+- `asterisk_config/legacy-php/onlinecalls_redis.php` y
+  `operators_redis.php` son lectores externos usados por dashboards heredados.
+  Consumen las mismas claves.
 
 ## Dialplan
 
-Three copies live under `asterisk_config/`:
+Tres copias viven bajo `asterisk_config/`:
 
-| Path | Role |
+| Ruta | Rol |
 |---|---|
-| `current/*.conf` (top level) | Older snapshot, pure AGI. Not loaded. Kept for reference. |
-| `current/new_config/*.conf` | Currently loaded by Asterisk. Hybrid: old AGI calls + new CURL calls side by side. |
-| `new/*.conf` | Target: CURL only, unified `[prepago-service]`. Not deployed. |
+| `current/*.conf` (nivel superior) | Snapshot más antiguo, puro AGI. No cargado. Mantenido como referencia. |
+| `current/new_config/*.conf` | Actualmente cargado por Asterisk. Híbrido: llamadas AGI antiguas + llamadas CURL nuevas lado a lado. |
+| `new/*.conf` | Objetivo: solo CURL, `[prepago-service]` unificado. No desplegado. |
 
-### Hybrid (live) - `current/new_config/`
+### Híbrido (en vivo) - `current/new_config/`
 
-Top of each service context runs both paths. Example from
+La parte superior de cada contexto de servicio ejecuta ambas rutas. Ejemplo de
 `extensions_fonotarot.conf` `[prepago-fonotarot-cl]`:
 
 ```ini
-; new path (CURL)
+; ruta nueva (CURL)
 same => n,Set(response=${CURL(${FIRENZE_API}/calls/online/${servicio}/${ani})})
-; old path (still writes to legacy)
+; ruta antigua (aún escribe al heredado)
 same => n,Agi(${FIRENZE},online-calls,search,${servicio},${ani},${clientid})
 ```
 
-Both runtimes see the event. The `JSON_DECODE` consumers still read from
-the old path's channel vars where the new path has not fully replaced it.
+Ambos tiempos de ejecución ven el evento. Los consumidores `JSON_DECODE` aún leen desde
+las variables de canal de la ruta antigua donde la ruta nueva aún no la ha reemplazado completamente.
 
-### Target - `asterisk_config/new/`
+### Objetivo - `asterisk_config/new/`
 
-Three files only:
+Solo tres archivos:
 
 ```
-extensions.conf            - globals, honeypot, #include zvn + services
-extensions_zvn.conf        - inbound trunks, [selecciona-servicio],
+extensions.conf            - globales, trampa, #include zvn + servicios
+extensions_zvn.conf        - troncales entrantes, [selecciona-servicio],
                              supervisor, tarotista-login/-logout (CURL)
-extensions_services.conf   - unified flow:
-                               [prepago-service]   -> DNC + intro + dispatch
-                               [auth-ani]          -> client lookup by ANI
-                               [auth-pin]          -> client lookup by PIN
-                               [sub-post-auth]     -> credit limit + insert call
-                               [saldo-insuficiente]
-                               [selecciona-operador] (menu + select + assign)
-                               [llama-operador]    (dial + post-call hooks)
+extensions_services.conf   - flujo unificado:
+                              [prepago-service]   -> DNC + intro + despacho
+                              [auth-ani]          -> búsqueda de cliente por ANI
+                              [auth-pin]          -> búsqueda de cliente por PIN
+                              [sub-post-auth]     -> límite de crédito + insertar llamada
+                              [saldo-insuficiente]
+                              [selecciona-operador] (menú + seleccionar + asignar)
+                              [llama-operador]    (marcar + ganchos post-llamada)
 ```
 
-Two per-service files (`extensions_alotarot.conf`,
-`extensions_fonotarot.conf`) go away entirely - `Service.auth_method` and
-`Service.intro_audio` drive the branching inside `[prepago-service]`.
+Dos archivos por servicio (`extensions_alotarot.conf`,
+`extensions_fonotarot.conf`) desaparecen completamente - `Service.auth_method` y
+`Service.intro_audio` impulsan la ramificación dentro de `[prepago-service]`.
 
-### CURL conventions in the target dialplan
+### Convenciones CURL en el dialplan objetivo
 
 - GET: `${CURL(url)}`
-- POST with body: `${CURL(url,field=val&field2=val2)}`
-- No `CURLOPT()` - this Asterisk build does not support `httpcustom` or
+- POST con cuerpo: `${CURL(url,field=val&field2=val2)}`
+- Sin `CURLOPT()` - esta construcción de Asterisk no soporta `httpcustom` o
   `postfields`.
-- Endpoints that need no semantic body take `_=1` as a dummy form field,
-  because Asterisk's `CURL()` only reliably does GET or POST-with-body.
+- Los endpoints que no necesitan un cuerpo semántico toman `_=1` como un campo de formulario ficticio,
+  porque `CURL()` de Asterisk solo hace confiablemente GET o POST-con-cuerpo.
 
-### Trunk strip table
+### Tabla de eliminación de troncales
 
-All operator phone numbers are stored as E.164 (`56XXXXXXXXX`). Each
-outbound trunk expects a different prefix. The dialplan strips at dial
-time using a globals lookup:
+Todos los números de teléfono de operadores se almacenan como E.164 (`56XXXXXXXXX`). Cada
+troncal saliente espera un prefijo diferente. El dialplan elimina en tiempo de marcado usando
+una búsqueda de globales:
 
 ```ini
 same => n,Set(dial_num=${OPERATOR_TEL:${TRUNK_STRIP_${OPERATOR_TRUNK}}})
 same => n,Dial(PJSIP/${dial_num}@${OPERATOR_TRUNK})
 ```
 
-Default is strip=0 (full E.164) when the trunk is not in the table.
+El default es strip=0 (E.164 completo) cuando la troncal no está en la tabla.
 
-## Dead code to remove (cross-ref tasks.md)
+## Código muerto a eliminar (referencia cruzada tasks.md)
 
 - `firenze/tarot.py`, `firenze/core.py`, `firenze/asterisk/`
-- `firenze/audiotex/` + `peewee` dependency + `AUDIOTEX_DSN` config
-- `asterisk_agi/` (old AGI CLI scripts)
-- `pystrix` dependency (no longer imported)
-- `asterisk_config/current/*.conf` top-level snapshot (once `new/` is live)
+- `firenze/audiotex/` + dependencia `peewee` + configuración `AUDIOTEX_DSN`
+- `asterisk_agi/` (scripts AGI CLI antiguos)
+- Dependencia `pystrix` (ya no importada)
+- `asterisk_config/current/*.conf` snapshot de nivel superior (una vez que `new/` está en vivo)
