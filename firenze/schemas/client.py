@@ -1,4 +1,4 @@
-"""Schemas for client CRUD endpoints."""
+"""Esquemas para extremos CRUD de clientes."""
 
 from __future__ import annotations
 

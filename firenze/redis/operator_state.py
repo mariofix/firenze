@@ -1,8 +1,8 @@
-"""Redis/Valkey read and write for operator availability state.
+"""Leer y escribir en Redis/Valkey para el estado de disponibilidad del operador.
 
-Key format : firenze:operator:{number}  (Redis hash)
-Fields     : loggedin (0/1), available (0/1), lastcall (unix timestamp)
-TTL        : 86400s — handles "forgot to logout" scenario
+Formato de clave: firenze:operator:{number}  (hash de Redis)
+Campos     : loggedin (0/1), available (0/1), lastcall (marca de tiempo unix)
+TTL        : 86400s — maneja el escenario "olvidó desconectarse"
 """
 
 import logging

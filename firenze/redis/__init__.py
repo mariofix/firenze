@@ -1,4 +1,4 @@
-"""Redis/Valkey connection factory."""
+"""Fábrica de conexión de Redis/Valkey."""
 
 import logging
 

@@ -1,11 +1,11 @@
-"""Redis/Valkey read and write for active online call state.
+"""Leer y escribir en Redis/Valkey para el estado de llamada activa en línea.
 
-Key format : firenze:call:{service}:{ani}  (Redis hash)
-Fields     : did, operator, client_id, created_at (unix timestamp)
-TTL        : 86400s - safety net if the dialplan h-handler never fires.
+Formato de clave: firenze:call:{service}:{ani}  (hash de Redis)
+Campos     : did, operator, client_id, created_at (marca de tiempo unix)
+TTL        : 86400s - red de seguridad si el manejador h del dialplan nunca se dispara.
 
-Mirrors firenze.redis.operator_state. The PHP reader at
-asterisk_config/legacy-php/onlinecalls_redis.php consumes these keys.
+Refleja firenze.redis.operator_state. El lector PHP en
+asterisk_config/legacy-php/onlinecalls_redis.php consume estas claves.
 """
 
 import logging

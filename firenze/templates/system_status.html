@@ -4,11 +4,11 @@
 <div class="row align-items-center">
   <div class="col-auto">
     <h2 class="page-title">Firenze</h2>
-    <div class="page-pretitle">Fonotarot Dashboard / Firenze Status</div>
+    <div class="page-pretitle">Panel de Fonotarot / Estado de Firenze</div>
   </div>
   <div class="col-auto ms-auto d-print-none">
     <a href="{{ request.url }}" class="btn btn-secondary">
-      <i class="fa fa-refresh me-1"></i> Refresh
+      <i class="fa fa-refresh me-1"></i> Actualizar
     </a>
   </div>
 </div>
@@ -20,7 +20,7 @@
   <div class="col-12 col-lg-3">
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-heart-pulse me-2"></i>Service Status</h3>
+        <h3 class="card-title"><i class="fa fa-heart-pulse me-2"></i>Estado del Servicio</h3>
       </div>
       <div class="card-body">
         <div class="datagrid">
@@ -28,20 +28,20 @@
             <div class="datagrid-title">Redis / Valkey</div>
             <div class="datagrid-content">
               <span class="badge {% if redis_online %}bg-success-lt text-success{% else %}bg-danger-lt text-danger{% endif %}">
-                {% if redis_online %}Healthy{% else %}Offline{% endif %}
+                {% if redis_online %}Saludable{% else %}Sin Conexión{% endif %}
               </span>
             </div>
           </div>
           <div class="datagrid-item">
-            <div class="datagrid-title">Cache Sync</div>
+            <div class="datagrid-title">Sincronización de Caché</div>
             <div class="datagrid-content">
               <span class="badge {% if operator_summary.drift == 0 %}bg-success-lt text-success{% else %}bg-warning-lt text-warning{% endif %}">
-                {{ operator_summary.synced }}/{{ operator_summary.total }} synced
+                {{ operator_summary.sincronizados }}/{{ operator_summary.total }} sincronizados
               </span>
             </div>
           </div>
           <div class="datagrid-item">
-            <div class="datagrid-title">Drift Alerts</div>
+            <div class="datagrid-title">Alertas de Desviación</div>
             <div class="datagrid-content">
               <span class="badge {% if operator_summary.drift == 0 %}bg-success-lt text-success{% else %}bg-warning-lt text-warning{% endif %}">
                 {{ operator_summary.drift }}
@@ -49,18 +49,18 @@
             </div>
           </div>
           <div class="datagrid-item">
-            <div class="datagrid-title">Online Calls</div>
+            <div class="datagrid-title">Llamadas En Línea</div>
             <div class="datagrid-content">
-              <span class="badge bg-blue-lt text-blue">{{ active_calls|length }} in progress</span>
+              <span class="badge bg-blue-lt text-blue">{{ active_calls|length }} en progreso</span>
             </div>
           </div>
         </div>
         <div class="row g-2 text-secondary small mt-3">
-          <div class="col-6">Redis version: <strong>{{ redis_info.get("redis_version", "—") }}</strong></div>
-          <div class="col-6">Clients: <strong>{{ redis_info.get("connected_clients", "—") }}</strong></div>
-          <div class="col-6">Memory: <strong>{{ redis_info.get("used_memory_human", "—") }}</strong></div>
-          <div class="col-6">Role: <strong>{{ redis_info.get("role", "—") | title }}</strong></div>
-          <div class="col-12">Operator keys: <strong>{{ redis_operators_count }}</strong> · Call keys: <strong>{{ redis_calls_count }}</strong></div>
+          <div class="col-6">Versión de Redis: <strong>{{ redis_info.get("redis_version", "—") }}</strong></div>
+          <div class="col-6">Clientes: <strong>{{ redis_info.get("connected_clients", "—") }}</strong></div>
+          <div class="col-6">Memoria: <strong>{{ redis_info.get("used_memory_human", "—") }}</strong></div>
+          <div class="col-6">Función: <strong>{{ redis_info.get("role", "—") | title }}</strong></div>
+          <div class="col-12">Claves del Operador: <strong>{{ redis_operators_count }}</strong> · Claves de Llamadas: <strong>{{ redis_calls_count }}</strong></div>
         </div>
       </div>
     </div>
@@ -71,9 +71,9 @@
       <div class="col-6 col-md-3">
         <div class="card">
           <div class="card-body">
-            <div class="subheader">Today Calls</div>
+            <div class="subheader">Llamadas Hoy</div>
             <div class="h2 mb-0">{{ cdr_reports.today.total_calls }}</div>
-            <div class="text-secondary small">From Midnight to now</div>
+            <div class="text-secondary small">De Medianoche a Ahora</div>
           </div>
         </div>
       </div>
@@ -89,7 +89,7 @@
       <div class="col-6 col-md-3">
         <div class="card">
           <div class="card-body">
-            <div class="subheader">Avg Call</div>
+            <div class="subheader">Llamada Promedio</div>
             <div class="h2 mb-0">{{ (cdr_reports.today.avg_billsec / 60) | round(1) }} min</div>
             <div class="text-secondary small">and in seconds: {{cdr_reports.today.avg_billsec}}</div>
           </div>
@@ -98,9 +98,9 @@
       <div class="col-6 col-md-3">
         <div class="card">
           <div class="card-body">
-            <div class="subheader">Client ANI Registered</div>
+            <div class="subheader">ANI del Cliente Registrado</div>
             <div class="h2 mb-0">{{ ani_reports.total_anis }}</div>
-            <div class="text-secondary small">Across all services</div>
+            <div class="text-secondary small">En todos los servicios</div>
           </div>
         </div>
       </div>
@@ -116,7 +116,7 @@
       <div class="col-6 col-md-3">
         <div class="card">
           <div class="card-body">
-            <div class="subheader">Client ID Active (24h)</div>
+            <div class="subheader">Identificador del Cliente Active (24h)</div>
             <div class="h2 mb-0 text-green">{{ ani_reports.active_24h }}</div>
           </div>
         </div>
@@ -217,7 +217,7 @@
   <div class="col-12 col-lg-6">
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-bolt me-2"></i>Live Call Feed</h3>
+        <h3 class="card-title"><i class="fa fa-bolt me-2"></i>Flujo de Llamadas En Vivo</h3>
       </div>
       <div class="card-body">
         <div class="divide-y">
@@ -251,7 +251,7 @@
   <div class="col-12 col-lg-6">
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-mobile-screen-button me-2"></i>Top client_id Activity from last 7 days</h3>
+        <h3 class="card-title"><i class="fa fa-mobile-screen-button me-2"></i>Principales Clientes Actividad Últimos 7 Días</h3>
         <div class="card-actions">
           <div class="dropdown">
             <a
@@ -277,10 +277,10 @@
       <table class="table card-table table-vcenter table-sm">
         <thead>
           <tr>
-            <th>Client ID</th>
+            <th>Identificador del Cliente</th>
             <th>Calls</th>
             <th class="w-50">Load</th>
-            <th>Last Call</th>
+            <th>Última Llamada</th>
           </tr>
         </thead>
         <tbody>
@@ -314,7 +314,7 @@
   <div class="col-12 col-lg-6">
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-phone me-2"></i>Online Calls by Service</h3>
+        <h3 class="card-title"><i class="fa fa-phone me-2"></i>Llamadas En Línea by Service</h3>
       </div>
       <div class="card-body">
         {% for service in active_call_services %}
@@ -328,7 +328,7 @@
             <div class="progress-bar bg-azure" style="width: {{ service.share }}%"></div>
           </div>
         {% else %}
-          <div class="text-muted"><span class="badge bg-secondary-lt text-secondary">No active calls right now</span></div>
+          <div class="text-muted"><span class="badge bg-secondary-lt text-secondary">Sin llamadas activas ahora</span></div>
         {% endfor %}
       </div>
     </div>
@@ -337,7 +337,7 @@
   <div class="col-12 col-lg-6">
     <div class="card" id="operator-live-report">
       <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-headset me-2"></i>Operator Availability</h3>
+        <h3 class="card-title"><i class="fa fa-headset me-2"></i>Disponibilidad del Operador</h3>
       </div>
       <div class="card-body">
         {% set total_ops = operator_summary.total if operator_summary.total else 1 %}
@@ -351,7 +351,7 @@
         {% set busy_pct = (busy * 100 / total_ops) | round(1) %}
 
         <div class="d-flex justify-content-between mb-1">
-          <span>Logged in</span>
+          <span>Conectado</span>
           <span class="fw-bold">{{ logged_in }}/{{ operator_summary.total }}</span>
         </div>
         <div class="progress progress-separated mb-3" role="progressbar" aria-label="Operator login distribution">
@@ -391,22 +391,22 @@
                       {% if op.db_available %}
                         <span class="badge bg-success-lt text-success">Available</span>
                       {% else %}
-                        <span class="badge bg-blue-lt text-blue">In call</span>
+                        <span class="badge bg-blue-lt text-blue">En llamada</span>
                       {% endif %}
                     {% else %}
-                      <span class="badge bg-danger-lt text-danger">Offline</span>
+                      <span class="badge bg-danger-lt text-danger">Sin Conexión</span>
                     {% endif %}
                   </div>
                   <div>
-                    {% if op.enable_valkey and op.synced is sameas true %}
-                      <span class="badge bg-success-lt text-success" title="Redis cache synced">
+                    {% if op.enable_valkey and op.sincronizados is sameas true %}
+                      <span class="badge bg-success-lt text-success" title="Redis cache sincronizados">
                         <i class="fa fa-memory" aria-hidden="true"></i>
-                        <span class="ms-1">Redis synced</span>
+                        <span class="ms-1">Redis sincronizado</span>
                       </span>
                     {% else %}
-                      <span class="badge bg-warning-lt text-warning" title="Redis not synced">
+                      <span class="badge bg-warning-lt text-warning" title="Redis no sincronizado">
                         <i class="fa fa-memory" aria-hidden="true"></i>
-                        <span class="ms-1">Redis not synced</span>
+                        <span class="ms-1">Redis no sincronizado</span>
                       </span>
                     {% endif %}
                   </div>
@@ -469,8 +469,8 @@
             <th>Operator</th>
             <th >Minutes</th>
             <th >Calls</th>
-            <th>Minutes Load</th>
-            <th>Calls Load</th>
+            <th>Carga de Minutos</th>
+            <th>Carga de Llamadas</th>
           </tr>
         </thead>
         <tbody>

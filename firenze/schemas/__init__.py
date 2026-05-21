@@ -1,4 +1,4 @@
-"""Re-export all schemas so existing imports continue to work unchanged."""
+"""Re-exporta todos los esquemas para que las importaciones existentes continúen funcionando sin cambios."""
 
 from firenze.schemas.auth import (
     PasswordlessRequest,

@@ -1,4 +1,4 @@
-"""Schemas for payment API endpoints consumed by nuevo-fonotarot."""
+"""Esquemas para extremos de API de pago consumidos por nuevo-fonotarot."""
 
 from pydantic import (
     BaseModel,
