@@ -20,7 +20,7 @@ authRouter = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 @authRouter.post(
     "/passwordless/request",
     response_model=schemas.PasswordlessRequestResponse,
-    summary="Request one-time login code",
+    summary="Solicitar código de inicio de sesión de una sola vez",
 )
 def passwordless_request(
     payload: schemas.PasswordlessRequest,
@@ -30,10 +30,10 @@ def passwordless_request(
     if not settings.AUTH_PASSWORDLESS_ENABLED:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Passwordless login is disabled",
+            detail="El inicio de sesión sin contraseña está deshabilitado",
         )
 
-    detail = "If the account exists, a login code has been sent."
+    detail = "Si la cuenta existe, se ha enviado un código de inicio de sesión."
     user = auth_service.find_user_for_passwordless_identifier(db, payload.identifier)
     if not user or not user.enabled or not user.email:
         return {"ok": True, "detail": detail}
@@ -57,21 +57,21 @@ async def loggedin_user(
     if not x_api_key or not x_api_secret:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing API credentials",
+            detail="Credenciales de API faltantes",
         )
 
     auth_result = auth_service.authenticate_api_credential(db, x_api_key, x_api_secret)
     if not auth_result:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid API credentials",
+            detail="Credenciales de API inválidas",
         )
     user, _credential = auth_result
 
     if not user.scopes:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
+            detail="No se pudo validar credenciales",
         )
 
     if not auth_service.has_required_scopes(user, security_scopes.scopes):
@@ -79,11 +79,11 @@ async def loggedin_user(
         if missing:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Insufficient scope: '{missing[0]}' required",
+                detail=f"Alcance insuficiente: '{missing[0]}' requerido",
             )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
+            detail="No se pudo validar credenciales",
         )
 
     return user.id
@@ -93,8 +93,8 @@ async def loggedin_user(
     "/me",
     response_model=schemas.User,
     responses={401: {"model": schemas.Message}},
-    summary="Current user info",
-    description="Return the profile of the authenticated user.",
+    summary="Información del usuario actual",
+    description="Retorna el perfil del usuario autenticado.",
 )
 def me(
     user_id: int = Security(loggedin_user, scopes=[]),
@@ -102,7 +102,7 @@ def me(
 ):
     user = crud.get_user(db, user_id)
     if not user:
-        raise HTTPException(status_code=401, detail="User not found")
+        raise HTTPException(status_code=401, detail="Usuario no encontrado")
     return user
 
 
