@@ -1,6 +1,6 @@
-"""Client lookup and credit management.
+"""Búsqueda de clientes y administración de crédito.
 
-Used by AGI endpoints - Asterisk dialplan calls these via CURL.
+Utilizado por extremos AGI - el dialplan de Asterisk llama a estos a través de CURL.
 """
 
 import datetime
@@ -44,13 +44,13 @@ def _get_service(db: Session, slug: str) -> Service:
 
 
 def lookup(db: Session, service_slug: str, identifier: str) -> dict:
-    """Look up a client by service slug and identifier (PIN or ANI).
+    """Busca un cliente por slug de servicio e identificador (PIN o ANI).
 
-    len(identifier) == 8: PIN (current PIN format)
+    len(identifier) == 8: PIN (formato PIN actual)
     else : ANI
 
-    Returns dict with ``clientid`` and ``segundos`` matching the contract
-    the Asterisk dialplan expects.
+    Retorna dict con ``clientid`` y ``segundos`` que coincide con el contrato
+    que el dialplan de Asterisk espera.
     """
     svc = _get_service(db, service_slug)
     client = None
@@ -68,9 +68,9 @@ def lookup(db: Session, service_slug: str, identifier: str) -> dict:
 
 
 def deduct_credits(db: Session, service_slug: str, client_id: int, seconds: int) -> dict:
-    """Deduct seconds from a client's credit balance.
+    """Descuenta segundos del saldo de crédito de un cliente.
 
-    Returns dict with ``ok`` and ``remaining``.
+    Retorna dict con ``ok`` y ``remaining``.
     """
     svc = _get_service(db, service_slug)
     client = db.query(Client).filter_by(service_id=svc.id, client_id=client_id).first()
@@ -104,7 +104,7 @@ def deduct_credits(db: Session, service_slug: str, client_id: int, seconds: int)
 
 
 def update_ani_stats(db: Session, service_slug: str, ani: str) -> None:
-    """Update client_ani.q_calls y client_ani.lastcall"""
+    """Actualiza client_ani.q_calls y client_ani.lastcall"""
     svc = _get_service(db, service_slug)
 
     ani = db.query(ClientAni).filter_by(ani=ani, service_id=svc.id).first()

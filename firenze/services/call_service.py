@@ -93,10 +93,10 @@ def update_call_operator(
     operator: int,
     redis_conn: redis.Redis | None = None,
 ) -> dict:
-    """Update the assigned operator number on an active call record.
+    """Actualiza el número de operador asignado en un registro de llamada activa.
 
-    Called after the operator has been selected and before the dial begins.
-    Returns ``{"ok": False}`` if no matching call is found.
+    Se llama después de que el operador ha sido seleccionado y antes de que comience la marcación.
+    Retorna ``{"ok": False}`` si no se encuentra ninguna llamada coincidente.
     """
     call = db.query(OnlineCalls).filter_by(service=service, ani=ani).first()
     if not call:
@@ -117,10 +117,10 @@ def update_call_operator(
 
 
 def get_active_call(db: Session, service: str, ani: str) -> dict:
-    """Check whether an ANI already has an active call for the service.
+    """Verifica si un ANI ya tiene una llamada activa para el servicio.
 
-    Returns ``{"llamada_activa": "true"}`` or ``{"llamada_activa": "false"}``.
-    String values match the Asterisk dialplan convention for JSON_DECODE comparisons.
+    Retorna ``{"llamada_activa": "true"}`` o ``{"llamada_activa": "false"}``.
+    Los valores de cadena coinciden con la convención de dialplan de Asterisk para comparaciones JSON_DECODE.
     """
     call = db.query(OnlineCalls).filter_by(service=service, ani=ani).first()
     return {"llamada_activa": "true" if call else "false"}

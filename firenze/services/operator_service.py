@@ -1,7 +1,7 @@
-"""Operator login, logout, availability management, and call-time selection.
+"""Inicio de sesión de operador, cierre de sesión, administración de disponibilidad y selección de tiempo de llamada.
 
-Both the API and CLI call these functions — no business logic lives in
-routers or CLI commands.
+Tanto la API como la CLI llaman a estas funciones — ninguna lógica comercial vive en
+enrutadores o comandos CLI.
 """
 
 import datetime
@@ -59,12 +59,12 @@ def _get_operator_by_phone(db: Session, ani: str) -> Operator:
 
 
 def _get_operator_by_option(db: Session, option: str) -> Operator:
-    """Look up an operator by their IVR menu option digit.
+    """Busca un operador por su dígito de opción del menú IVR.
 
-    ``Operator.option`` is a ``String(2)`` column but values are stored
-    without leading zeros ('1', '2', ..., '99'). The dialplan may send
-    either '1' or '01', so we compare numerically: cast both the column
-    and the input to int. Matches ``select_operator``'s behavior.
+    ``Operator.option`` es una columna ``String(2)`` pero los valores se almacenan
+    sin ceros a la izquierda ('1', '2', ..., '99'). El dialplan puede enviar
+    '1' o '01', así que comparamos numéricamente: convertimos tanto la columna
+    como la entrada a int. Coincide con el comportamiento de ``select_operator``.
     """
     try:
         option_int = int(option)
@@ -86,7 +86,7 @@ def _get_operator_by_option(db: Session, option: str) -> Operator:
 
 
 def login(db: Session, number: int, redis_conn: redis.Redis | None = None) -> Operator:
-    """Mark operator as logged in and available in DB and Redis."""
+    """Marca el operador como conectado y disponible en DB y Redis."""
     op = _get_operator(db, number)
     op.loggedin = True
     op.available = True
@@ -100,7 +100,7 @@ def login(db: Session, number: int, redis_conn: redis.Redis | None = None) -> Op
 
 
 def logout(db: Session, number: int, redis_conn: redis.Redis | None = None) -> Operator:
-    """Mark operator as logged out and unavailable in DB and Redis."""
+    """Marca el operador como desconectado e indisponible en DB y Redis."""
     op = _get_operator(db, number)
     op.loggedin = False
     op.available = False
@@ -114,25 +114,25 @@ def logout(db: Session, number: int, redis_conn: redis.Redis | None = None) -> O
 
 
 def login_by_phone(db: Session, ani: str, redis_conn: redis.Redis | None = None) -> Operator:
-    """Look up operator by phone ANI and mark as logged in and available."""
+    """Busca operador por ANI de teléfono y marca como conectado y disponible."""
     op = _get_operator_by_phone(db, ani)
     return login(db, op.number, redis_conn)
 
 
 def logout_by_phone(db: Session, ani: str, redis_conn: redis.Redis | None = None) -> Operator:
-    """Look up operator by phone ANI and mark as logged out and unavailable."""
+    """Busca operador por ANI de teléfono y marca como desconectado e indisponible."""
     op = _get_operator_by_phone(db, ani)
     return logout(db, op.number, redis_conn)
 
 
 def get_menu(db: Session, redis_conn: redis.Redis | None = None) -> dict:
-    """Return count of available operators and a Playback-ready audio string.
+    """Retorna conteo de operadores disponibles y una cadena de audio lista para Playback.
 
-    Audio string is ``&``-joined from ``Operator.audio_file``, ordered by
-    ``Operator.option``. Operators with no ``audio_file`` are counted in
-    ``disponibles`` but omitted from the audio string.
+    La cadena de audio se une con ``&`` desde ``Operator.audio_file``, ordenada por
+    ``Operator.option``. Los operadores sin ``audio_file`` se cuentan en
+    ``disponibles`` pero se omiten de la cadena de audio.
 
-    Used by ``GET /agi/operators/menu``.
+    Usado por ``GET /agi/operators/menu``.
     """
     operators = db.query(Operator).filter_by(loggedin=True, available=True).all()
     operators.sort(key=lambda op: int(op.option))
@@ -150,31 +150,31 @@ def info_operator(
     ani: str | None = None,
     option: str | None = None,
 ) -> Operator:
-    """Look up an operator by one of three identifiers.
+    """Busca un operador por uno de tres identificadores.
 
-    Exactly one of ``number``, ``ani``, or ``option`` should be provided.
-    They are tried in that order, so if more than one is passed the first
-    non-empty wins.
+    Exactamente uno de ``number``, ``ani`` u ``option`` debe ser proporcionado.
+    Se intenta en ese orden, así que si se pasan más de uno, el primero
+    no vacío gana.
 
     Args:
-        number: the operator's internal number (e.g. 1001). Used by the
-            admin panel and CLI tools.
-        ani: a phone number registered to the operator (in any format
-            stored on ``OperatorPhone.number``). Used by the
-            ``[tarotista-login]`` flow that identifies the operator by
-            the line they are calling from.
-        option: the IVR menu digit the caller pressed (e.g. "1" or "01").
-            Used by the dialplan after the caller picks an operator from
-            the menu rendered by ``/operators/menu``. Zero-padded
-            internally; both "1" and "01" resolve to the same operator.
+        number: el número interno del operador (p. ej. 1001). Utilizado por el
+            panel de administración y herramientas CLI.
+        ani: un número de teléfono registrado para el operador (en cualquier formato
+            almacenado en ``OperatorPhone.number``). Utilizado por el
+            flujo ``[tarotista-login]`` que identifica al operador por
+            la línea desde la que llama.
+        option: el dígito del menú IVR que presionó la persona que llama (p. ej. "1" o "01").
+            Utilizado por el dialplan después de que la persona que llama elige un operador del
+            menú representado por ``/operators/menu``. Rellenado con ceros
+            internamente; tanto "1" como "01" se resuelven al mismo operador.
 
-    Returns:
-        The matching ``Operator`` ORM object, or ``None`` if no
-        identifier was provided.
+    Retorna:
+        El objeto ORM ``Operator`` coincidente, o ``None`` si ningún
+        identificador fue proporcionado.
 
-    Raises:
-        OperatorNotFound: if the provided identifier doesn't match any
-            operator.
+    Genera:
+        OperatorNotFound: si el identificador proporcionado no coincide con ningún
+            operador.
     """
     op = None
     if number:
@@ -192,17 +192,17 @@ def select_operator(
     redis_conn: redis.Redis | None = None,
     selection: str | None = None,
 ) -> dict:
-    """Atomically verify operator availability, mark busy, and return operator info.
+    """Verifica atómicamente disponibilidad del operador, marca como ocupado, y retorna info del operador.
 
-    ``mode`` is ``"option"`` (caller picked a specific operator by IVR digit)
-    or ``"random"`` (automatic selection).  For ``"option"`` mode, ``selection``
-    must be the ``Operator.option`` value (e.g. ``"01"``).
+    ``mode`` es ``"option"`` (la persona que llama eligió un operador específico por dígito IVR)
+    o ``"random"`` (selección automática). Para modo ``"option"``, ``selection``
+    debe ser el valor ``Operator.option`` (p. ej. ``"01"``).
 
-    Uses ``SELECT FOR UPDATE`` to prevent two concurrent calls from grabbing
-    the same operator.
+    Usa ``SELECT FOR UPDATE`` para prevenir que dos llamadas concurrentes agarren
+    el mismo operador.
 
-    Returns a dict with operator details on success, or ``{"ok": False, ...}``
-    if no suitable operator is available.
+    Retorna un dict con detalles del operador en caso de éxito, o ``{"ok": False, ...}``
+    si ningún operador adecuado está disponible.
     """
     if mode == "option":
         try:
@@ -292,10 +292,10 @@ def select_operator(
 
 
 def release_operator(db: Session, number: int, redis_conn: redis.Redis | None = None) -> Operator:
-    """Mark operator as available again after a call ends.
+    """Marca el operador como disponible de nuevo después de que termina una llamada.
 
-    Stamps ``lastcall`` in Redis so we can see when the operator last wrapped
-    up a call (used for "forgot to logout" detection and activity reports).
+    Estampa ``lastcall`` en Redis para que podamos ver cuándo fue la última vez que el operador
+    terminó una llamada (utilizado para detección de "olvidó desconectarse" e informes de actividad).
     """
     return set_availability(
         db,
@@ -313,10 +313,10 @@ def set_availability(
     redis_conn: redis.Redis | None = None,
     lastcall: int | None = None,
 ) -> Operator:
-    """Toggle availability without changing login state.
+    """Cambia disponibilidad sin cambiar estado de conexión.
 
-    When ``lastcall`` is provided it is written to Redis; otherwise the
-    existing timestamp is preserved by ``operator_state.set_state``.
+    Cuando ``lastcall`` se proporciona, se escribe en Redis; de lo contrario, la
+    marca de tiempo existente se preserva por ``operator_state.set_state``.
     """
     op = _get_operator(db, number)
     op.available = available

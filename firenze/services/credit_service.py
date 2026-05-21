@@ -1,12 +1,12 @@
-"""Credit balance and call limit calculations.
+"""Cálculos de saldo de crédito y límites de llamadas.
 
-Logic mirrors the [limite-saldo] dialplan gosub in extensions_fonotarot.conf.
-Each entry is (threshold_seconds, audio_file). The rule is: find the smallest
-threshold T where seconds <= T (ceiling to nearest bucket).
+La lógica refleja el gosub [limite-saldo] del dialplan en extensions_fonotarot.conf.
+Cada entrada es (threshold_seconds, audio_file). La regla es: encontrar el
+umbral más pequeño T donde seconds <= T (redondeo al cubo más cercano).
 """
 
-# Derived directly from extensions_fonotarot.conf [limite-saldo].
-# Note: 4800 maps to zvn/saldo/75 (same as 4500) — intentional replication of original dialplan.
+# Derivado directamente de [limite-saldo] en extensions_fonotarot.conf.
+# Nota: 4800 mapea a zvn/saldo/75 (igual que 4500) — replicación intencional del dialplan original.
 _THRESHOLDS = [
     (60, "zvn/saldo/1"),
     (120, "zvn/saldo/2"),
@@ -48,12 +48,12 @@ _THRESHOLDS = [
 
 
 def compute_call_limit(seconds: int) -> dict:
-    """Return timeout, audio, and minutes for a given credit balance in seconds.
+    """Retorna timeout, audio y minutos para un saldo de crédito dado en segundos.
 
-    Replicates [limite-saldo] in extensions_fonotarot.conf:
-    - <= 0: immediate hangup (timeout=1)
-    - <= each threshold: use that threshold (first bucket the balance fits into)
-    - > 7200: cap at 7200s, play zvn/saldo/121
+    Replica [limite-saldo] en extensions_fonotarot.conf:
+    - <= 0: cuelgue inmediato (timeout=1)
+    - <= cada umbral: usa ese umbral (primer cubo en el que cabe el saldo)
+    - > 7200: tapa a 7200s, reproduce zvn/saldo/121
     """
     if seconds <= 0:
         return {"timeout": 1, "audio": "", "minutes": 0}
