@@ -7,7 +7,7 @@ import redis as redis_lib
 from markupsafe import Markup, escape
 from sqladmin import Admin, BaseView, ModelView, expose
 from sqladmin.authentication import login_required
-from sqlalchemy import and_, case, func
+from sqlalchemy import and_, case, func, select
 from starlette.requests import Request
 from starlette.responses import RedirectResponse
 from starlette.routing import Route
@@ -185,6 +185,7 @@ class ClientAdmin(ModelView, model=Client):
     icon = "fa-solid fa-user"
     category = "FonoTarot"
     category_icon = "fa-solid fa-eye"
+    details_template = "sqladmin/client_details.html"
     form_excluded_columns = _TIMESTAMP_EXCLUDED
     column_searchable_list = [Client.client_id, Client.email]
     column_sortable_list = [Client.client_id, Client.email, Client.id, Client.credits]
@@ -217,6 +218,31 @@ class ClientAdmin(ModelView, model=Client):
             else []
         )
     }
+
+    async def get_object_for_details(self, request: Request) -> Client | None:
+        model = await super().get_object_for_details(request)
+        if not model:
+            return None
+
+        ani_values = [ani.ani for ani in model.anis if ani.ani]
+        dnc_ani_set: set[str] = set()
+        if ani_values:
+            dnc_rows = await self._run_query(select(DoNotCall.ani).where(DoNotCall.ani.in_(ani_values)))
+            dnc_ani_set = {str(ani) for ani in dnc_rows if ani}
+
+        cdr_stmt = (
+            select(AsteriskCDR)
+            .where(AsteriskCDR.zvn_clientid == model.client_id)
+            .where(AsteriskCDR.lastapp == "Dial")
+            .order_by(AsteriskCDR.calldate.desc())
+            .limit(15)
+        )
+        if model.service and model.service.slug:
+            cdr_stmt = cdr_stmt.where(AsteriskCDR.accountcode == model.service.slug)
+
+        model.dnc_ani_set = dnc_ani_set
+        model.last_calls = await self._run_query(cdr_stmt)
+        return model
 
 
 class ClientAniAdmin(ModelView, model=ClientAni):
@@ -1019,6 +1045,21 @@ class FirenzeAdmin(Admin):
         finally:
             db.close()
 
+        def _format_time_ago(dt: datetime.datetime | None) -> str:
+            if dt is None:
+                return "—"
+            delta_seconds = max(int((now - dt).total_seconds()), 0)
+            if delta_seconds < 60:
+                return "just now"
+            if delta_seconds < 3600:
+                minutes = delta_seconds // 60
+                return f"{minutes} minute{'s' if minutes != 1 else ''} ago"
+            if delta_seconds < 86400:
+                hours = delta_seconds // 3600
+                return f"{hours} hour{'s' if hours != 1 else ''} ago"
+            days = delta_seconds // 86400
+            return f"{days} day{'s' if days != 1 else ''} ago"
+
         # Enrich operator list with Redis state
         enriched_operators = []
         for op in operators:
@@ -1036,10 +1077,23 @@ class FirenzeAdmin(Admin):
                     "db_loggedin": op.loggedin,
                     "db_available": op.available,
                     "db_lastcall": op.lastcall,
+                    "lastcall_ago": _format_time_ago(op.lastcall),
                     "redis_state": rs,
                     "synced": synced,
                 }
             )
+        # UI order: available first, then in-call, then offline.
+        enriched_operators.sort(
+            key=lambda op: (
+                0
+                if op["db_loggedin"] and op["db_available"]
+                else 1
+                if op["db_loggedin"]
+                else 2,
+                str(op["name"]).lower(),
+                int(op["number"]),
+            )
+        )
 
         def _format_elapsed_call_duration(created_at: datetime.datetime | None) -> str:
             if created_at is None:

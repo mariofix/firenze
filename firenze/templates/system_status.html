@@ -335,46 +335,90 @@
   </div>
 
   <div class="col-12 col-lg-6">
-    <div class="card">
+    <div class="card" id="operator-live-report">
       <div class="card-header">
         <h3 class="card-title"><i class="fa fa-headset me-2"></i>Operator Availability</h3>
       </div>
       <div class="card-body">
         {% set total_ops = operator_summary.total if operator_summary.total else 1 %}
-        <div class="datagrid mb-3">
-          <div class="datagrid-item">
-            <div class="datagrid-title">Total Operators</div>
-            <div class="datagrid-content"><span class="badge bg-secondary-lt text-secondary">{{ operator_summary.total }}</span></div>
-          </div>
-          <div class="datagrid-item">
-            <div class="datagrid-title">Logged In</div>
-            <div class="datagrid-content"><span class="badge bg-blue-lt text-blue">{{ operator_summary.logged_in }}</span></div>
-          </div>
-          <div class="datagrid-item">
-            <div class="datagrid-title">Available</div>
-            <div class="datagrid-content"><span class="badge bg-teal-lt text-teal">{{ operator_summary.available }}</span></div>
-          </div>
-          <div class="datagrid-item">
-            <div class="datagrid-title">Cache Drift</div>
-            <div class="datagrid-content"><span class="badge {% if operator_summary.drift == 0 %}bg-success-lt text-success{% else %}bg-warning-lt text-warning{% endif %}">{{ operator_summary.drift }}</span></div>
-          </div>
+        {% set logged_in = operator_summary.logged_in %}
+        {% set available = operator_summary.available %}
+        {% set not_logged_in = operator_summary.total - logged_in %}
+        {% set busy = (logged_in - available) if logged_in >= available else 0 %}
+        {% set logged_in_pct = (logged_in * 100 / total_ops) | round(1) %}
+        {% set not_logged_in_pct = (not_logged_in * 100 / total_ops) | round(1) %}
+        {% set available_pct = (available * 100 / total_ops) | round(1) %}
+        {% set busy_pct = (busy * 100 / total_ops) | round(1) %}
+
+        <div class="d-flex justify-content-between mb-1">
+          <span>Logged in</span>
+          <span class="fw-bold">{{ logged_in }}/{{ operator_summary.total }}</span>
+        </div>
+        <div class="progress progress-separated mb-3" role="progressbar" aria-label="Operator login distribution">
+          <div class="progress-bar bg-blue" style="width: {{ logged_in_pct }}%" title="{{ logged_in }} logged in ({{ logged_in_pct }}%)"></div>
+          <div class="progress-bar bg-secondary" style="width: {{ not_logged_in_pct }}%" title="{{ not_logged_in }} not logged in ({{ not_logged_in_pct }}%)"></div>
         </div>
 
-        {% set logged_in_pct = (operator_summary.logged_in * 100 / total_ops) | round(1) %}
-        <div class="d-flex justify-content-between mb-1"><span>Logged in</span><span class="fw-bold">{{ operator_summary.logged_in }}/{{ operator_summary.total }}</span></div>
-        <div class="progress progress-sm mb-3"><div class="progress-bar bg-blue" style="width: {{ logged_in_pct }}%"></div></div>
+        <div class="d-flex justify-content-between mb-1">
+          <span>Availability</span>
+          <span class="fw-bold">{{ available }} available · {{ busy }} in call</span>
+        </div>
+        <div class="progress progress-separated mb-3" role="progressbar" aria-label="Operator availability distribution">
+          <div class="progress-bar bg-green" style="width: {{ available_pct }}%" title="{{ available }} available ({{ available_pct }}%)"></div>
+          <div class="progress-bar bg-orange" style="width: {{ busy_pct }}%" title="{{ busy }} in call ({{ busy_pct }}%)"></div>
+        </div>
 
-        {% set available_pct = (operator_summary.available * 100 / total_ops) | round(1) %}
-        <div class="d-flex justify-content-between mb-1"><span>Available</span><span class="fw-bold">{{ operator_summary.available }}/{{ operator_summary.total }}</span></div>
-        <div class="progress progress-sm mb-3"><div class="progress-bar bg-teal" style="width: {{ available_pct }}%"></div></div>
+        <div class="row g-2 mb-3">
+          {% for op in operators %}
+          <div class="col-12 col-lg-4">
+            <div class="card card-sm h-100">
+              {% if op.db_loggedin %}
+              <div class="ribbon ribbon-top bg-green">
+                {% else %}
+                <div class="ribbon ribbon-top bg-danger">
+                {% endif %}
+                {{ op.option if op.option is not none else "—" }}
+              </div>
+              <div class="card-status-top {% if op.db_loggedin %}bg-success{% else %}bg-danger{% endif %}"></div>
+              <div class="card-body p-2">
+                <div class="fw-medium text-truncate">{{ op.name }} <span class="text-secondary">({{ op.number }})</span></div>
+                <div class="text-secondary small">Last call: {{ op.lastcall_ago }}</div>
+              </div>
+              <div class="card-footer p-2">
+                <div class="d-flex align-items-center justify-content-between gap-2">
+                  <div>
+                    {% if op.db_loggedin %}
+                      {% if op.db_available %}
+                        <span class="badge bg-success-lt text-success">Available</span>
+                      {% else %}
+                        <span class="badge bg-blue-lt text-blue">In call</span>
+                      {% endif %}
+                    {% else %}
+                      <span class="badge bg-danger-lt text-danger">Offline</span>
+                    {% endif %}
+                  </div>
+                  <div>
+                    {% if op.enable_valkey and op.synced is sameas true %}
+                      <span class="badge bg-success-lt text-success" title="Redis cache synced">
+                        <i class="fa fa-memory" aria-hidden="true"></i>
+                        <span class="ms-1">Redis synced</span>
+                      </span>
+                    {% else %}
+                      <span class="badge bg-warning-lt text-warning" title="Redis not synced">
+                        <i class="fa fa-memory" aria-hidden="true"></i>
+                        <span class="ms-1">Redis not synced</span>
+                      </span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <div class="col-12 text-muted small">No operators configured.</div>
+          {% endfor %}
+        </div>
 
-        {% set synced_pct = (operator_summary.synced * 100 / total_ops) | round(1) %}
-        <div class="d-flex justify-content-between mb-1"><span>Cache synced</span><span class="fw-bold">{{ operator_summary.synced }}/{{ operator_summary.total }}</span></div>
-        <div class="progress progress-sm mb-3"><div class="progress-bar bg-green" style="width: {{ synced_pct }}%"></div></div>
-
-        {% set drift_pct = (operator_summary.drift * 100 / total_ops) | round(1) %}
-        <div class="d-flex justify-content-between mb-1"><span>Cache drift</span><span class="fw-bold">{{ operator_summary.drift }}/{{ operator_summary.total }}</span></div>
-        <div class="progress progress-sm"><div class="progress-bar bg-yellow" style="width: {{ drift_pct }}%"></div></div>
       </div>
     </div>
   </div>
