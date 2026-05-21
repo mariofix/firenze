@@ -129,7 +129,7 @@
                   {% if model.last_calls %}
                   {% for call in model.last_calls %}
                   <tr>
-                    <td>{{ call.userfield }}</td>
+                    <td>{{ call.start }}</td>
                     <td>{{ call.zvn_client_ani or call.src or "-" }}</td>
                     <td>{{ call.zvn_operator or "-" }}</td>
                     <td>{{ call.disposition or "-" }}</td>
