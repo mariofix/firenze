@@ -1041,6 +1041,14 @@ class FirenzeAdmin(Admin):
                 }
             )
 
+        def _format_elapsed_call_duration(created_at: datetime.datetime | None) -> str:
+            if created_at is None:
+                return "—"
+            elapsed_seconds = max(int((now - created_at).total_seconds()), 0)
+            hours, remainder = divmod(elapsed_seconds, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            return f"{hours:02}:{minutes:02}:{seconds:02}"
+
         # Enrich call list — cross-reference DB vs Redis
         redis_call_keys = {(c["service"], c["ani"]) for c in redis_calls}
         db_call_keys = {(c.service, c.ani) for c in online_calls}
@@ -1056,11 +1064,13 @@ class FirenzeAdmin(Admin):
                     "operator": call.operator,
                     "client_id": call.client_id,
                     "created_at": call.created_at,
+                    "call_duration": _format_elapsed_call_duration(call.created_at),
                 }
             )
         for rc in redis_calls:
             if (rc["service"], rc["ani"]) not in db_call_keys:
                 ts = rc.get("created_at")
+                created_at = datetime.datetime.fromtimestamp(ts) if ts else None
                 enriched_calls.append(
                     {
                         "source": "redis_only",
@@ -1069,9 +1079,15 @@ class FirenzeAdmin(Admin):
                         "did": rc["did"],
                         "operator": rc["operator"],
                         "client_id": rc["client_id"],
-                        "created_at": (datetime.datetime.fromtimestamp(ts) if ts else None),
+                        "created_at": created_at,
+                        "call_duration": _format_elapsed_call_duration(created_at),
                     }
                 )
+
+        enriched_calls.sort(
+            key=lambda call: (call["created_at"] or datetime.datetime.min),
+            reverse=True,
+        )
 
         operator_summary = {
             "total": len(enriched_operators),

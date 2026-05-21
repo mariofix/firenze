@@ -216,14 +216,34 @@
 
   <div class="col-12 col-lg-6">
     <div class="card">
-      <div class="card-header d-flex align-items-center justify-content-between">
-        <h3 class="card-title"><i class="fa fa-chart-bar me-2"></i>Reporte Servicios</h3>
-        <a href="{{ request.url_for('admin:monthly-report') }}" class="btn btn-sm btn-outline-primary ms-auto">
-          <i class="fa fa-up-right-from-square me-1"></i>Ver reporte mensual
-        </a>
+      <div class="card-header">
+        <h3 class="card-title"><i class="fa fa-bolt me-2"></i>Live Call Feed</h3>
       </div>
       <div class="card-body">
-        <div id="chart-mentions" class="position-relative chart-lg"></div>
+        <div class="divide-y">
+          {% for call in active_calls[:12] %}
+            <div>
+              <div class="row py-2 align-items-center">
+                <div class="col-auto">
+                  <span class="badge {% if call.source == 'db+redis' %}bg-success-lt{% elif call.source == 'db_only' %}bg-warning-lt text-warning{% else %}bg-azure-lt{% endif %}">
+                    {{ call.source }}
+                  </span>
+                </div>
+                <div class="col">
+                  <div class="text-truncate">
+                    <strong>{{ call.service }} * client_id {{ call.client_id if call.client_id else '—' }} -> Operator {{ call.operator if call.operator else '—' }}</strong>
+                  </div>
+                  <div class="text-secondary small">ANI <code>{{ call.ani }}</code> · DID <code>{{ call.did if call.did else '—' }}</code> · Duration {{ call.call_duration }}</div>
+                </div>
+                <div class="col-auto text-secondary small">
+                  {{ call.created_at.strftime('%H:%M:%S') if call.created_at else '—' }}
+                </div>
+              </div>
+            </div>
+          {% else %}
+            <div class="text-muted">No active calls at this time.</div>
+          {% endfor %}
+        </div>
       </div>
     </div>
   </div>
@@ -361,34 +381,14 @@
 
   <div class="col-12">
     <div class="card">
-      <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-bolt me-2"></i>Live Call Feed</h3>
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <h3 class="card-title"><i class="fa fa-chart-bar me-2"></i>Reporte Servicios</h3>
+        <a href="{{ request.url_for('admin:monthly-report') }}" class="btn btn-sm btn-outline-primary ms-auto">
+          <i class="fa fa-up-right-from-square me-1"></i>Ver reporte mensual
+        </a>
       </div>
       <div class="card-body">
-        <div class="divide-y">
-          {% for call in active_calls[:12] %}
-            <div>
-              <div class="row py-2 align-items-center">
-                <div class="col-auto">
-                  <span class="badge {% if call.source == 'db+redis' %}bg-success-lt{% elif call.source == 'db_only' %}bg-warning-lt text-warning{% else %}bg-azure-lt{% endif %}">
-                    {{ call.source }}
-                  </span>
-                </div>
-                <div class="col">
-                  <div class="text-truncate">
-                    <strong>{{ call.service }}</strong> · ANI <code>{{ call.ani }}</code> → DID <code>{{ call.did }}</code>
-                  </div>
-                  <div class="text-secondary small">Operator {{ call.operator if call.operator else '—' }} · Client {{ call.client_id if call.client_id else '—' }}</div>
-                </div>
-                <div class="col-auto text-secondary small">
-                  {{ call.created_at.strftime('%H:%M:%S') if call.created_at else '—' }}
-                </div>
-              </div>
-            </div>
-          {% else %}
-            <div class="text-muted">No active calls at this time.</div>
-          {% endfor %}
-        </div>
+        <div id="chart-mentions" class="position-relative chart-lg"></div>
       </div>
     </div>
   </div>
