@@ -220,7 +220,6 @@ class AsteriskCDRAdmin(ModelView, model=AsteriskCDR):
         AsteriskCDR.billsec,
         AsteriskCDR.disposition,
         AsteriskCDR.accountcode,
-        AsteriskCDR.userfield,
         AsteriskCDR.zvn_clientid,
         AsteriskCDR.zvn_client_ani,
         AsteriskCDR.zvn_operator,
@@ -228,7 +227,6 @@ class AsteriskCDRAdmin(ModelView, model=AsteriskCDR):
     column_searchable_list = [
         AsteriskCDR.src,
         AsteriskCDR.dst,
-        AsteriskCDR.userfield,
         AsteriskCDR.zvn_clientid,
         AsteriskCDR.zvn_client_ani,
         AsteriskCDR.zvn_operator,
