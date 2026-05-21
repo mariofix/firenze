@@ -1,97 +1,96 @@
-# Firenze - Architecture
+# Firenze - Arquitectura
 
-> Current state of migration: [tasks.md](tasks.md)
-> Implementation reference (endpoints, configs, code): [tech.md](tech.md)
+> Estado actual de la migración: [tasks.md](tasks.md)
+> Referencia de implementación (endpoints, configuraciones, código): [tech.md](tech.md)
 
-## What Firenze is
+## Qué es Firenze
 
-Firenze is the communications and Asterisk management layer for the FonoTarot
-platform. It owns call routing, operator state, credit tracking, and active-call
-state. It is one of two services in the stack.
+Firenze es la capa de comunicaciones y gestión de Asterisk para la plataforma FonoTarot. 
+Es responsable del enrutamiento de llamadas, estado de operadores, seguimiento de créditos 
+y estado de llamadas activas. Es uno de los dos servicios en la pila.
 
-| Concern | Owner |
+| Responsabilidad | Propietario |
 |---|---|
-| Storefront, payments, user accounts | nuevo-fonotarot (Flask) |
-| Asterisk call flow, operators, credits, DIDs, DNC | Firenze (FastAPI) |
-| Communication | nuevo-fonotarot -> Firenze HTTP API |
+| Tienda frontal, pagos, cuentas de usuario | nuevo-fonotarot (Flask) |
+| Flujo de llamadas Asterisk, operadores, créditos, DIDs, DNC | Firenze (FastAPI) |
+| Comunicación | nuevo-fonotarot -> Firenze HTTP API |
 
-Firenze knows: client identifiers, credit balances, operators, services,
-active calls, DNC list.
+Firenze conoce: identificadores de cliente, saldos de crédito, operadores, servicios,
+llamadas activas, lista DNC.
 
-Firenze does not know: how credits were purchased, payment providers,
-storefront passwords, marketing touches.
+Firenze no conoce: cómo se compraron los créditos, proveedores de pago,
+contraseñas de tienda frontal, contactos de marketing.
 
-## Asterisk integration: CURL from dialplan
+## Integración Asterisk: CURL desde el dialplan
 
-Asterisk talks to Firenze via HTTP on localhost. Every dialplan decision
-point that used to spawn a Python AGI subprocess (~500-1500ms per spawn)
-becomes a `CURL()` + `JSON_DECODE()` to the always-running FastAPI service
-(~5-10ms per call).
+Asterisk habla con Firenze a través de HTTP en localhost. Cada punto de decisión 
+del dialplan que antes generaba un subproceso Python AGI (~500-1500ms por generación) 
+se convierte en una `CURL()` + `JSON_DECODE()` al servicio FastAPI siempre en ejecución 
+(~5-10ms por llamada).
 
 ```
-; before: spawn Python process
+; antes: generar proceso Python
 same => n,Agi(${FIRENZE},services,did,${did})
 
-; after: HTTP to running server
+; después: HTTP al servidor en ejecución
 same => n,Set(resp=${CURL(${FIRENZE_API}/services/did/${did})})
 same => n,Set(siguiente=${JSON_DECODE(resp,siguiente)})
 ```
 
-A typical call used to invoke AGI 5-6 times (3-9s of caller-perceived silence).
-The target is 2-4 CURL calls totalling 10-60ms.
+Una llamada típica solía invocar AGI 5-6 veces (3-9s de silencio percibido por la llamada).
+El objetivo es 2-4 llamadas CURL totalizando 10-60ms.
 
-### Why not ARI
+### ¿Por qué no ARI?
 
-ARI (Asterisk REST Interface, WebSocket-driven) makes Firenze a stateful
-always-on dependency: if it dies, calls die. It also requires rewriting all
-dialplan logic in Python and is harder to debug than stateless HTTP. At ~6
-concurrent channels that cost is not justified.
+ARI (Interfaz REST de Asterisk, impulsada por WebSocket) hace que Firenze sea una 
+dependencia siempre activa con estado: si muere, las llamadas mueren. También requiere 
+reescribir toda la lógica del dialplan en Python y es más difícil de depurar que HTTP sin estado. 
+Con ~6 canales concurrentes ese costo no está justificado.
 
-### Why not stay on AGI
+### ¿Por qué no mantener AGI?
 
-AGI works but spawns a fresh Python interpreter per call step. Loading
-SQLAlchemy + Typer + Redis on every spawn dominates the call latency on a
-2GB Linode.
+AGI funciona pero genera un nuevo intérprete Python por paso de llamada. Cargar 
+SQLAlchemy + Typer + Redis en cada generación domina la latencia de llamada en un 
+Linode de 2GB.
 
-### AGI endpoint security
+### Seguridad de endpoints AGI
 
-The `/agi/` endpoints are dialplan-facing and must be fast. Asterisk's
-`CURL()` cannot manage token flows. Protection is binding to localhost plus
-an optional static API key header. Firenze's protected public endpoints use
-`x-api-key` + `x-api-secret`, and SQLAdmin uses cookie sessions.
+Los endpoints `/agi/` están orientados al dialplan y deben ser rápidos. El `CURL()` 
+de Asterisk no puede gestionar flujos de tokens. La protección es vinculación a localhost 
+más una cabecera de clave API estática opcional. Los endpoints públicos protegidos de Firenze 
+usan `x-api-key` + `x-api-secret`, y SQLAdmin usa sesiones de cookies.
 
-## Domain model overview
+## Descripción general del modelo de dominio
 
-- **Service** - a saleable service (`fonotarot-cl`, `alotarot`, `fonotarot-latam`).
-  Carries `auth_method` ("ani" or "pin") and `intro_audio`. Has many
-  `ServiceNumber`s (DIDs).
-- **Client** - unified table keyed by `(service_id, client_id)`. Holds
-  `credits` (seconds), `pin` when auth_method is pin. A `ClientAni` child
-  table maps N ANIs to one client for ANI-auth services.
-- **Operator** - internal number, IVR `option` digits, `audio_file`. Related
-  `OperatorPhone` rows hold contact numbers and outbound trunks.
-- **OnlineCall** - row per active call, unique on `(service, ani)`. Deleted
-  on hangup.
-- **DoNotCall** - ANIs that must be refused immediately.
+- **Service** - un servicio vendible (`fonotarot-cl`, `alotarot`, `fonotarot-latam`).
+  Lleva `auth_method` ("ani" o "pin") e `intro_audio`. Tiene muchos `ServiceNumber`s (DIDs).
+- **Client** - tabla unificada con clave `(service_id, client_id)`. Contiene
+  `credits` (segundos), `pin` cuando auth_method es pin. Una tabla secundaria `ClientAni` 
+  mapea N ANIs a un cliente para servicios con autenticación ANI.
+- **Operator** - número interno, dígitos de opción IVR, `audio_file`. Las filas 
+  relacionadas `OperatorPhone` contienen números de contacto y troncales salientes.
+- **OnlineCall** - fila por llamada activa, única en `(service, ani)`. Se elimina
+  al colgar.
+- **DoNotCall** - ANIs que deben ser rechazados inmediatamente.
 
-See [tech.md](tech.md) for exact columns.
+Consulta [tech.md](tech.md) para las columnas exactas.
 
-## Operator state: MySQL source of truth + Redis hot cache
+## Estado de operador: MySQL como fuente de verdad + caché caliente Redis
 
-MySQL is authoritative. Redis/Valkey is a fast-read cache consumed by both
-the call flow (`/agi/operators/menu`) and external legacy PHP readers.
+MySQL es autoritario. Redis/Valkey es un caché de lectura rápida consumido por 
+el flujo de llamadas (`/agi/operators/menu`) y lectores heredados PHP externos.
 
-- Write path: every state change (login, logout, select, release) writes to
-  both MySQL and Redis. Redis write is a best-effort mirror - if Redis is
-  down, MySQL still commits and we log the degradation.
-- Read path: menu + availability read from Redis first, fall back to MySQL.
-- TTL 24h: naturally handles "operator forgot to logout".
-- Per-operator opt-in via `Operator.enable_valkey` - lets us migrate
-  operators into the cache one at a time.
+- Ruta de escritura: cada cambio de estado (login, logout, select, release) escribe 
+  en MySQL y Redis. La escritura en Redis es un espejo de mejor esfuerzo - si Redis 
+  está caído, MySQL aún se compromete y registramos la degradación.
+- Ruta de lectura: menú + disponibilidad leen primero desde Redis, retroceden a MySQL.
+- TTL 24h: maneja naturalmente "operador olvidó cerrar sesión".
+- Opt-in por operador a través de `Operator.enable_valkey` - nos permite migrar
+  operadores al caché uno a uno.
 
-Same pattern for active calls (`firenze:call:{service}:{ani}`).
+El mismo patrón para llamadas activas (`firenze:call:{service}:{ani}`).
 
-## Deployment
+## Despliegue
 
 ```
 +--------------------------------------+
@@ -107,29 +106,29 @@ Same pattern for active calls (`firenze:call:{service}:{ani}`).
 |        |          | MySQL+Redis |    |
 |        |          +-------------+    |
 |        |                             |
-|   CURL to localhost:9002             |
+|   CURL a localhost:9002              |
 +--------------------------------------+
 ```
 
-- Firenze runs as a systemd service: `gunicorn run:app -k uvicorn.workers.UvicornWorker`
-- One worker is enough at current load
-- Asterisk hits Firenze via `${FIRENZE_API}` on localhost
-- Scaling = duplicate the entire Linode (e.g. European region)
-- No Docker for Asterisk - bare metal, hand-rolled
+- Firenze se ejecuta como servicio systemd: `gunicorn run:app -k uvicorn.workers.UvicornWorker`
+- Un worker es suficiente con la carga actual
+- Asterisk golpea Firenze a través de `${FIRENZE_API}` en localhost
+- Escalado = duplicar todo el Linode (p. ej. región europea)
+- Sin Docker para Asterisk - metal desnudo, enrollado a mano
 
-## Tech stack
+## Pila de tecnología
 
-| Layer | Technology |
+| Capa | Tecnología |
 |---|---|
-| Web API | FastAPI + Uvicorn + Gunicorn |
+| API Web | FastAPI + Uvicorn + Gunicorn |
 | ORM | SQLAlchemy 2.0 (`Mapped` / `mapped_column`) |
-| Migrations | Alembic, config in `pyproject.toml` |
-| Validation | Pydantic v2 + pydantic-settings |
-| DB | MySQL via PyMySQL |
-| Cache / hot state | Redis/Valkey via `redis-py` |
-| Admin | sqladmin at `/boss` |
-| CLI | Typer - admin + migration + debug only, no longer in the call hot path |
-| Auth | API credentials (`x-api-key` + `x-api-secret`) + SQLAdmin cookie sessions |
+| Migraciones | Alembic, configuración en `pyproject.toml` |
+| Validación | Pydantic v2 + pydantic-settings |
+| Base de datos | MySQL a través de PyMySQL |
+| Caché / estado caliente | Redis/Valkey a través de `redis-py` |
+| Admin | sqladmin en `/boss` |
+| CLI | Typer - admin + migración + depuración solo, ya no en la ruta caliente de llamada |
+| Autenticación | Credenciales API (`x-api-key` + `x-api-secret`) + sesiones de cookies SQLAdmin |
 
-The CLI is still shipped (entry point `firenze`) but Asterisk no longer
-invokes it during calls. All call-time traffic is HTTP.
+El CLI todavía se distribuye (punto de entrada `firenze`) pero Asterisk ya no 
+lo invoca durante las llamadas. Todo el tráfico en tiempo de llamada es HTTP.

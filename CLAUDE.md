@@ -1,58 +1,58 @@
-# Global Claude Code Standards for zvn-firenze
+# Estándares Globales de Código para Claude en zvn-firenze
 
 
 ## General
-- This is a complete refactor and code upgrade for the current project
-- tasks.md and new-architecture.md has the context needed for any new task
+- Este es un refactor completo y una actualización de código para el proyecto actual
+- tasks.md y new-architecture.md contienen el contexto necesario para cualquier tarea nueva
 
-## Behavior
-- After every change, self-verify: check imports, lint mentally, confirm no regressions
-- Proactively flag best practice violations even when not asked — report them before proceeding
-- If a task touches code that has adjacent issues, mention them. Don't silently ignore problems
-- Prefer modifying existing patterns over introducing new ones unless the existing pattern is the problem
-- Before adding a dependency, check if the functionality already exists in the project or stdlib
+## Comportamiento
+- Después de cada cambio, verifica automáticamente: revisa importaciones, verifica mentalmente, confirma que no hay regresiones
+- Señala proactivamente las violaciones de mejores prácticas incluso cuando no se te pida — reporta antes de proceder
+- Si una tarea toca código con problemas adyacentes, menciónalo. No ignores problemas silenciosamente
+- Prefiere modificar patrones existentes sobre introducir nuevos, a menos que el patrón existente sea el problema
+- Antes de agregar una dependencia, verifica si la funcionalidad ya existe en el proyecto o en la biblioteca estándar
 
-## Code Review (always apply, unprompted)
-- No inline HTML — always use templates
-- No hardcoded secrets, credentials, or environment-specific values — use environment variables
-- No dead code, unused imports, or commented-out blocks left behind
-- Functions that do more than one thing should be flagged for splitting
-- Repeated logic (3+ occurrences) should be flagged for extraction
+## Revisión de Código (siempre aplica, sin ser solicitado)
+- No HTML en línea — siempre usa plantillas
+- Sin secretos, credenciales o valores específicos del entorno codificados — usa variables de entorno
+- Sin código muerto, importaciones no utilizadas o bloques comentados dejados atrás
+- Las funciones que hacen más de una cosa deben marcarse para dividirse
+- La lógica repetida (3+ ocurrencias) debe marcarse para extracción
 
-## Security (OWASP basics, no CodeQL)
-- Flag any user input that reaches a database without sanitization
-- Flag any secret that appears in code, logs, or error messages
-- Flag missing authentication/authorization checks on routes
-- Flag SQL concatenation — parameterized queries only
+## Seguridad (conceptos básicos de OWASP, sin CodeQL)
+- Señala cualquier entrada de usuario que llegue a una base de datos sin sanitización
+- Señala cualquier secreto que aparezca en código, registros o mensajes de error
+- Señala controles de autenticación/autorización faltantes en rutas
+- Señala concatenación SQL — solo consultas parametrizadas
 
 ## Git
-- Use conventional commits: feat, fix, refactor, chore, docs, test
-- Commit messages must describe intent, not mechanics ("add user auth" not "edit auth.py")
-- One logical change per commit — don't bundle unrelated changes
-- Never commit directly to main or master, create a new git branch and add the relevant information to commit comment
-- All branches must be created under the `claude/` prefix: claude/feature-name, claude/fix-name, etc
-- Use kebab-case for branch names: claude/user-authentication not claude/user_authentication
+- Usa commits convencionales: feat, fix, refactor, chore, docs, test
+- Los mensajes de commit deben describir la intención, no la mecánica ("agregar autenticación de usuario" no "editar auth.py")
+- Un cambio lógico por commit — no agrupes cambios no relacionados
+- Nunca hagas commit directamente a main o master, crea una rama nueva y agrega la información relevante al comentario del commit
+- Todas las ramas deben crearse bajo el prefijo `claude/`: claude/feature-name, claude/fix-name, etc
+- Usa kebab-case para nombres de ramas: claude/user-authentication no claude/user_authentication
 
-## Permissions
-- You have full autonomy on any branch matching `claude/*` — create, commit, push, rebase, delete, no confirmation needed
-- You may NOT touch any branch outside `claude/*` — no commits, no merges, no rebases, no deletes
-- You may NOT merge into main under any circumstance — open a PR and stop
-- Read access to all branches is fine, write access is `claude/*` only
-- An exception is `new-architecture` which is the working branch for this project.
-- It is prefered not to work on this  `new-architecture` branch, rebases, commits, pulls, and merges are OK.
-- If the work requires modify files in the `new-architecture` branch without passing through `claude/` first, wait confirmation
+## Permisos
+- Tienes autonomía total en cualquier rama que coincida con `claude/*` — crear, hacer commit, push, rebase, eliminar, sin necesidad de confirmación
+- NO PUEDES tocar ninguna rama fuera de `claude/*` — sin commits, sin merges, sin rebases, sin eliminaciones
+- NO PUEDES hacer merge a main bajo ninguna circunstancia — abre un PR y detente
+- El acceso de lectura a todas las ramas está bien, el acceso de escritura es solo `claude/*`
+- Una excepción es `new-architecture` que es la rama de trabajo para este proyecto
+- Se prefiere no trabajar en la rama `new-architecture`, pero rebases, commits, pulls y merges están permitidos
+- Si el trabajo requiere modificar archivos en la rama `new-architecture` sin pasar por `claude/` primero, espera confirmación
 
-## Testing
-- Run existing tests after any change that could affect behavior
-- If tests don't exist for modified code, mention it
-- Don't delete or modify tests to make them pass — fix the code instead
+## Pruebas
+- Ejecuta las pruebas existentes después de cualquier cambio que pueda afectar el comportamiento
+- Si no existen pruebas para el código modificado, menciónalo
+- No elimines ni modifiques pruebas para que pasen — corrige el código en su lugar
 
-## Documentation
-- Update docstrings and comments affected by changes
-- If a function signature changes, update all call sites and docs
-- Public APIs must have docstrings
+## Documentación
+- Actualiza docstrings y comentarios afectados por cambios
+- Si una firma de función cambia, actualiza todos los sitios de llamada y la documentación
+- Las APIs públicas deben tener docstrings
 
-## Output Style
-- Report findings before making changes unless the task is unambiguous and small
-- For tasks touching 3+ files, state the plan first and wait for confirmation
-- When something is ambiguous, ask one focused question rather than proceeding with assumptions
+## Estilo de Salida
+- Reporta hallazgos antes de hacer cambios a menos que la tarea sea inequívoca y pequeña
+- Para tareas que tocan 3+ archivos, establece el plan primero y espera confirmación
+- Cuando algo sea ambiguo, haz una pregunta enfocada en lugar de proceder con suposiciones
