@@ -105,6 +105,60 @@
           </div>
         </div>
       </div>
+      <div class="col-6 col-md-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="subheader">ANI Registry</div>
+            <div class="h2 mb-0">{{ ani_reports.total_anis }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="subheader">ANI Calls (lifetime)</div>
+            <div class="h2 mb-0">{{ ani_reports.total_calls }}</div>
+            <div class="text-secondary small">{{ ani_reports.avg_calls | round(1) }} avg / ANI</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="subheader">ANI Active (24h)</div>
+            <div class="h2 mb-0 text-green">{{ ani_reports.active_24h }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="subheader">ANI Active (7d)</div>
+            <div class="h2 mb-0 text-azure">{{ ani_reports.active_7d }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12">
+        <div class="card">
+          <div class="card-body">
+            {% set ani_den = ani_reports.total_anis if ani_reports.total_anis else 1 %}
+            {% set ani_coverage = (ani_reports.with_last_call * 100 / ani_den) | round(1) %}
+            <div class="row g-2 text-secondary small">
+              <div class="col-6 col-md-3">Tracked last_call: <strong>{{ ani_reports.with_last_call }}/{{ ani_reports.total_anis }}</strong> ({{ ani_coverage }}%)</div>
+              <div class="col-6 col-md-3">Stale (+30d): <strong>{{ ani_reports.stale_30d }}</strong></div>
+              <div class="col-12 col-md-6">Latest ANI call:
+                <strong>
+                  {% if ani_reports.latest_last_call %}
+                    {{ ani_reports.latest_last_call.strftime('%Y-%m-%d %H:%M:%S') }} ({{ ani_reports.latest_last_call_hours }}h ago)
+                  {% else %}
+                    —
+                  {% endif %}
+                </strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="col-12">
         <div class="card">
           <div class="card-body">
@@ -192,48 +246,11 @@
 
   <div class="col-12 col-lg-5">
     <div class="card">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fa fa-chart-bar me-2"></i>Traffic summary</h3>
+      </div>
       <div class="card-body">
-        <div class="d-flex">
-          <h3 class="card-title"><i class="fa fa-chart-area me-2"></i>Monthly 3-Carrier ({{ cdr_reports.month_label }})</h3>
-          <div class="ms-auto text-secondary">Answered traffic</div>
-        </div>
-        <div class="row">
-          <div class="col">
-            <div class="mb-3">
-              <div class="d-flex justify-content-between text-secondary small mb-1">
-                <span>Total minutes</span>
-                <span class="fw-bold">{{ cdr_reports.carrier_totals.total }}</span>
-              </div>
-              <div class="progress progress-sm">
-                <div class="progress-bar bg-indigo" style="width: 100%"></div>
-              </div>
-            </div>
-            {% for carrier in cdr_reports.carrier_breakdown %}
-            <div class="mb-3">
-              <div class="d-flex justify-content-between text-secondary small mb-1">
-                <span>{{ carrier.label }}</span>
-                <span class="fw-bold">{{ carrier.share }}%</span>
-              </div>
-              <div class="progress progress-sm">
-                <div class="progress-bar {% if carrier.key == 'fonotarot-cl' %}bg-primary{% elif carrier.key == 'alotarot' %}bg-azure{% else %}bg-green{% endif %}" style="width: {{ carrier.share }}%"></div>
-              </div>
-            </div>
-            {% endfor %}
-          </div>
-          <div class="col-md-auto">
-            <div class="divide-y divide-y-fill">
-              {% for carrier in cdr_reports.carrier_breakdown %}
-              <div class="px-3">
-                <div class="text-secondary">
-                  <span class="status-dot {% if carrier.key == 'fonotarot-cl' %}bg-primary{% elif carrier.key == 'alotarot' %}bg-azure{% else %}bg-green{% endif %}"></span>
-                  {{ carrier.label }}
-                </div>
-                <div class="h2">{{ carrier.minutes }}</div>
-              </div>
-              {% endfor %}
-            </div>
-          </div>
-        </div>
+        <div id="chart-mentions" class="position-relative chart-lg"></div>
       </div>
     </div>
   </div>
@@ -274,50 +291,140 @@
 
   <div class="col-12">
     <div class="card">
-      <div class="card-body">
-        <h3 class="card-title mb-3"><i class="fa fa-users me-2"></i>Monthly Agent Report (Top Pages style)</h3>
-        <table class="table table-sm table-borderless">
-          <thead>
-            <tr>
-              <th>Agent</th>
-              <th class="text-end">Minutes</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% set max_agent_minutes = cdr_reports.operator_totals[0].minutes if cdr_reports.operator_totals else 1 %}
-            {% for op in cdr_reports.operator_totals %}
-            {% set share = ((op.minutes * 100) / max_agent_minutes) | round(1) %}
-            <tr>
-              <td>
-                <div class="progressbg">
-                  <div class="progress progress-3 progressbg-progress">
-                    <div
-                      class="progress-bar bg-primary-lt"
-                      style="width: {{ share }}%"
-                      role="progressbar"
-                      aria-valuenow="{{ share }}"
-                      aria-valuemin="0"
-                      aria-valuemax="100"
-                      aria-label="{{ share }}% workload"
-                    >
-                      <span class="visually-hidden">{{ share }}% workload</span>
-                    </div>
-                  </div>
-                  <div class="progressbg-text">{{ op.operator }} · {{ op.name }}</div>
-                </div>
-              </td>
-              <td class="w-1 fw-medium text-end">{{ op.minutes }}</td>
-            </tr>
-            {% else %}
-            <tr>
-              <td colspan="2" class="text-center text-muted py-3">No monthly operator usage yet.</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+      <div class="card-header">
+        <h3 class="card-title"><i class="fa fa-mobile-screen-button me-2"></i>Top ANI Activity</h3>
       </div>
+      <table class="table card-table table-vcenter">
+        <thead>
+          <tr>
+            <th>ANI</th>
+            <th>Calls</th>
+            <th class="w-50">Load</th>
+            <th>Last Call</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ani in ani_reports.top_callers %}
+          <tr>
+            <td><code>{{ ani.ani }}</code></td>
+            <td>{{ ani.q_calls }}</td>
+            <td>
+              <div class="progress progress-xs">
+                <div class="progress-bar bg-cyan" style="width: {{ ani.share }}%"></div>
+              </div>
+            </td>
+            <td class="text-secondary">
+              {% if ani.last_call %}
+                {{ ani.last_call.strftime('%Y-%m-%d %H:%M') }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4" class="text-center text-muted py-3">No ANI activity tracked yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Social Media Traffic</h3>
+      </div>
+      <table class="table card-table table-vcenter">
+        <thead>
+          <tr>
+            <th>Network</th>
+            <th colspan="2">Visitors</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% set max_agent_minutes = cdr_reports.operator_totals[0].minutes if cdr_reports.operator_totals else 1 %}
+          {% for op in cdr_reports.operator_totals %}
+          {% set share = ((op.minutes * 100) / max_agent_minutes) | round(1) %}
+          <tr>
+            <td>{{ op.name }} <span class="text-secondary">({{ op.operator }})</span></td>
+            <td>{{ op.minutes }}</td>
+            <td class="w-50">
+              <div class="progress progress-xs">
+                <div class="progress-bar bg-primary" style="width: {{ share }}%"></div>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="3" class="text-center text-muted py-3">No monthly operator usage yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
 </div>
 
+{% endblock %}
+
+{% block tail %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<style>
+  :root {
+    --chart-mentions-color-0: color-mix(in srgb, transparent, var(--tblr-primary) 100%);
+    --chart-mentions-color-1: color-mix(in srgb, transparent, var(--tblr-primary) 80%);
+    --chart-mentions-color-2: color-mix(in srgb, transparent, var(--tblr-green) 80%);
+  }
+</style>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const labels = {{ cdr_reports.carrier_chart.labels | tojson }};
+    const chartSeries = {{ cdr_reports.carrier_chart.series | tojson }};
+
+    window.ApexCharts &&
+      new ApexCharts(document.getElementById("chart-mentions"), {
+        chart: {
+          type: "bar",
+          fontFamily: "inherit",
+          height: 240,
+          parentHeightOffset: 0,
+          toolbar: { show: false },
+          animations: { enabled: false },
+          stacked: true,
+        },
+        plotOptions: {
+          bar: {
+            columnWidth: "50%",
+          },
+        },
+        dataLabels: {
+          enabled: false,
+        },
+        series: chartSeries,
+        tooltip: {
+          theme: "dark",
+        },
+        grid: {
+          padding: { top: -20, right: 0, left: -4, bottom: -4 },
+          strokeDashArray: 4,
+          xaxis: { lines: { show: true } },
+        },
+        xaxis: {
+          labels: { padding: 0 },
+          tooltip: { enabled: false },
+          axisBorder: { show: false },
+          type: "datetime",
+        },
+        yaxis: {
+          labels: { padding: 4 },
+        },
+        labels: labels,
+        colors: ["var(--chart-mentions-color-0)", "var(--chart-mentions-color-1)", "var(--chart-mentions-color-2)"],
+        legend: { show: true, position: "top" },
+      }).render();
+  });
+</script>
 {% endblock %}

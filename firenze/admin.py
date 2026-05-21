@@ -1,4 +1,5 @@
 import asyncio
+import calendar
 import datetime
 import logging
 
@@ -539,6 +540,7 @@ class FirenzeAdmin(Admin):
         # DB queries
         db = SessionLocal()
         try:
+            services = db.query(Service).order_by(Service.id).all()
             operators = db.query(Operator).order_by(Operator.number).all()
             online_calls = db.query(OnlineCalls).order_by(OnlineCalls.created_at.desc()).all()
             cdr_today = (
@@ -560,6 +562,39 @@ class FirenzeAdmin(Admin):
                 .filter(AsteriskCDR.calldate >= today_start, AsteriskCDR.calldate < tomorrow_start)
                 .one()
             )
+            ani_usage = (
+                db.query(
+                    func.count(ClientAni.id).label("total_anis"),
+                    func.coalesce(func.sum(ClientAni.q_calls), 0).label("total_calls"),
+                    func.coalesce(func.avg(ClientAni.q_calls), 0).label("avg_calls"),
+                    func.sum(case((ClientAni.last_call.is_not(None), 1), else_=0)).label("with_last_call"),
+                    func.sum(case((ClientAni.last_call >= today_start, 1), else_=0)).label("active_24h"),
+                    func.sum(
+                        case(
+                            (ClientAni.last_call >= now - datetime.timedelta(days=7), 1),
+                            else_=0,
+                        )
+                    ).label("active_7d"),
+                    func.sum(
+                        case(
+                            (ClientAni.last_call < now - datetime.timedelta(days=30), 1),
+                            else_=0,
+                        )
+                    ).label("stale_30d"),
+                    func.max(ClientAni.last_call).label("latest_last_call"),
+                )
+                .one()
+            )
+            ani_top_rows = (
+                db.query(
+                    ClientAni.ani,
+                    ClientAni.q_calls,
+                    ClientAni.last_call,
+                )
+                .order_by(ClientAni.q_calls.desc(), ClientAni.last_call.desc(), ClientAni.id.asc())
+                .limit(8)
+                .all()
+            )
             cdr_month_answered = (
                 db.query(
                     func.count(AsteriskCDR.cdrid).label("answered_calls"),
@@ -574,23 +609,28 @@ class FirenzeAdmin(Admin):
                 )
                 .one()
             )
-            carrier_rows = (
-                db.query(
-                    func.date(AsteriskCDR.calldate).label("day"),
-                    AsteriskCDR.accountcode,
-                    func.coalesce(func.floor(func.sum(AsteriskCDR.billsec) / 60), 0).label("minutes"),
+            service_catalog = [{"slug": svc.slug, "name": svc.name} for svc in services if svc.slug]
+            service_slugs = [svc["slug"] for svc in service_catalog]
+            if service_slugs:
+                carrier_rows = (
+                    db.query(
+                        func.date(AsteriskCDR.calldate).label("day"),
+                        AsteriskCDR.accountcode,
+                        func.coalesce(func.floor(func.sum(AsteriskCDR.billsec) / 60), 0).label("minutes"),
+                    )
+                    .filter(
+                        AsteriskCDR.calldate >= month_start,
+                        AsteriskCDR.calldate < next_month,
+                        AsteriskCDR.disposition == "ANSWERED",
+                        AsteriskCDR.zvn_clientid.is_not(None),
+                        AsteriskCDR.zvn_clientid > 1,
+                        AsteriskCDR.accountcode.in_(service_slugs),
+                    )
+                    .group_by(func.date(AsteriskCDR.calldate), AsteriskCDR.accountcode)
+                    .all()
                 )
-                .filter(
-                    AsteriskCDR.calldate >= month_start,
-                    AsteriskCDR.calldate < next_month,
-                    AsteriskCDR.disposition == "ANSWERED",
-                    AsteriskCDR.zvn_clientid.is_not(None),
-                    AsteriskCDR.zvn_clientid > 1,
-                    AsteriskCDR.accountcode.in_(["fonotarot-cl", "alotarot", "latam"]),
-                )
-                .group_by(func.date(AsteriskCDR.calldate), AsteriskCDR.accountcode)
-                .all()
-            )
+            else:
+                carrier_rows = []
             cdr_operator_rows = (
                 db.query(
                     AsteriskCDR.zvn_operator,
@@ -607,7 +647,6 @@ class FirenzeAdmin(Admin):
                 )
                 .group_by(AsteriskCDR.zvn_operator)
                 .order_by(func.sum(AsteriskCDR.billsec).desc())
-                .limit(8)
                 .all()
             )
             disposition_rows = (
@@ -711,33 +750,46 @@ class FirenzeAdmin(Admin):
         carrier_by_day: dict[str, dict[str, int]] = {}
         for row in carrier_rows:
             day_key = row.day.isoformat()
-            carrier_by_day.setdefault(day_key, {"fonotarot-cl": 0, "alotarot": 0, "latam": 0})
+            carrier_by_day.setdefault(day_key, {})
             carrier_by_day[day_key][row.accountcode] = int(row.minutes or 0)
 
         carrier_days = []
-        carrier_totals = {"fonotarot-cl": 0, "alotarot": 0, "latam": 0, "total": 0}
-        for day_key in sorted(carrier_by_day):
-            day_data = carrier_by_day[day_key]
-            day_total = day_data["fonotarot-cl"] + day_data["alotarot"] + day_data["latam"]
+        carrier_totals_by_slug = {svc["slug"]: 0 for svc in service_catalog}
+        days_in_month = calendar.monthrange(month_start.year, month_start.month)[1]
+        for day_number in range(1, days_in_month + 1):
+            day_key = month_start.replace(day=day_number).date().isoformat()
+            day_data = {svc["slug"]: carrier_by_day.get(day_key, {}).get(svc["slug"], 0) for svc in service_catalog}
+            day_total = sum(day_data.values())
             carrier_days.append(
                 {
                     "day": day_key,
-                    "fonotarot": day_data["fonotarot-cl"],
-                    "alotarot": day_data["alotarot"],
-                    "latam": day_data["latam"],
+                    "services": day_data,
                     "total": day_total,
                 }
             )
-            carrier_totals["fonotarot-cl"] += day_data["fonotarot-cl"]
-            carrier_totals["alotarot"] += day_data["alotarot"]
-            carrier_totals["latam"] += day_data["latam"]
-            carrier_totals["total"] += day_total
+            for slug, minutes in day_data.items():
+                carrier_totals_by_slug[slug] += minutes
 
         carrier_breakdown = []
-        for key, label in [("fonotarot-cl", "Fonotarot"), ("alotarot", "Alotarot"), ("latam", "Latam")]:
-            minutes = carrier_totals[key]
-            share = round((minutes / carrier_totals["total"]) * 100, 1) if carrier_totals["total"] else 0.0
-            carrier_breakdown.append({"key": key, "label": label, "minutes": minutes, "share": share})
+        total_carrier_minutes = sum(carrier_totals_by_slug.values())
+        for svc in service_catalog:
+            minutes = carrier_totals_by_slug[svc["slug"]]
+            share = round((minutes / total_carrier_minutes) * 100, 1) if total_carrier_minutes else 0.0
+            carrier_breakdown.append({"key": svc["slug"], "label": svc["name"], "minutes": minutes, "share": share})
+        carrier_breakdown.sort(key=lambda row: row["minutes"], reverse=True)
+
+        chart_services = carrier_breakdown[:3]
+        carrier_chart = {
+            "labels": [row["day"] for row in carrier_days],
+            "series": [
+                {
+                    "name": service["label"],
+                    "data": [int(day["services"].get(service["key"], 0)) for day in carrier_days],
+                }
+                for service in chart_services
+            ],
+        }
+        carrier_totals = {"total": total_carrier_minutes}
 
         operator_name_by_number = {op.number: op.name for op in operators}
         operator_name_by_id = {op.id: op.name for op in operators}
@@ -764,6 +816,22 @@ class FirenzeAdmin(Admin):
             }
             for row in disposition_rows
         ]
+        top_ani_calls = max((int(row.q_calls or 0) for row in ani_top_rows), default=1)
+        ani_top_callers = [
+            {
+                "ani": row.ani,
+                "q_calls": int(row.q_calls or 0),
+                "share": round((int(row.q_calls or 0) / top_ani_calls) * 100, 1) if top_ani_calls else 0.0,
+                "last_call": row.last_call,
+            }
+            for row in ani_top_rows
+        ]
+        latest_last_call = ani_usage.latest_last_call
+        latest_last_call_hours = (
+            round((now - latest_last_call).total_seconds() / 3600, 1)
+            if latest_last_call
+            else None
+        )
 
         recent_cdr = [
             {
@@ -787,6 +855,18 @@ class FirenzeAdmin(Admin):
             "active_call_services": active_call_services,
             "redis_operators_count": len(redis_operators),
             "redis_calls_count": len(redis_calls),
+            "ani_reports": {
+                "total_anis": int(ani_usage.total_anis or 0),
+                "total_calls": int(ani_usage.total_calls or 0),
+                "avg_calls": float(ani_usage.avg_calls or 0),
+                "with_last_call": int(ani_usage.with_last_call or 0),
+                "active_24h": int(ani_usage.active_24h or 0),
+                "active_7d": int(ani_usage.active_7d or 0),
+                "stale_30d": int(ani_usage.stale_30d or 0),
+                "latest_last_call": latest_last_call,
+                "latest_last_call_hours": latest_last_call_hours,
+                "top_callers": ani_top_callers,
+            },
             "cdr_reports": {
                 "month_label": month_start.strftime("%Y-%m"),
                 "today": {
@@ -803,6 +883,7 @@ class FirenzeAdmin(Admin):
                 "carrier_days": carrier_days,
                 "carrier_totals": carrier_totals,
                 "carrier_breakdown": carrier_breakdown,
+                "carrier_chart": carrier_chart,
                 "dispositions": cdr_dispositions,
                 "operator_totals": cdr_operator_totals,
                 "recent_cdr": recent_cdr,
