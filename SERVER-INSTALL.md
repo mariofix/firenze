@@ -1,8 +1,8 @@
 # Firenze
 
-## Instalacion Firenze
+## Instalación de Firenze
 
-Si poetry da problemas, solucionar con `export PYTHON_KEYRING_BACKEND=keyring.backends.null.Keyring`
+Si poetry da problemas, resolverlo con `export PYTHON_KEYRING_BACKEND=keyring.backends.null.Keyring`
 
 ```bash
 git init
@@ -12,9 +12,9 @@ git pull gitlab stable
 poetry install --with dev,deploy
 ```
 
-## Instalacion servidor Asterisk
+## Instalación del servidor Asterisk
 
-Descargar e instalar última version TLS de asterisk <https://www.asterisk.org/downloads/>
+Descargar e instalar la última versión TLS de asterisk <https://www.asterisk.org/downloads/>
 
 ```bash
 sudo contrib/scripts/install_prereq install
@@ -28,15 +28,15 @@ sudo make install-logrotate
 sudo systemctl enable asterisk
 ```
 
-Copiar `asterisk_config/*.conf` desde directorio de instalacion de Firenze a `/etc/asterisk`
+Copiar `asterisk_config/*.conf` desde el directorio de instalación de Firenze a `/etc/asterisk`
 
-## Instalacion unixODBC/conector
+## Instalación de unixODBC/conector
 
 ```bash
 sudo apt install odbc-mariadb unixodbc unixodbcinst unixodbc-dev
 ```
 
-Buscar ubicacion del archivo `libmaodbc.so` y verificar que esté bien en `driver_template.ini`
+Buscar la ubicación del archivo `libmaodbc.so` y verificar que esté correctamente en `driver_template.ini`
 
 ```bash
 sudo odbcinst -i -d -f asterisk_config/driver_template.ini
@@ -53,7 +53,7 @@ TraceFile = /tmp/unixodbc.trace
 TraceAutoStop = 0
 
 [cdr-mariadb]
-Description=Conexion a CDR de Asterisk
+Description=Conexión a CDR de Asterisk
 Driver=zvn-mariadb-driver
 SERVER=localhost
 USER=cdr
@@ -63,11 +63,11 @@ PORT=3306
 AUTO_RECONNECT=1
 ```
 
-El usuario deberia tener acceso solamente a la base de datos `zvn_asterisk`
+El usuario debe tener acceso solamente a la base de datos `zvn_asterisk`
 
-## Configuracion Asterisk
+## Configuración de Asterisk
 
-Es necesario verificar que los archivos de configuracion esten correctos
+Es necesario verificar que los archivos de configuración estén correctos
 
 Archivo `/etc/asterisk/res_odbc.conf`
 

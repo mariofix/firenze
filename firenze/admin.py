@@ -180,8 +180,8 @@ def _collect_monthly_agent_report(year: int, month: int, selected_agents: tuple[
 
 
 class ClientAdmin(ModelView, model=Client):
-    name = "Client"
-    name_plural = "Clients"
+    name = "Cliente"
+    name_plural = "Clientes"
     icon = "fa-solid fa-user"
     category = "FonoTarot"
     category_icon = "fa-solid fa-eye"
@@ -199,10 +199,10 @@ class ClientAdmin(ModelView, model=Client):
     ]
     column_labels = {
         Client.full_name: "Nombre",
-        Client.email: "Correo",
+        Client.email: "Correo Electrónico",
         Client.credits: "Segundos",
         Client.service: "Servicio Asociado",
-        Client.client_id: "Client ID",
+        Client.client_id: "Identificador del Cliente",
         Client.anis: "Teléfono",
     }
     column_formatters = {
@@ -246,8 +246,8 @@ class ClientAdmin(ModelView, model=Client):
 
 
 class ClientAniAdmin(ModelView, model=ClientAni):
-    name = "Client ANI"
-    name_plural = "Client ANIs"
+    name = "ANI del Cliente"
+    name_plural = "ANIs del Cliente"
     icon = "fa-solid fa-mobile-screen"
     category = "FonoTarot"
     category_icon = "fa-solid fa-eye"
@@ -261,7 +261,7 @@ class ClientAniAdmin(ModelView, model=ClientAni):
         ClientAni.last_call,
     ]
     column_labels = {
-        ClientAni.client_id: "Client ID",
+        ClientAni.client_id: "Identificador del Cliente",
         ClientAni.ani: "Teléfono",
         ClientAni.q_calls: "Cantidad de Llamadas",
         ClientAni.last_call: "Última Llamada",
@@ -273,14 +273,14 @@ class DNCAdmin(ModelView, model=DoNotCall):
     column_searchable_list = [DoNotCall.ani]
     form_excluded_columns = _TIMESTAMP_EXCLUDED
     name = "DNC"
-    name_plural = "DNC List"
+    name_plural = "Lista DNC"
     icon = "fa-solid fa-phone-slash"
-    category = "Auth"
+    category = "Autenticación"
     category_icon = "fa-solid fa-key"
-    column_labels = {DoNotCall.created_at: "Date Added"}
+    column_labels = {DoNotCall.created_at: "Fecha Agregada"}
     form_args = {
-        "ani": {"description": "Phone number in E.164 format, e.g. 56912345678"},
-        "reason": {"description": "Why this number is blocked"},
+        "ani": {"description": "Número de teléfono en formato E.164, por ejemplo 56912345678"},
+        "reason": {"description": "Razón por la que este número está bloqueado"},
     }
 
 
@@ -288,14 +288,14 @@ class ServiceAdmin(ModelView, model=Service):
     column_list = [Service.id, Service.name, Service.slug, Service.created_at]
     column_searchable_list = [Service.name, Service.slug]
     form_excluded_columns = _TIMESTAMP_EXCLUDED
-    name = "Service"
-    name_plural = "Services"
+    name = "Servicio"
+    name_plural = "Servicios"
     icon = "fa-solid fa-blender-phone"
     category = "FonoTarot"
     category_icon = "fa-solid fa-eye"
     form_args = {
-        "name": {"description": "Human-readable service name, e.g. FonoTarot Chile"},
-        "slug": {"description": "Unique identifier used in dialplan and API, e.g. fonotarot-cl"},
+        "name": {"description": "Nombre de servicio legible para el usuario, por ejemplo FonoTarot Chile"},
+        "slug": {"description": "Identificador único usado en dialplan y API, por ejemplo fonotarot-cl"},
     }
 
 
@@ -309,15 +309,15 @@ class ServiceNumberAdmin(ModelView, model=ServiceNumber):
     column_searchable_list = [ServiceNumber.did, ServiceNumber.asterisk_context]
     form_excluded_columns = _TIMESTAMP_EXCLUDED
     name = "DID"
-    name_plural = "Service DIDs"
+    name_plural = "DIDs del Servicio"
     icon = "fa-solid fa-mobile-retro"
     category = "FonoTarot"
     category_icon = "fa-solid fa-eye"
     form_args = {
-        "did": {"description": "Full E.164 DID number, e.g. 56229402147"},
-        "active": {"description": "Uncheck to stop routing calls to this DID"},
+        "did": {"description": "Número DID completo en formato E.164, por ejemplo 56229402147"},
+        "active": {"description": "Desmarcar para dejar de enrutar llamadas a este DID"},
         "asterisk_context": {
-            "description": "Asterisk dialplan context to route this DID to, e.g. prepago-fonotarot-cl"
+            "description": "Contexto de dialplan de Asterisk al que enrutar este DID, por ejemplo prepago-fonotarot-cl"
         },
     }
 
@@ -338,17 +338,17 @@ class OperatorAdmin(ModelView, model=Operator):
         "available",
         "lastcall",
     ]
-    name = "Operator"
-    name_plural = "Operators"
+    name = "Operador"
+    name_plural = "Operadores"
     icon = "fa-solid fa-headphones"
     category = "FonoTarot"
     category_icon = "fa-solid fa-eye"
     form_args = {
-        "number": {"description": "Internal SIP extension number, e.g. 1001"},
-        "name": {"description": "Operator display name, used in IVR audio and logs"},
-        "description": {"description": "Internal notes about this operator (optional)"},
-        "option": {"description": "1-2 digit code the caller presses to select this operator, e.g. 01"},
-        "enable_valkey": {"description": "Use Redis/Valkey for real-time availability state (recommended)"},
+        "number": {"description": "Número interno de extensión SIP, por ejemplo 1001"},
+        "name": {"description": "Nombre de visualización del operador, usado en audio IVR y registros"},
+        "description": {"description": "Notas internas sobre este operador (opcional)"},
+        "option": {"description": "Código de 1-2 dígitos que el llamador presiona para seleccionar este operador, por ejemplo 01"},
+        "enable_valkey": {"description": "Usar Redis/Valkey para estado de disponibilidad en tiempo real (recomendado)"},
     }
 
 
@@ -362,20 +362,20 @@ class OperatorPhoneAdmin(ModelView, model=OperatorPhone):
     ]
     column_searchable_list = [OperatorPhone.number]
     form_excluded_columns = _TIMESTAMP_EXCLUDED
-    name = "Operator Phone"
-    name_plural = "Operator Phones"
+    name = "Teléfono del Operador"
+    name_plural = "Teléfonos de Operadores"
     icon = "fa-solid fa-phone"
     category = "FonoTarot"
     category_icon = "fa-solid fa-eye"
     form_args = {
-        "number": {"description": "Phone number to dial, e.g. 56912345678"},
-        "enabled": {"description": "Uncheck to temporarily disable this phone number"},
-        "contact": {"description": "Mark as the primary contact number for this operator"},
-        "pin": {"description": "4-digit PIN used for operator login from phone (optional)"},
+        "number": {"description": "Número de teléfono a marcar, por ejemplo 56912345678"},
+        "enabled": {"description": "Desmarcar para deshabilitar temporalmente este número de teléfono"},
+        "contact": {"description": "Marcar como número de contacto principal para este operador"},
+        "pin": {"description": "PIN de 4 dígitos utilizado para el inicio de sesión del operador desde teléfono (opcional)"},
         "trunk": {
             "description": (
-                "Outbound SIP trunk to use for this number, e.g. claro1, didww-mia-out. "
-                "Leave blank to use the default trunk"
+                "Troncal SIP saliente a utilizar para este número, por ejemplo claro1, didww-mia-out. "
+                "Dejar en blanco para usar el troncal predeterminado"
             )
         },
     }
@@ -395,10 +395,10 @@ class OnlineCallsAdmin(ModelView, model=OnlineCalls):
     can_create = False
     can_edit = False
     can_delete = True
-    name = "Online Call"
-    name_plural = "Online Calls"
+    name = "Llamada En Línea"
+    name_plural = "Llamadas En Línea"
     icon = "fa-solid fa-signal"
-    category = "Reports"
+    category = "Informes"
     category_icon = "fa-solid fa-chart-simple"
 
 
@@ -435,7 +435,7 @@ class AsteriskCDRAdmin(ModelView, model=AsteriskCDR):
     name = "CDR"
     name_plural = "CDRs"
     icon = "fa-solid fa-music"
-    category = "Reports"
+    category = "Informes"
     category_icon = "fa-solid fa-chart-simple"
 
 
@@ -452,32 +452,32 @@ class PostCallProcessAdmin(ModelView, model=PostCallProcess):
     can_create = False
     can_edit = False
     can_delete = False
-    name = "Post-Call Process"
-    name_plural = "Post-Call Processes"
+    name = "Proceso Post-Llamada"
+    name_plural = "Procesos Post-Llamada"
 
 
 class UserAdmin(ModelView, model=User):
     column_list = [User.id, User.login, User.email, User.enabled, User.scopes]
     column_searchable_list = [User.login, User.email]
     form_excluded_columns = _TIMESTAMP_EXCLUDED
-    name = "API User"
-    name_plural = "API Users"
+    name = "Usuario de API"
+    name_plural = "Usuarios de API"
     icon = "fa-solid fa-user-gear"
-    category = "Auth"
+    category = "Autenticación"
     category_icon = "fa-solid fa-key"
     form_args = {
-        "login": {"description": "Username for SQLAdmin/passwordless authentication"},
-        "email": {"description": "Contact email address"},
-        "password": {"description": "Plain text — will be hashed automatically on save"},
+        "login": {"description": "Nombre de usuario para autenticación SQLAdmin sin contraseña"},
+        "email": {"description": "Dirección de correo electrónico de contacto"},
+        "password": {"description": "Texto plano — se hash automáticamente al guardar"},
         "allowed_ips": {
             "description": (
-                'Deprecated. Kept for compatibility only; not enforced by auth. Previous format: ["10.0.0.1"].'
+                'Deprecado. Se mantiene solo para compatibilidad; no es aplicado por auth. Formato anterior: ["10.0.0.1"].'
             )
         },
-        "enabled": {"description": "Uncheck to disable API access without deleting the user"},
+        "enabled": {"description": "Desmarcar para deshabilitar acceso a API sin eliminar el usuario"},
         "scopes": {
             "description": (
-                'JSON list of scopes, e.g. ["core", "admin"]. Available: core, audiotex, asterisk, firenze, admin'
+                'Lista JSON de alcances, por ejemplo ["core", "admin"]. Disponibles: core, audiotex, asterisk, firenze, admin'
             )
         },
     }
@@ -490,10 +490,10 @@ class UserAdmin(ModelView, model=User):
 
 
 class ApiCredentialAdmin(ModelView, model=ApiCredential):
-    name = "API Credential"
-    name_plural = "API Credentials"
+    name = "Credencial de API"
+    name_plural = "Credenciales de API"
     icon = "fa-solid fa-key"
-    category = "Auth"
+    category = "Autenticación"
     category_icon = "fa-solid fa-key"
     form_excluded_columns = _TIMESTAMP_EXCLUDED + [
         "api_secret_hash",
@@ -513,10 +513,10 @@ class ApiCredentialAdmin(ModelView, model=ApiCredential):
     ]
     column_searchable_list = [ApiCredential.api_key, ApiCredential.name]
     form_args = {
-        "name": {"description": "Optional internal label for this credential"},
-        "api_key": {"description": "Public key identifier. Create/rotate via CLI users commands."},
-        "enabled": {"description": "Disable to immediately block this credential"},
-        "expires_at": {"description": "Optional expiry timestamp (UTC)"},
+        "name": {"description": "Etiqueta interna opcional para esta credencial"},
+        "api_key": {"description": "Identificador de clave pública. Crear/rotar a través de comandos CLI de usuarios."},
+        "enabled": {"description": "Deshabilitar para bloquear inmediatamente esta credencial"},
+        "expires_at": {"description": "Marca de tiempo de vencimiento opcional (UTC)"},
     }
 
 
@@ -527,12 +527,12 @@ class EventAdmin(ModelView, model=Event):
     can_create = False
     can_edit = False
     can_delete = False
-    name = "Event"
-    name_plural = "Events"
+    name = "Evento"
+    name_plural = "Eventos"
 
 
 class AdminIndex(BaseView):
-    name = "Dashboard"
+    name = "Panel de Control"
     icon = "fa fa-gauge"
 
     @expose("/index", methods=["GET"])
@@ -541,9 +541,9 @@ class AdminIndex(BaseView):
 
 
 class MonthlyReportIndex(BaseView):
-    name = "Reporte Mensual"
+    name = "Informe Mensual"
     icon = "fa fa-calendar-days"
-    category = "Reports"
+    category = "Informes"
     category_icon = "fa-solid fa-chart-simple"
 
     @expose("/monthly-report", methods=["GET"], identity="monthly-report")
@@ -571,7 +571,7 @@ class MonthlyReportIndex(BaseView):
             request,
             "monthly_report.html",
             context={
-                "title": "Reporte Mensual",
+                "title": "Informe Mensual",
                 "year": year,
                 "month": month,
                 "months_es": _MONTHS_ES,
@@ -584,9 +584,9 @@ class MonthlyReportIndex(BaseView):
 
 
 class MonthlyAgentReportIndex(BaseView):
-    name = "Reporte Agentes"
+    name = "Informe de Agentes"
     icon = "fa fa-users"
-    category = "Reports"
+    category = "Informes"
     category_icon = "fa-solid fa-chart-simple"
 
     @expose("/monthly-agent-report", methods=["GET"], identity="monthly-agent-report")

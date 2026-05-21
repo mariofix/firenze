@@ -1,7 +1,7 @@
 [project]
 name = "firenze"
 version = "2026.5.2"
-description = "Servicio de comunicacion y administracion para servicio Tatot"
+description = "Servicio de comunicación y administración para servicio Tatot"
 readme = "README.md"
 authors = [{ name = "Mario Hernandez", email = "mariofix@proton.me" }]
 requires-python = ">=3.14"

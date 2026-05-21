@@ -389,7 +389,7 @@ def zvn_ejecutivos_disponibles(tipo):
         ejecutivos_sql = Operators.disponibles(tipo)
         if cfg.debug:
             verbose(f"SQL: {ejecutivos_sql}")
-        # TODO: Dejar así por ahora, pero acá deberia ir un get
+        # TODO: Dejar así por ahora, pero aquí debería ir un get
         ejecutivos = ejecutivos_sql.execute()
     except Exception as e:
         verbose(f"ERROR: {e}")
@@ -440,7 +440,7 @@ def zvn_ejecutivo_aleatorio(tipo):
         ejecutivos_sql = Operators.aleatorio(tipo)
         if cfg.debug:
             verbose(f"SQL: {ejecutivos_sql}")
-        # TODO: dejar asi pero aca va get()
+        # TODO: dejar así pero aquí va get()
         ejecutivos = ejecutivos_sql.execute()
     except Exception as e:
         verbose(f"ERROR: {e}")

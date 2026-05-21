@@ -1,141 +1,141 @@
 # Proyecto Firenze
 
-Servicio de comunicacion y administracion para servicio Tatot
+Servicio de comunicación y administración para servicio Tatot
 Asterisk 18
 Python 3.10
 FastAPI
 SQLAdmin
 Typer
 
-## Instalacion
+## Instalación
 
 poetry install --with deploy
 
-## Changelog
+## Registro de Cambios
 
-### [Unreleased]
+### [Sin liberar]
 
 - Que los audios los pueda subir ruurd desde Portal (#1)
 - Migrar tablas operativas (#2)
 - Solucionar audios
   - enter-pin.ulaw
-  - Saltarse audio de "sera revisado" en good-pin
+  - Omitir audio de "será revisado" en good-pin
 
 ### [2024.1.0] - 2023-12-27
 
-#### Added
+#### Agregado
 
 - SERVER-INSTALL.md
 
-#### Changed
+#### Cambiado
 
-- New versions
+- Nuevas versiones
 
 ### [1.0.9]
 
-Missing
+Faltante
 
 ### [1.0.8] - 2023-05-30
 
-#### Changed
+#### Cambiado
 
 - black & isort
 
-#### Added
+#### Agregado
 
-- Fonotarot Latam as fastapi-crudrouter
-- Semantic URLs in Post Call
-- fonotarot-latam cli endpoints
+- Fonotarot Latam como fastapi-crudrouter
+- URLs semánticas en Post Call
+- puntos finales cli fonotarot-latam
 
-#### Removed
+#### Eliminado
 
-- Fonotarot Latam in audiotex
+- Fonotarot Latam en audiotex
 
 ### [1.0.7] - 2023-04-14
 
-#### Changed
+#### Cambiado
 
-- Bug en CLI
-- Bug en Auth
+- Error en CLI
+- Error en Auth
 
 ## [1.0.6] - 2023-04-06
 
-### Added
+### Agregado
 
-- CORS Middleware
+- Middleware CORS
 
 ## [1.0.5] - 2023-04-06
 
-### Added
+### Agregado
 
-- Endpoint /audiotex/ejecutivos para el plugin de wordpress
+- Punto final /audiotex/ejecutivos para el complemento de wordpress
 
-### Changed
+### Cambiado
 
 - Algunos logger.error a logger.warning para que Sentry no se queje tanto
 
 ## [1.0.4] - 2022-12-07
 
-### Changed
+### Cambiado
 
-- Pin se crea aca
+- PIN se crea aquí
 
-### SQL Querys en audiotex
+### Consultas SQL en audiotex
 
 ```sql
 ALTER TABLE `clientidlat` CHANGE `pin` `pin` VARCHAR(8) NULL DEFAULT NULL;
 ```
 
-## [1.0.3] - 2022-10-17siblings_only
+## [1.0.3] - 2022-10-17
 
-### Added
+### Agregado
 
-- CLI User Managament
+- Gestión de Usuarios CLI
 ALTER TABLE `clientidlat` CHANGE `pin` `pin` INT(11) NULL DEFAULT NULL;
 
 ## [1.0.2] - 2022-10-14
 
-### Added
+### Agregado
 
-- Sumar saldo en FonotarotLatam
-- Metodo HEAD para /thanks
-- Admin scope
+- Agregar saldo en FonotarotLatam
+- Método HEAD para /thanks
+- Alcance de administrador
 
-### Changed
+### Cambiado
 
-- Loggers separados por aplicacion (api, cli)
-- Transformacion de numeros en audiotex
+- Registradores separados por aplicación (api, cli)
+- Transformación de números en audiotex
 
 ## [1.0.1] - 2022-09-27
 
-### Added
+### Agregado
 
-- Metodo para buscar clientes en alotarot
-- CLI App para asterisk en Typer
+- Método para buscar clientes en alotarot
+- Aplicación CLI para asterisk en Typer
 - SQLAdmin
-- Soporte Python 3.10
+- Compatibilidad con Python 3.10
 
-### Changed
+### Cambiado
 
-- Python environment en /opt/zvn-firenze
+- Entorno Python en /opt/zvn-firenze
 
-### Migrated
+### Migrado
 
 - Service: Tabla maestra de servicios
 - ServiceNumber: DID asignados a cada servicio (1-n)
-- DoNotCall: Tabla DNC estandar.
+- DoNotCall: Tabla DNC estándar
 - OnlineCalls: Tabla para las llamadas activas
 
 ## [1.0.0] - 2022-07-26
 
-### Changed
+### Cambiado
 
 - Cambio de nombre a Firenze
-- Incorporacion FastAPI para audiotex
-- Nueva tabla de llamadas en linea
+- Incorporación de FastAPI para audiotex
+- Nueva tabla de llamadas en línea
 - Virtualenv en el directorio para facilidad de acceso
 
-### DB Querys
+### Consultas SQL
 
 ```sql
 CREATE TABLE `audiotex`.`clientesonline` (`id` bigint(20) UNSIGNED NOT NULL, `clientid` int(10) UNSIGNED NOT NULL DEFAULT 0, `ani` varchar(16) NOT NULL, `ddi` varchar(16) NOT NULL, `service` varchar(16) NOT NULL, `operator` varchar(4) NOT NULL, `phone` varchar(16) NOT NULL, `time` datetime NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -144,29 +144,29 @@ ALTER TABLE `clientesonline` ADD PRIMARY KEY (`id`);
 
 ## [prod-0.0.5] - 2022-05-18
 
-### Added
+### Agregado
 
 - DID se registra en userfield
-- Conexion con Entel
-- Grabacion de llamadas
+- Conexión con Entel
+- Grabación de llamadas
 
-### Changed
+### Cambiado
 
 - Login/logout cambia campo loggedin
-- Número supervisor
+- Número del supervisor
 
 ## [mejoras-0.0.4] - 2022-02-17
 
-### Added
+### Agregado
 
-- Tarotistas pueden ingresar/salir automaticamente
-- logger
+- Tarotistas pueden ingresar/salir automáticamente
+- registrador
 
-### Changed
+### Cambiado
 
-- Nueva tabla de llamadas en linea
+- Nueva tabla de llamadas en línea
 
-### DB Querys
+### Consultas SQL
 
 ```sql
 
@@ -174,12 +174,12 @@ ALTER TABLE `clientesonline` ADD PRIMARY KEY (`id`);
 
 ## [peewee-0.0.3] - 2021-12-26
 
-### Changed
+### Cambiado
 
 - Se reemplaza pymysql por peewee
-- Estandarizacion variables asterisk
+- Estandarización de variables asterisk
 
-### DB Querys
+### Consultas SQL
 
 ```sql
 DELETE FROM services where ast_context = ""
@@ -187,22 +187,22 @@ DELETE FROM services where ast_context = ""
 
 ## [login-0.0.2] - 2021-12-08
 
-### Added
+### Agregado
 
-- Consume Saldo
+- Consumir saldo
 
-### Changed
+### Cambiado
 
-- Cambio a Python3.9 y version bump
-- Bug en algunos AGI
+- Cambio a Python3.9 y incremento de versión
+- Error en algunos AGI
 - Migración a PJSIP
-- Nuevos Audios
+- Audios nuevos
 
-### Removed
+### Eliminado
 
 -
 
-### DB Querys
+### Consultas SQL
 
 ```sql
 ALTER TABLE `operators` ADD `telefono_alternativo` VARCHAR(20) NULL DEFAULT NULL AFTER `telefono`, ADD INDEX `idx_alt_phone` (`telefono_alternativo`);
@@ -215,32 +215,32 @@ ALTER TABLE `operators` RENAME INDEX `estado` TO `idx_status`;
 general/0 bienvenido fonotarot chile.wav = orig-intro-ftchile.wav
 general/3 habilitado.wav = orig-no-habilitado.wav
 general/5 MENU TAROT.wav = orig-menutarot.wav
-general/7 ocupadas intenta mas tarde.m4a = ocupado.ulaw (desde g711.org)
-general/8 bienvenido fonotarot latin america.wav = orig-intro-ftlatam.wav
+general/7 ocupadas intenta más tarde.m4a = ocupado.ulaw (desde g711.org)
+general/8 bienvenido fonotarot américa latina.wav = orig-intro-ftlatam.wav
 
-prepago/1.wav = orig-numero-no-reconocido.wav
+prepago/1.wav = orig-número-no-reconocido.wav
 prepago/3.wav = orig-saldo-insuficiente.wav
 prepago/3a.wav = orig-intro-alotarot.wav
 prepago/3b.wav = orig-intro-alotarot-info.wav
-prepago/4.wav = orig-espere-linea-supervisor.wav
+prepago/4.wav = orig-espere-línea-supervisor.wav
 prepago/5.wav = orig-exclusivo.wav
-prepago/6.wav = orig-espere-linea.wav
+prepago/6.wav = orig-espere-línea.wav
 
 ```
 
 ## [asterisk-0.0.1] - 2021-06-20
 
-### Added
+### Agregado
 
 - Archivo extensions.conf  
 - Audios en /var/lib/asterisk/sounds/es/zvn/
 - Proyecto Poetry **zvn-agi** (**zvn** en /var/lib/asterisk/agi-bin/)
 
-### Changed
+### Cambiado
 
 - Cambios en wwwfiles/api-privada_dev/ (modelo audiotex y funciones de API)
 
-### DB Querys
+### Consultas SQL
 
 ```sql
 ALTER TABLE zvn_asterisk.cdr ADD cdrid BIGINT UNSIGNED NOT NULL AUTO_INCREMENT FIRST, ADD PRIMARY KEY (cdrid);
@@ -250,7 +250,7 @@ ALTER TABLE zvn_asterisk.cdr ADD zvn_clientid INT NULL DEFAULT NULL AFTER userfi
 ALTER TABLE audiotex.services ENGINE = INNODB DEFAULT  CHARSET=utf8mb4 COLLATE utf8mb4_general_ci;
 ALTER TABLE audiotex.services ADD PRIMARY KEY (ddi);
 ALTER TABLE audiotex.services ADD ast_context VARCHAR(255) NOT NULL AFTER service;
--- Cambiar nombre tabla payp a clientidlat y cambiarcharset
+-- Cambiar nombre tabla payp a clientidlat y cambiar conjunto de caracteres
 DELETE FROM `clientidlat` where clientid > 40;
 ALTER TABLE `clientidlat` auto_increment = 41;
 ALTER TABLE audiotex.operators ADD `id` INT UNSIGNED NOT NULL AUTO_INCREMENT FIRST, ADD PRIMARY KEY (`id`);
