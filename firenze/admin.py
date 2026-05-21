@@ -4,6 +4,7 @@ import logging
 
 import redis as redis_lib
 from markupsafe import Markup, escape
+from sqlalchemy import case, func
 from sqladmin import Admin, BaseView, ModelView, expose
 from sqladmin.authentication import login_required
 from starlette.requests import Request
@@ -457,13 +458,19 @@ class FirenzeAdmin(Admin):
             "system_status.html",
             context={
                 "title": "System Status",
-                "subtitle": "Redis / Valkey health, operator state, and active calls",
+                "subtitle": "Redis / Valkey health, CDR reports, operator state, and active calls",
                 **data,
             },
         )
 
     @staticmethod
     def _collect_data() -> dict:
+        now = datetime.datetime.now()
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        tomorrow_start = today_start + datetime.timedelta(days=1)
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        next_month = (month_start + datetime.timedelta(days=32)).replace(day=1)
+
         redis_conn = get_redis()
         redis_online = redis_conn is not None
         redis_info: dict = {}
@@ -524,6 +531,81 @@ class FirenzeAdmin(Admin):
         try:
             operators = db.query(Operator).order_by(Operator.number).all()
             online_calls = db.query(OnlineCalls).order_by(OnlineCalls.created_at.desc()).all()
+            cdr_today = (
+                db.query(
+                    func.count(AsteriskCDR.cdrid).label("total_calls"),
+                    func.sum(case((AsteriskCDR.disposition == "ANSWERED", 1), else_=0)).label("answered_calls"),
+                    func.sum(case((AsteriskCDR.disposition != "ANSWERED", 1), else_=0)).label("failed_calls"),
+                    func.coalesce(
+                        func.floor(
+                            func.sum(case((AsteriskCDR.disposition == "ANSWERED", AsteriskCDR.billsec), else_=0)) / 60
+                        ),
+                        0,
+                    ).label("answered_minutes"),
+                    func.coalesce(
+                        func.avg(case((AsteriskCDR.disposition == "ANSWERED", AsteriskCDR.billsec), else_=None)),
+                        0,
+                    ).label("avg_billsec"),
+                )
+                .filter(AsteriskCDR.calldate >= today_start, AsteriskCDR.calldate < tomorrow_start)
+                .one()
+            )
+            cdr_month_answered = (
+                db.query(
+                    func.count(AsteriskCDR.cdrid).label("answered_calls"),
+                    func.coalesce(func.floor(func.sum(AsteriskCDR.billsec) / 60), 0).label("answered_minutes"),
+                )
+                .filter(
+                    AsteriskCDR.calldate >= month_start,
+                    AsteriskCDR.calldate < next_month,
+                    AsteriskCDR.disposition == "ANSWERED",
+                    AsteriskCDR.zvn_clientid.is_not(None),
+                    AsteriskCDR.zvn_clientid > 1,
+                )
+                .one()
+            )
+            carrier_rows = (
+                db.query(
+                    func.date(AsteriskCDR.calldate).label("day"),
+                    AsteriskCDR.accountcode,
+                    func.coalesce(func.floor(func.sum(AsteriskCDR.billsec) / 60), 0).label("minutes"),
+                )
+                .filter(
+                    AsteriskCDR.calldate >= month_start,
+                    AsteriskCDR.calldate < next_month,
+                    AsteriskCDR.disposition == "ANSWERED",
+                    AsteriskCDR.zvn_clientid.is_not(None),
+                    AsteriskCDR.zvn_clientid > 1,
+                    AsteriskCDR.accountcode.in_(["fonotarot-cl", "alotarot", "latam"]),
+                )
+                .group_by(func.date(AsteriskCDR.calldate), AsteriskCDR.accountcode)
+                .all()
+            )
+            cdr_operator_rows = (
+                db.query(
+                    AsteriskCDR.zvn_operator,
+                    func.count(AsteriskCDR.cdrid).label("calls"),
+                    func.coalesce(func.floor(func.sum(AsteriskCDR.billsec) / 60), 0).label("minutes"),
+                )
+                .filter(
+                    AsteriskCDR.calldate >= month_start,
+                    AsteriskCDR.calldate < next_month,
+                    AsteriskCDR.disposition == "ANSWERED",
+                    AsteriskCDR.zvn_operator.is_not(None),
+                    AsteriskCDR.zvn_clientid.is_not(None),
+                    AsteriskCDR.zvn_clientid > 1,
+                )
+                .group_by(AsteriskCDR.zvn_operator)
+                .order_by(func.sum(AsteriskCDR.billsec).desc())
+                .limit(8)
+                .all()
+            )
+            recent_cdr_rows = (
+                db.query(AsteriskCDR)
+                .order_by(AsteriskCDR.calldate.desc())
+                .limit(40)
+                .all()
+            )
         finally:
             db.close()
 
@@ -581,6 +663,60 @@ class FirenzeAdmin(Admin):
                     }
                 )
 
+        carrier_by_day: dict[str, dict[str, int]] = {}
+        for row in carrier_rows:
+            day_key = row.day.isoformat()
+            carrier_by_day.setdefault(day_key, {"fonotarot-cl": 0, "alotarot": 0, "latam": 0})
+            carrier_by_day[day_key][row.accountcode] = int(row.minutes or 0)
+
+        carrier_days = []
+        carrier_totals = {"fonotarot-cl": 0, "alotarot": 0, "latam": 0, "total": 0}
+        for day_key in sorted(carrier_by_day):
+            day_data = carrier_by_day[day_key]
+            day_total = day_data["fonotarot-cl"] + day_data["alotarot"] + day_data["latam"]
+            carrier_days.append(
+                {
+                    "day": day_key,
+                    "fonotarot": day_data["fonotarot-cl"],
+                    "alotarot": day_data["alotarot"],
+                    "latam": day_data["latam"],
+                    "total": day_total,
+                }
+            )
+            carrier_totals["fonotarot-cl"] += day_data["fonotarot-cl"]
+            carrier_totals["alotarot"] += day_data["alotarot"]
+            carrier_totals["latam"] += day_data["latam"]
+            carrier_totals["total"] += day_total
+
+        operator_name_by_number = {op.number: op.name for op in operators}
+        operator_name_by_id = {op.id: op.name for op in operators}
+        cdr_operator_totals = []
+        for row in cdr_operator_rows:
+            operator_ref = int(row.zvn_operator)
+            cdr_operator_totals.append(
+                {
+                    "operator": operator_ref,
+                    "name": operator_name_by_number.get(operator_ref)
+                    or operator_name_by_id.get(operator_ref)
+                    or f"Operator {operator_ref}",
+                    "calls": int(row.calls or 0),
+                    "minutes": int(row.minutes or 0),
+                }
+            )
+
+        recent_cdr = [
+            {
+                "calldate": row.calldate,
+                "src": row.src,
+                "dst": row.dst,
+                "operator": row.zvn_operator,
+                "disposition": row.disposition,
+                "billsec": row.billsec,
+                "client_id": row.zvn_clientid,
+            }
+            for row in recent_cdr_rows
+        ]
+
         return {
             "redis_online": redis_online,
             "redis_info": redis_info,
@@ -588,6 +724,24 @@ class FirenzeAdmin(Admin):
             "active_calls": enriched_calls,
             "redis_operators_count": len(redis_operators),
             "redis_calls_count": len(redis_calls),
+            "cdr_reports": {
+                "month_label": month_start.strftime("%Y-%m"),
+                "today": {
+                    "total_calls": int(cdr_today.total_calls or 0),
+                    "answered_calls": int(cdr_today.answered_calls or 0),
+                    "failed_calls": int(cdr_today.failed_calls or 0),
+                    "answered_minutes": int(cdr_today.answered_minutes or 0),
+                    "avg_billsec": float(cdr_today.avg_billsec or 0),
+                },
+                "month": {
+                    "answered_calls": int(cdr_month_answered.answered_calls or 0),
+                    "answered_minutes": int(cdr_month_answered.answered_minutes or 0),
+                },
+                "carrier_days": carrier_days,
+                "carrier_totals": carrier_totals,
+                "operator_totals": cdr_operator_totals,
+                "recent_cdr": recent_cdr,
+            },
         }
 
 

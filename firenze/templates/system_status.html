@@ -4,7 +4,7 @@
 <div class="row align-items-center">
   <div class="col-auto">
     <h2 class="page-title">System Status</h2>
-    <div class="page-pretitle">Redis / Valkey health, operator state, and active calls</div>
+    <div class="page-pretitle">Redis / Valkey health, CDR reports, operator state, and active calls</div>
   </div>
   <div class="col-auto ms-auto d-print-none">
     <a href="{{ request.url }}" class="btn btn-secondary">
@@ -101,117 +101,195 @@
   </div>
 </div>
 
-{# ── Operators ───────────────────────────────────────────────────────── #}
+{# ── CDR KPIs ─────────────────────────────────────────────────────────── #}
+<div class="col-12">
+  <div class="row row-cards">
+    <div class="col-6 col-lg-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="subheader">Today Calls</div>
+          <div class="h3 mb-0">{{ cdr_reports.today.total_calls }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="subheader">Today Answered</div>
+          <div class="h3 mb-0">{{ cdr_reports.today.answered_calls }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="subheader">Today Failed</div>
+          <div class="h3 mb-0">{{ cdr_reports.today.failed_calls }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="subheader">Avg Billsec</div>
+          <div class="h3 mb-0">{{ cdr_reports.today.avg_billsec | round(1) }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ── CDR Month + Operators summary ───────────────────────────────────── #}
+<div class="col-12 col-lg-8">
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">
+        <i class="fa fa-chart-bar me-2"></i>CDR Monthly Report
+        <span class="badge bg-secondary-lt ms-2">{{ cdr_reports.month_label }}</span>
+      </h3>
+      <div class="card-options">
+        <span class="badge bg-success-lt me-1">{{ cdr_reports.month.answered_calls }} answered</span>
+        <span class="badge bg-blue-lt">{{ cdr_reports.month.answered_minutes }} min</span>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-vcenter card-table table-sm">
+        <thead>
+          <tr>
+            <th>Day</th>
+            <th class="text-end">Fonotarot</th>
+            <th class="text-end">Alotarot</th>
+            <th class="text-end">Latam</th>
+            <th class="text-end fw-bold">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in cdr_reports.carrier_days %}
+          <tr>
+            <td class="text-muted small">{{ row.day }}</td>
+            <td class="text-end">{{ row.fonotarot }}</td>
+            <td class="text-end">{{ row.alotarot }}</td>
+            <td class="text-end">{{ row.latam }}</td>
+            <td class="text-end fw-bold">{{ row.total }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="text-center text-muted py-3">No monthly CDR data yet</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr class="table-active fw-bold">
+            <td>Totals</td>
+            <td class="text-end">{{ cdr_reports.carrier_totals["fonotarot-cl"] }}</td>
+            <td class="text-end">{{ cdr_reports.carrier_totals.alotarot }}</td>
+            <td class="text-end">{{ cdr_reports.carrier_totals.latam }}</td>
+            <td class="text-end">{{ cdr_reports.carrier_totals.total }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="col-12 col-lg-4">
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title"><i class="fa fa-headset me-2"></i>Operator Summary</h3>
+      <div class="card-options">
+        {% set logged_in_count = operators | selectattr("db_loggedin") | list | length %}
+        {% set available_count = operators | selectattr("db_available") | list | length %}
+        <span class="badge bg-success-lt me-1">{{ logged_in_count }} in</span>
+        <span class="badge bg-teal-lt me-1">{{ available_count }} free</span>
+        <span class="badge bg-blue-lt">{{ operators | length }} total</span>
+      </div>
+    </div>
+    <div class="card-body pb-0">
+      <table class="table table-sm table-borderless mb-0">
+        <tbody>
+          <tr>
+            <td class="text-muted">Today answered minutes</td>
+            <td class="text-end fw-bold">{{ cdr_reports.today.answered_minutes }}</td>
+          </tr>
+          <tr>
+            <td class="text-muted">Month answered minutes</td>
+            <td class="text-end fw-bold">{{ cdr_reports.month.answered_minutes }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm table-vcenter card-table">
+        <thead>
+          <tr>
+            <th>Operator</th>
+            <th class="text-end">Calls</th>
+            <th class="text-end">Min</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for op in cdr_reports.operator_totals %}
+          <tr>
+            <td>
+              <div class="fw-bold">{{ op.operator }}</div>
+              <div class="text-muted small">{{ op.name }}</div>
+            </td>
+            <td class="text-end">{{ op.calls }}</td>
+            <td class="text-end fw-bold">{{ op.minutes }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="3" class="text-center text-muted py-3">No operator CDR data yet</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{# ── Recent CDR records ──────────────────────────────────────────────── #}
 <div class="col-12">
   <div class="card">
     <div class="card-header">
       <h3 class="card-title">
-        <i class="fa fa-headset me-2"></i>Operators
+        <i class="fa fa-table me-2"></i>Recent CDR Records
+        <span class="badge bg-blue-lt ms-2">{{ cdr_reports.recent_cdr | length }}</span>
       </h3>
-      <div class="card-options">
-        {% set logged_in_count = operators | selectattr("db_loggedin") | list | length %}
-        {% set available_count = operators | selectattr("db_available") | list | length %}
-        <span class="badge bg-success-lt me-1">{{ logged_in_count }} logged in</span>
-        <span class="badge bg-teal-lt me-1">{{ available_count }} available</span>
-        <span class="badge bg-blue-lt">{{ operators | length }} total</span>
-      </div>
     </div>
     <div class="table-responsive">
-      <table class="table table-vcenter card-table">
+      <table class="table table-vcenter card-table text-nowrap">
         <thead>
           <tr>
-            <th>Ext.</th>
-            <th>Name</th>
-            <th>IVR Option</th>
-            <th>Valkey</th>
-            <th colspan="2" class="text-center border-start">MySQL State</th>
-            <th colspan="2" class="text-center border-start">Redis State</th>
-            <th>Last Call</th>
-            <th>Cache Sync</th>
-          </tr>
-          <tr class="small text-muted">
-            <th></th><th></th><th></th><th></th>
-            <th class="border-start">Logged In</th>
-            <th>Available</th>
-            <th class="border-start">Logged In</th>
-            <th>Available</th>
-            <th></th><th></th>
+            <th>Calldate</th>
+            <th>ANI</th>
+            <th>DID</th>
+            <th>Operator</th>
+            <th>Client</th>
+            <th>Disposition</th>
+            <th class="text-end">Billsec</th>
           </tr>
         </thead>
         <tbody>
-          {% for op in operators %}
+          {% for row in cdr_reports.recent_cdr %}
           <tr>
-            <td class="fw-bold">{{ op.number }}</td>
-            <td>{{ op.name }}</td>
-            <td><kbd>{{ op.option }}</kbd></td>
+            <td class="text-muted small">{{ row.calldate.strftime('%Y-%m-%d %H:%M:%S') if row.calldate else '—' }}</td>
+            <td><code>{{ row.src }}</code></td>
+            <td><code>{{ row.dst }}</code></td>
+            <td>{{ row.operator if row.operator else '—' }}</td>
+            <td>{{ row.client_id if row.client_id else '—' }}</td>
             <td>
-              {% if op.enable_valkey %}
-                <span class="badge bg-teal-lt">Yes</span>
+              {% if row.disposition == "ANSWERED" %}
+                <span class="badge bg-success-lt">ANSWERED</span>
               {% else %}
-                <span class="badge bg-secondary-lt">No</span>
+                <span class="badge bg-secondary-lt">{{ row.disposition }}</span>
               {% endif %}
             </td>
-
-            {# MySQL state #}
-            <td class="border-start">
-              {% if op.db_loggedin %}
-                <span class="badge bg-success">In</span>
-              {% else %}
-                <span class="badge bg-secondary">Out</span>
-              {% endif %}
-            </td>
-            <td>
-              {% if op.db_available %}
-                <span class="badge bg-success">Yes</span>
-              {% else %}
-                <span class="badge bg-warning-lt text-warning">No</span>
-              {% endif %}
-            </td>
-
-            {# Redis state #}
-            <td class="border-start">
-              {% if op.redis_state %}
-                {% if op.redis_state.loggedin %}
-                  <span class="badge bg-success">In</span>
-                {% else %}
-                  <span class="badge bg-secondary">Out</span>
-                {% endif %}
-              {% elif op.enable_valkey %}
-                <span class="text-muted">—</span>
-              {% else %}
-                <span class="text-muted">N/A</span>
-              {% endif %}
-            </td>
-            <td>
-              {% if op.redis_state %}
-                {% if op.redis_state.available %}
-                  <span class="badge bg-success">Yes</span>
-                {% else %}
-                  <span class="badge bg-warning-lt text-warning">No</span>
-                {% endif %}
-              {% elif op.enable_valkey %}
-                <span class="text-muted">—</span>
-              {% else %}
-                <span class="text-muted">N/A</span>
-              {% endif %}
-            </td>
-
-            <td class="text-muted small">
-              {{ op.db_lastcall.strftime('%Y-%m-%d %H:%M') if op.db_lastcall else '—' }}
-            </td>
-            <td>
-              {% if op.synced is none %}
-                <span class="text-muted">—</span>
-              {% elif op.synced %}
-                <span class="badge bg-success-lt"><i class="fa fa-check me-1"></i>Synced</span>
-              {% else %}
-                <span class="badge bg-danger"><i class="fa fa-exclamation me-1"></i>Drift</span>
-              {% endif %}
-            </td>
+            <td class="text-end fw-bold">{{ row.billsec }}</td>
           </tr>
           {% else %}
           <tr>
-            <td colspan="10" class="text-center text-muted py-4">No operators found</td>
+            <td colspan="7" class="text-center text-muted py-3">No CDR rows available</td>
           </tr>
           {% endfor %}
         </tbody>
