@@ -373,12 +373,10 @@
           <div class="col-12 col-lg-4">
             <div class="card card-sm h-100">
               {% if op.db_loggedin %}
-              <div class="ribbon ribbon-top bg-green">
-                {% else %}
-                <div class="ribbon ribbon-top bg-danger">
-                {% endif %}
+              <div class="ribbon ribbon-top {% if op.db_available %}bg-success{% else %}bg-blue{% endif %}">
                 {{ op.option if op.option is not none else "—" }}
               </div>
+              {% endif %}
               <div class="card-status-top {% if op.db_loggedin %}bg-success{% else %}bg-danger{% endif %}"></div>
               <div class="card-body p-2">
                 <div class="fw-medium text-truncate">{{ op.name }} <span class="text-secondary">({{ op.number }})</span></div>
@@ -389,7 +387,7 @@
                   <div>
                     {% if op.db_loggedin %}
                       {% if op.db_available %}
-                        <span class="badge bg-success-lt text-success">Available</span>
+                        <span class="badge bg-success-lt text-success">Disponible</span>
                       {% else %}
                         <span class="badge bg-blue-lt text-blue">En llamada</span>
                       {% endif %}
@@ -401,12 +399,12 @@
                     {% if op.enable_valkey and op.sincronizados is sameas true %}
                       <span class="badge bg-success-lt text-success" title="Redis cache sincronizados">
                         <i class="fa fa-memory" aria-hidden="true"></i>
-                        <span class="ms-1">Redis sincronizado</span>
+                        <span class="ms-1">Redis OK</span>
                       </span>
                     {% else %}
                       <span class="badge bg-warning-lt text-warning" title="Redis no sincronizado">
                         <i class="fa fa-memory" aria-hidden="true"></i>
-                        <span class="ms-1">Redis no sincronizado</span>
+                        <span class="ms-1">Redis NOK</span>
                       </span>
                     {% endif %}
                   </div>
@@ -440,7 +438,7 @@
   <div class="col-12">
     <div class="card" id="operator-report">
       <div class="card-header">
-        <h3 class="card-title">Operator Report — {{ cdr_reports.operator_period_label }}</h3>
+        <h3 class="card-title">Reporte de Operadores — {{ cdr_reports.operator_period_label }}</h3>
         <div class="card-actions">
           <div class="dropdown">
             <a
@@ -467,10 +465,10 @@
         <thead>
           <tr>
             <th>Operator</th>
-            <th >Minutes</th>
-            <th >Calls</th>
-            <th>Carga de Minutos</th>
-            <th>Carga de Llamadas</th>
+            <th >Minutos</th>
+            <th >Llamadas</th>
+            <th>% Minutos</th>
+            <th>% Llamadas</th>
           </tr>
         </thead>
         <tbody>
@@ -483,11 +481,11 @@
             <td>{{ op.name }} <span class="text-secondary">({{ op.operator }})</span></td>
             <td>
               <span class="fw-semibold">{{ op.minutes }}</span>
-              <span class="text-secondary small ms-1">of total {{ cdr_reports.operator_total_minutes }}</span>
+              <span class="text-secondary small ms-1">de un total {{ cdr_reports.operator_total_minutes }}</span>
             </td>
             <td>
               <span class="fw-semibold">{{ op.calls }}</span>
-              <span class="text-secondary small ms-1">of total {{ cdr_reports.operator_total_calls }}</span>
+              <span class="text-secondary small ms-1">de un total {{ cdr_reports.operator_total_calls }}</span>
             </td>
             <td class="w-20">
               <div class="progress progress-xs">
@@ -496,7 +494,7 @@
                   style="width: {{ minutes_share }}%; background-color: hsl({{ minutes_hue }}, 85%, 52%);"
                   data-bs-toggle="tooltip"
                   data-bs-placement="top"
-                  title="{{ minutes_share }}% relative to the top operator minutes in this table"
+                  title="{{ minutes_share }}% relativo al mejor operator."
                 ></div>
               </div>
             </td>
@@ -507,7 +505,7 @@
                   style="width: {{ calls_share }}%; background-color: hsl({{ calls_hue }}, 85%, 52%);"
                   data-bs-toggle="tooltip"
                   data-bs-placement="top"
-                  title="{{ calls_share }}% relative to the top operator calls in this table"
+                  title="{{ calls_share }}% relativo al mejor operator."
                 ></div>
               </div>
             </td>
