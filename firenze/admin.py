@@ -543,10 +543,10 @@ class AdminIndex(BaseView):
 
 class APIDocs(BaseView):
     name = "API Docs"
-    icon = "fa fa-document"
+    icon = "fa fa-dna"
 
-    @expose("/index", methods=["GET"])
-    async def admin(self, request):
+    @expose("/api-docs", methods=["GET"])
+    async def apidocs(self, request):
         return RedirectResponse(url="/api-docs")
 
 
