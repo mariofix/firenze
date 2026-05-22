@@ -1067,15 +1067,15 @@ class FirenzeAdmin(Admin):
                 return "—"
             delta_seconds = max(int((now - dt).total_seconds()), 0)
             if delta_seconds < 60:
-                return "just now"
+                return "justo ahora"
             if delta_seconds < 3600:
                 minutes = delta_seconds // 60
-                return f"{minutes} minute{'s' if minutes != 1 else ''} ago"
+                return f"hace {minutes} minute{'s' if minutes != 1 else ''}"
             if delta_seconds < 86400:
                 hours = delta_seconds // 3600
-                return f"{hours} hour{'s' if hours != 1 else ''} ago"
+                return f"hace {hours} hour{'s' if hours != 1 else ''}"
             days = delta_seconds // 86400
-            return f"{days} day{'s' if days != 1 else ''} ago"
+            return f"hace {days} day{'s' if days != 1 else ''}"
 
         # Enrich operator list with Redis state
         enriched_operators = []
@@ -1099,18 +1099,18 @@ class FirenzeAdmin(Admin):
                     "synced": synced,
                 }
             )
-        # UI order: available first, then in-call, then offline.
-        enriched_operators.sort(
-            key=lambda op: (
-                0
-                if op["db_loggedin"] and op["db_available"]
-                else 1
-                if op["db_loggedin"]
-                else 2,
-                str(op["name"]).lower(),
-                int(op["number"]),
-            )
-        )
+        # # UI order: available first, then in-call, then offline.
+        # enriched_operators.sort(
+        #     key=lambda op: (
+        #         0
+        #         if op["db_loggedin"] and op["db_available"]
+        #         else 1
+        #         if op["db_loggedin"]
+        #         else 2,
+        #         str(op["name"]).lower(),
+        #         int(op["number"]),
+        #     )
+        # )
 
         def _format_elapsed_call_duration(created_at: datetime.datetime | None) -> str:
             if created_at is None:
