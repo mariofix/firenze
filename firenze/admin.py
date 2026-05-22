@@ -72,6 +72,7 @@ def _collect_monthly_report(year: int, month: int) -> dict:
                     AsteriskCDR.calldate >= month_start,
                     AsteriskCDR.calldate < next_month,
                     AsteriskCDR.disposition == "ANSWERED",
+                    AsteriskCDR.lastapp == "Dial",
                     AsteriskCDR.zvn_clientid.is_not(None),
                     AsteriskCDR.zvn_clientid > 1,
                     AsteriskCDR.accountcode.in_(service_slugs),
@@ -134,6 +135,7 @@ def _collect_monthly_agent_report(year: int, month: int, selected_agents: tuple[
             AsteriskCDR.calldate >= month_start,
             AsteriskCDR.calldate < next_month,
             AsteriskCDR.disposition == "ANSWERED",
+            AsteriskCDR.lastapp == "Dial",
             AsteriskCDR.zvn_operator.is_not(None),
             AsteriskCDR.zvn_clientid.is_not(None),
             AsteriskCDR.zvn_clientid > 1,
@@ -539,6 +541,14 @@ class AdminIndex(BaseView):
     async def admin(self, request):
         return RedirectResponse(url="/admin")
 
+class APIDocs(BaseView):
+    name = "API Docs"
+    icon = "fa fa-document"
+
+    @expose("/index", methods=["GET"])
+    async def admin(self, request):
+        return RedirectResponse(url="/api-docs")
+
 
 class MonthlyReportIndex(BaseView):
     name = "Informe Mensual"
@@ -866,7 +876,7 @@ class FirenzeAdmin(Admin):
                         0,
                     ).label("avg_billsec"),
                 )
-                .filter(AsteriskCDR.calldate >= today_start, AsteriskCDR.calldate < tomorrow_start)
+                .filter(AsteriskCDR.calldate >= today_start, AsteriskCDR.calldate < tomorrow_start, AsteriskCDR.lastapp == "Dial")
                 .one()
             )
             cdr_client_activity = (
@@ -878,6 +888,7 @@ class FirenzeAdmin(Admin):
                 .filter(
                     AsteriskCDR.zvn_clientid.is_not(None),
                     AsteriskCDR.zvn_clientid > 1,
+                    AsteriskCDR.lastapp == "Dial",
                 )
                 .group_by(AsteriskCDR.zvn_clientid)
                 .subquery()
@@ -935,6 +946,7 @@ class FirenzeAdmin(Admin):
                     AsteriskCDR.calldate >= now - datetime.timedelta(days=7),
                     AsteriskCDR.calldate < tomorrow_start,
                     AsteriskCDR.disposition == "ANSWERED",
+                    AsteriskCDR.lastapp == "Dial",
                     AsteriskCDR.zvn_clientid.is_not(None),
                     AsteriskCDR.zvn_clientid > 1,
                 )
@@ -965,6 +977,7 @@ class FirenzeAdmin(Admin):
                     AsteriskCDR.calldate >= month_start,
                     AsteriskCDR.calldate < next_month,
                     AsteriskCDR.disposition == "ANSWERED",
+                    AsteriskCDR.lastapp == "Dial",
                     AsteriskCDR.zvn_clientid.is_not(None),
                     AsteriskCDR.zvn_clientid > 1,
                 )
@@ -983,6 +996,7 @@ class FirenzeAdmin(Admin):
                         AsteriskCDR.calldate >= month_start,
                         AsteriskCDR.calldate < next_month,
                         AsteriskCDR.disposition == "ANSWERED",
+                        AsteriskCDR.lastapp == "Dial",
                         AsteriskCDR.zvn_clientid.is_not(None),
                         AsteriskCDR.zvn_clientid > 1,
                         AsteriskCDR.accountcode.in_(service_slugs),
@@ -1002,6 +1016,7 @@ class FirenzeAdmin(Admin):
                     AsteriskCDR.calldate >= operator_period_start,
                     AsteriskCDR.calldate < operator_period_end,
                     AsteriskCDR.disposition == "ANSWERED",
+                    AsteriskCDR.lastapp == "Dial",
                     AsteriskCDR.zvn_operator.is_not(None),
                     AsteriskCDR.zvn_clientid.is_not(None),
                     AsteriskCDR.zvn_clientid > 1,
@@ -1019,6 +1034,7 @@ class FirenzeAdmin(Admin):
                     AsteriskCDR.calldate >= now - datetime.timedelta(days=15),
                     AsteriskCDR.calldate < tomorrow_start,
                     AsteriskCDR.disposition == "ANSWERED",
+                    AsteriskCDR.lastapp == "Dial",
                     AsteriskCDR.zvn_operator.is_not(None),
                     AsteriskCDR.zvn_clientid.is_not(None),
                     AsteriskCDR.zvn_clientid > 1,
@@ -1036,6 +1052,7 @@ class FirenzeAdmin(Admin):
                 .filter(
                     AsteriskCDR.calldate >= month_start,
                     AsteriskCDR.calldate < next_month,
+                    AsteriskCDR.lastapp == "Dial",
                 )
                 .group_by(AsteriskCDR.disposition)
                 .order_by(func.count(AsteriskCDR.cdrid).desc())
@@ -1370,5 +1387,6 @@ def register_admin(admin):
     admin.add_view(MonthlyReportIndex)
     admin.add_view(MonthlyAgentReportIndex)
     admin.add_view(OnlineCallsAdmin)
+    admin.add_view(APIDocs)
     # admin.add_view(PostCallProcessAdmin)
     # admin.add_view(EventAdmin)
