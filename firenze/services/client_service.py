@@ -96,7 +96,7 @@ def deduct_credits(db: Session, service_slug: str, client_id: int, seconds: int)
                 f"is supposed to prevent a second call from starting. Investigate."
             ),
         )
-        return {"ok": True, "remaining": 0, "before": client.credits}
+        return {"ok": True, "remaining": 0, "before": client.credits, "warning": True}
     before_call = client.credits
     client.credits -= seconds
     if client.credits < 0:
