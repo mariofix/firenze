@@ -347,8 +347,8 @@
         {% set busy = (logged_in - available) if logged_in >= available else 0 %}
         {% set logged_in_pct = (logged_in * 100 / total_ops) | round(1) %}
         {% set not_logged_in_pct = (not_logged_in * 100 / total_ops) | round(1) %}
-        {% set available_pct = (available * 100 / total_ops) | round(1) %}
-        {% set busy_pct = (busy * 100 / total_ops) | round(1) %}
+        {% set available_pct = (available * 100 / logged_in) | round(1) %}
+        {% set busy_pct = (busy * 100 / logged_in) | round(1) %}
 
         <div class="d-flex justify-content-between mb-1">
           <span>Conectado</span>
@@ -364,8 +364,8 @@
           <span class="fw-bold">{{ available }} available · {{ busy }} in call</span>
         </div>
         <div class="progress progress-separated mb-3" role="progressbar" aria-label="Operator availability distribution">
-          <div class="progress-bar bg-green" style="width: {{ available_pct }}%" title="{{ available }} available ({{ available_pct }}%)"></div>
-          <div class="progress-bar bg-orange" style="width: {{ busy_pct }}%" title="{{ busy }} in call ({{ busy_pct }}%)"></div>
+          <div class="progress-bar bg-green" style="width: {{ available_pct }}%" title="{{ available }} Disponible ({{ available_pct }}%)"></div>
+          <div class="progress-bar bg-orange" style="width: {{ busy_pct }}%" title="{{ busy }} en una llamada ({{ busy_pct }}%)"></div>
         </div>
 
         <div class="row g-2 mb-3">
