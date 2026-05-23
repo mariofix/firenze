@@ -943,7 +943,7 @@ class FirenzeAdmin(Admin):
                     func.max(AsteriskCDR.calldate).label("last_call"),
                 )
                 .filter(
-                    AsteriskCDR.calldate >= now - datetime.timedelta(days=7),
+                    AsteriskCDR.calldate >= today_start,
                     AsteriskCDR.calldate < tomorrow_start,
                     AsteriskCDR.disposition == "ANSWERED",
                     AsteriskCDR.lastapp == "Dial",
