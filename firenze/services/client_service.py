@@ -100,6 +100,7 @@ def deduct_credits(db: Session, service_slug: str, client_id: int, seconds: int)
     before_call = client.credits
     client.credits -= seconds
     if client.credits < 0:
+        logger.warning(f"deduct_credits negative target: {service_slug=} {client_id=} {client.credits=}")
         client.credits = 0
     db.commit()
     db.refresh(client)
