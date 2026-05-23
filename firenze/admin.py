@@ -1320,6 +1320,7 @@ class FirenzeAdmin(Admin):
             "active_call_services": active_call_services,
             "redis_operators_count": len(redis_operators),
             "redis_calls_count": len(redis_calls),
+            "pending_credits": 1015158,
             "ani_reports": {
                 "total_anis": int(ani_usage.total_anis or 0),
                 "total_calls": int(ani_usage.total_calls or 0),
