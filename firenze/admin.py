@@ -860,6 +860,7 @@ class FirenzeAdmin(Admin):
             services = db.query(Service).order_by(Service.id).all()
             operators = db.query(Operator).order_by(Operator.number).all()
             online_calls = db.query(OnlineCalls).order_by(OnlineCalls.created_at.desc()).all()
+            pending_credits = db.query(func.sum(Client.credits).label("total")).one()
             cdr_today = (
                 db.query(
                     func.count(AsteriskCDR.cdrid).label("total_calls"),
@@ -1320,7 +1321,7 @@ class FirenzeAdmin(Admin):
             "active_call_services": active_call_services,
             "redis_operators_count": len(redis_operators),
             "redis_calls_count": len(redis_calls),
-            "pending_credits": 1015158,
+            "pending_credits": int(pending_credits.total),
             "ani_reports": {
                 "total_anis": int(ani_usage.total_anis or 0),
                 "total_calls": int(ani_usage.total_calls or 0),
