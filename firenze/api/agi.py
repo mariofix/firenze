@@ -132,6 +132,7 @@ def agi_client_deduct(
     """
     try:
         data_out = svc_deduct(db, service, client_id, seconds)
+        data_out.update({"client_id": client_id, "service": service})
         create_audit(db, title="resta_saldo", category="INFO", called_from="firenze.api.agi.agi_client_deduct()", data=data_out)
         return data_out
     except ServiceNotFound as e:
