@@ -10,10 +10,12 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from firenze.api import clients
 from firenze.models.client import Client, ClientAni, _generate_pin
 from firenze.models.operator import Operator
 from firenze.models.service import Service
 from firenze.services.notifications import notify
+from firenze.services.audit_service import create_audit
 
 logger = logging.getLogger("firenze")
 
@@ -80,7 +82,9 @@ def deduct_credits(db: Session, service_slug: str, client_id: int, seconds: int)
         # Per-client one-call-at-a-time enforcement upstream should make this
         # unreachable. If we land here, the customer made a call without
         # credits - log loudly and notify, but don't fail the deduction.
-        logger.warning(f"deduct_credits called with no balance: {service_slug=} {client_id=} {seconds=} {credits=}")
+        logger.warning(f"deduct_credits called with no balance: {service_slug=} {client_id=} {seconds=} {client.credits=}")
+        audit_data = {"service_slug": service_slug, "client_id": client_id, "client.credits": client.credits, "seconds":seconds}
+        create_audit(db, title="llamada sin saldo", category="ERROR", called_from="firenze.services.client_service.deduct_credits()", data=audit_data)
         notify(
             subject=f"[firenze] deduct on zero balance: client {client_id}",
             body=(
