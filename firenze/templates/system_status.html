@@ -288,7 +288,7 @@
         <tbody>
           {% for ani in ani_reports.top_callers %}
           <tr>
-            <td>{{ ani.client_id }}</td>
+            <td><a href="/admin/client/list?search={{ ani.client_id }}">{{ ani.client_id }}</a></td>
             <td>{{ ani.q_calls }}</td>
             <td>
               <div class="progress progress-xs">
