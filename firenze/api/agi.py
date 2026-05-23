@@ -32,6 +32,7 @@ from firenze.services.operator_service import get_menu as svc_get_menu
 from firenze.services.operator_service import info_operator as svc_operator
 from firenze.services.operator_service import release_operator as svc_release
 from firenze.services.operator_service import select_operator as svc_select
+from firenze.services.audit_service import create_audit
 
 logger = logging.getLogger("firenze")
 
@@ -130,7 +131,9 @@ def agi_client_deduct(
     Llamado desde el manejador hangup ``[llama-operador]`` después de que termina una llamada.
     """
     try:
-        return svc_deduct(db, service, client_id, seconds)
+        data_out = svc_deduct(db, service, client_id, seconds)
+        create_audit(db, title="resta_saldo", category="INFO", called_from="firenze.api.agi.agi_client_deduct()", data=data_out)
+        return data_out
     except ServiceNotFound as e:
         logger.warning(
             "agi_client_deduct: ServiceNotFound for service=%r client_id=%s seconds=%s: %s",
