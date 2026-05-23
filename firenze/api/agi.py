@@ -471,6 +471,7 @@ def agi_operator_login(
             e,
         )
         raise HTTPException(status_code=404, detail=str(e))
+    create_audit(db, title="operator_login", category="INFO", called_from="firenze.api.agi.agi_operator_login()", data={"ani": ani})
     return {"ok": True}
 
 
@@ -493,4 +494,5 @@ def agi_operator_logout(
             e,
         )
         raise HTTPException(status_code=404, detail=str(e))
+    create_audit(db, title="operator_logout", category="INFO", called_from="firenze.api.agi.agi_operator_login()", data={"ani": ani})
     return {"ok": True}
