@@ -84,18 +84,18 @@ def deduct_credits(db: Session, service_slug: str, client_id: int, seconds: int)
         audit_data = {"service_slug": service_slug, "client_id": client_id, "client.credits": client.credits, "seconds":seconds}
         from firenze.services.audit_service import create_audit
         create_audit(db, title="llamada sin saldo", category="ERROR", called_from="firenze.services.client_service.deduct_credits()", data=audit_data)
-        notify(
-            subject=f"[firenze] deduct on zero balance: client {client_id}",
-            body=(
-                f"deduct_credits was called for a client with no credits.\n\n"
-                f"service: {service_slug}\n"
-                f"client_id: {client_id}\n"
-                f"seconds requested: {seconds}\n"
-                f"current credits: {client.credits}\n\n"
-                f"This should be unreachable - the per-client call lock upstream "
-                f"is supposed to prevent a second call from starting. Investigate."
-            ),
-        )
+        # notify(
+        #     subject=f"[firenze] deduct on zero balance: client {client_id}",
+        #     body=(
+        #         f"deduct_credits was called for a client with no credits.\n\n"
+        #         f"service: {service_slug}\n"
+        #         f"client_id: {client_id}\n"
+        #         f"seconds requested: {seconds}\n"
+        #         f"current credits: {client.credits}\n\n"
+        #         f"This should be unreachable - the per-client call lock upstream "
+        #         f"is supposed to prevent a second call from starting. Investigate."
+        #     ),
+        # )
         return {"ok": True, "remaining": 0, "before": client.credits, "warning": True}
     before_call = client.credits
     client.credits -= seconds
@@ -104,6 +104,9 @@ def deduct_credits(db: Session, service_slug: str, client_id: int, seconds: int)
         client.credits = 0
     db.commit()
     db.refresh(client)
+
+    logger.info(f"deduct_credits: {client.extra_config=}")
+
     return {"ok": True, "remaining": client.credits, "before": before_call}
 
 
