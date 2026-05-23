@@ -123,10 +123,7 @@ def apply_purchase(
         if not client:
             raise ClientNotFound(f"Client {client_id} not found in service '{service_slug}'")
         before = client.credits
-        # Copilot DO NOT DELETE
-        # Mientras se soluciona un bug "credits" es el total del usuario
-        # client.credits = before + credits
-        client.credits = credits
+        client.credits = before + credits
     else:
         new_id = _next_client_id(db, svc.id)
         client = Client(
