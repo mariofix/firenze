@@ -80,25 +80,25 @@
       <div class="col-6 col-md-3">
         <div class="card">
           <div class="card-body">
-            <div class="subheader">Answered</div>
+            <div class="subheader">Contestadas</div>
             <div class="h2 mb-0 text-success">{{ cdr_reports.today.answered_calls }}</div>
-            <div class="text-secondary small">Includes all services.</div>
+            <div class="text-secondary small">Incluye todos los servicios.</div>
           </div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="card">
           <div class="card-body">
-            <div class="subheader">Llamada Promedio</div>
+            <div class="subheader">Duración Promedio</div>
             <div class="h2 mb-0">{{ (cdr_reports.today.avg_billsec / 60) | round(1) }} min</div>
-            <div class="text-secondary small">and in seconds: {{cdr_reports.today.avg_billsec}}</div>
+            <div class="text-secondary small">y en segundos: {{cdr_reports.today.avg_billsec}}</div>
           </div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="card">
           <div class="card-body">
-            <div class="subheader">ANI del Cliente Registrado</div>
+            <div class="subheader">ANIs Registrados</div>
             <div class="h2 mb-0">{{ ani_reports.total_anis }}</div>
             <div class="text-secondary small">En todos los servicios</div>
           </div>
@@ -107,7 +107,7 @@
       <div class="col-6 col-md-3">
         <div class="card">
           <div class="card-body">
-            <div class="subheader">Inbound Calls (lifetime)</div>
+            <div class="subheader">Llamadas Totales</div>
             <div class="h2 mb-0">{{ ani_reports.total_calls }}</div>
             <div class="text-secondary small">{{ ani_reports.avg_calls | round(1) }} avg / client_id</div>
           </div>
@@ -116,7 +116,7 @@
       <div class="col-6 col-md-3">
         <div class="card">
           <div class="card-body">
-            <div class="subheader">Identificador del Cliente Active (24h)</div>
+            <div class="subheader">Clientes Activos (24h)</div>
             <div class="h2 mb-0 text-green">{{ ani_reports.active_24h }}</div>
           </div>
         </div>
@@ -124,7 +124,7 @@
       <div class="col-6 col-md-3">
         <div class="card">
           <div class="card-body">
-            <div class="subheader">Client IDs Active (7d)</div>
+            <div class="subheader">Clientes Activos (7d)</div>
             <div class="h2 mb-0 text-azure">{{ ani_reports.active_7d }}</div>
           </div>
         </div>
@@ -143,39 +143,39 @@
             {% set ani_stale_30_pct = (ani_stale_30 * 100 / ani_den) | round(1) %}
             {% set ani_stale_60_pct = (ani_stale_60 * 100 / ani_den) | round(1) %}
             <p class="mb-3">
-              client_id activity <strong>{{ ani_reports.with_last_call }}</strong> of {{ ani_tracked_total + ani_reports.total_anis }} active client_id
+              Clientes Activos: <strong>{{ ani_reports.with_last_call }}</strong> de {{ ani_tracked_total + ani_reports.total_anis }} client_id activos
               <span class="text-secondary">({{ ani_coverage }}%)</span>
             </p>
             <div class="progress progress-separated mb-3">
-              <div class="progress-bar bg-green" role="progressbar" style="width: {{ ani_active_15_pct }}%" aria-label="Active 15 days"></div>
-              <div class="progress-bar bg-yellow" role="progressbar" style="width: {{ ani_stale_30_pct }}%" aria-label="Stale 30-59 days"></div>
-              <div class="progress-bar bg-orange" role="progressbar" style="width: {{ ani_stale_60_pct }}%" aria-label="Stale 60+ days"></div>
+              <div class="progress-bar bg-green" role="progressbar" style="width: {{ ani_active_15_pct }}%" aria-label="Con Actividad en los ultimos 15 dias."></div>
+              <div class="progress-bar bg-yellow" role="progressbar" style="width: {{ ani_stale_30_pct }}%" aria-label="Con Actividad el mes pasado."></div>
+              <div class="progress-bar bg-orange" role="progressbar" style="width: {{ ani_stale_60_pct }}%" aria-label="Con Actividad hace mas de 2 meses."></div>
             </div>
             <div class="row mb-3">
               <div class="col-auto d-flex align-items-center pe-2">
                 <span class="legend me-2 bg-green"></span>
-                <span>Active (&lt;=15d)</span>
+                <span>Activos (&lt;=15d)</span>
                 <span class="ms-2 text-secondary">{{ ani_active_15 }}</span>
               </div>
               <div class="col-auto d-flex align-items-center px-2">
                 <span class="legend me-2 bg-yellow"></span>
-                <span>Stale 1 (30-59d)</span>
+                <span>Activos Mes Pasado (30-59d)</span>
                 <span class="ms-2 text-secondary">{{ ani_stale_30 }}</span>
               </div>
               <div class="col-auto d-flex align-items-center px-2">
                 <span class="legend me-2 bg-orange"></span>
-                <span>Stale 2 (&gt;=60d)</span>
+                <span>Activos 2meses+ (&gt;=60d)</span>
                 <span class="ms-2 text-secondary">{{ ani_stale_60 }}</span>
               </div>
               <div class="col-auto d-flex align-items-center px-2">
                 <span class="legend me-2 bg-secondary"></span>
-                <span>No last_call</span>
+                <span>Sin llamada</span>
                 <span class="ms-2 text-secondary">{{ ani_no_last_call }}</span>
               </div>
               <div class="col-auto d-flex align-items-center ps-2 text-secondary">
-                Latest:
+                Última Llamada:
                 {% if ani_reports.latest_last_call %}
-                  <span class="ms-1">{{ ani_reports.latest_last_call.strftime('%Y-%m-%d %H:%M:%S') }} ({{ ani_reports.latest_last_call_hours }}h ago)</span>
+                  <span class="ms-1">{{ ani_reports.latest_last_call.strftime('%Y-%m-%d %H:%M:%S') }} (hace {{ ani_reports.latest_last_call_hours }}h)</span>
                 {% else %}
                   <span class="ms-1">—</span>
                 {% endif %}
@@ -183,8 +183,8 @@
             </div>
             {% set top5_total_calls = operator_activity_top5 | sum(attribute='calls') %}
             <p class="mb-3">
-              Operator activity <strong>Top 5</strong> in last 15 days
-              <span class="text-secondary">({{ top5_total_calls }} calls)</span>
+              Operadores mas Consultados <strong>Top 5</strong> en los ultimos 15 dias
+              <span class="text-secondary">(entre {{ top5_total_calls }} llamadas)</span>
             </p>
             <div class="progress progress-separated mb-3">
               {% for op in operator_activity_top5 %}
@@ -217,7 +217,7 @@
   <div class="col-12 col-lg-6">
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-bolt me-2"></i>Flujo de Llamadas En Vivo</h3>
+        <h3 class="card-title"><i class="fa fa-bolt me-2"></i>Llamadas En Línea</h3>
       </div>
       <div class="card-body">
         <div class="divide-y">
@@ -231,7 +231,7 @@
                 </div>
                 <div class="col">
                   <div class="text-truncate">
-                    <strong>{{ call.service }} * client_id {{ call.client_id if call.client_id else '—' }} -> Operator {{ call.operator if call.operator else '—' }}</strong>
+                    <strong>{{ call.service }} • client_id {{ call.client_id if call.client_id else '—' }} 🡢 Operator {{ call.operator if call.operator else '—' }}</strong>
                   </div>
                   <div class="text-secondary small">ANI <code>{{ call.ani }}</code> · DID <code>{{ call.did if call.did else '—' }}</code> · Duration {{ call.call_duration }}</div>
                 </div>
@@ -251,7 +251,7 @@
   <div class="col-12 col-lg-6">
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-mobile-screen-button me-2"></i>Principales Clientes Actividad Últimos 7 Días</h3>
+        <h3 class="card-title"><i class="fa fa-mobile-screen-button me-2"></i>Clientes con llamadas hoy</h3>
         <div class="card-actions">
           <div class="dropdown">
             <a
@@ -277,7 +277,7 @@
       <table class="table card-table table-vcenter table-sm">
         <thead>
           <tr>
-            <th>Identificador del Cliente</th>
+            <th>Client ID</th>
             <th>Calls</th>
             <th class="w-50">Load</th>
             <th>Última Llamada</th>
@@ -314,7 +314,7 @@
   <div class="col-12 col-lg-6">
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-phone me-2"></i>Llamadas En Línea by Service</h3>
+        <h3 class="card-title"><i class="fa fa-phone me-2"></i>Llamadas En Línea por Servicio</h3>
       </div>
       <div class="card-body">
         {% for service in active_call_services %}
