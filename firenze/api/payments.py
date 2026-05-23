@@ -67,7 +67,8 @@ def payments_complete(
         )
         raise HTTPException(status_code=404, detail=str(e))
     logger.info(f"payments_complete: NewPayment: {result=}")
-    create_audit(db, title="nuevo_pago", category="INFO", called_from="firenze.api.payments.payments_complete()", data=result)
+    audit_data = {"payload": payload, "apply_purchase": result}
+    create_audit(db, title="nuevo_pago", category="INFO", called_from="firenze.api.payments.payments_complete()", data=audit_data)
     return PurchaseResponse(**result)
 
 
