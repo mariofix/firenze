@@ -36,6 +36,7 @@ def send_measurement_event(
     }
 
     try:
+        logger.info(f"measurement event: {payload=}")
         response = requests.post(
             MEASUREMENT_ENDPOINT,
             params={"measurement_id": measurement_id, "api_secret": api_secret},
