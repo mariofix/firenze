@@ -111,7 +111,7 @@ def agi_did_lookup(
             "query_did": did,
             "assigned_context": data.get("siguiente", ""),
             "service": data.get("servicio", ""),
-            "found": bool(data.get("servicio")),
+            "found": str(bool(data.get("servicio"))).lower(),
             "query_duration_ms": query_duration_ms,
         },
         client_id=session_client_id,
