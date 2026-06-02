@@ -31,10 +31,10 @@ class Settings(BaseSettings):
     LEGACY_API_URL: str = "https://firenze.156.cl"
     LEGACY_API_USER: str = ""
     LEGACY_API_PASSWORD: str = ""
-    DALEKS_URL: str = ""
-    DALEKS_FROM: str = ""
-    DALEKS_TO: str = ""
-    DALEKS_SMTP_ACCOUNT: str = ""
+    DALEKS_URL: str | None = None
+    DALEKS_FROM: str | None = None
+    DALEKS_TO: str | None = None
+    DALEKS_SMTP_ACCOUNT: str | None = None
     AUTH_PASSWORD_LOGIN_ENABLED: bool = True
     AUTH_PASSWORDLESS_ENABLED: bool = True
     AUTH_PASSWORDLESS_CODE_TTL_MINUTES: int = 10
@@ -76,7 +76,7 @@ LOGGING_CONFIG = {
             "interval": 1,
         },
         "console": {
-            "level": "DEBUG" if settings.DEBUG else settings.LOG_LEVEL,
+            "level": "DEBUG" if settings.DEBUG else "ERROR",
             "class": "logging.StreamHandler",
             "formatter": "simple",
         },
@@ -84,42 +84,8 @@ LOGGING_CONFIG = {
     "loggers": {
         "firenze": {
             "handlers": ["file", "console"],
-        },
-    },
-}
-
-
-LOGGING_CONFIG_CLI = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "simple": {
-            "format": "{levelname}:\t  {message}",
-            "style": "{",
-        },
-        "verbose": {
-            "format": "{asctime} {name}.{levelname} {filename}({lineno}) {message}",
-            "style": "{",
-        },
-    },
-    "handlers": {
-        "cli": {
             "level": "DEBUG" if settings.DEBUG else settings.LOG_LEVEL,
-            "class": "logging.handlers.TimedRotatingFileHandler",
-            "filename": f"{settings.BASE_DIR}/logs/firenze-cli.log",
-            "formatter": "verbose",
-            "when": "midnight",
-            "interval": 1,
-        },
-        "console": {
-            "level": "DEBUG" if settings.DEBUG else settings.LOG_LEVEL,
-            "class": "logging.StreamHandler",
-            "formatter": "simple",
-        },
-    },
-    "loggers": {
-        "firenze-cli": {
-            "handlers": ["cli", "console"],
+            "propagate": False,
         },
     },
 }

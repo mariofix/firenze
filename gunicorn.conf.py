@@ -52,10 +52,20 @@ logconfig_dict = {
             "level": f"{loglevel.upper()}",
             "propagate": False,
         },
+        "uvicorn.access": {
+            "handlers": ["access_file"],
+            "level": f"{loglevel.upper()}",
+            "propagate": False,
+        },
+        "uvicorn.error": {
+            "handlers": ["error_file"],
+            "level": f"{loglevel.upper()}",
+            "propagate": False,
+        },
     },
     "root": {
         "handlers": ["error_file"],
-        "level": f"{loglevel.upper()}",
+        "level": "WARNING",
     },
 }
 

@@ -31,7 +31,7 @@ def create_app():
     )
     logging.config.dictConfig(LOGGING_CONFIG)
     app.logger = logging.getLogger("firenze")
-
+    app.state.logger = logging.getLogger("firenze")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.CORS_ORIGINS,
@@ -63,7 +63,7 @@ def create_app():
     )
 
     register_admin(admin)
-
+    app.state.admin = admin
     # AGI endpoints (called by Asterisk dialplan via CURL)
     app.include_router(agiRouter)
 

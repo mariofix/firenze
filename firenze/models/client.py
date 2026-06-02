@@ -60,6 +60,23 @@ class Client(Base, TimestampMixin):
     def __str__(self):
         return f"<Cliente: {self.id=}/{self.service_id=}/{self.client_id=}>"
 
+    def humanize_credits(self):
+        total = int(self.credits)
+        hours, remainder = divmod(total, 3600)
+        minutes, seconds = divmod(remainder, 60)
+
+        parts = []
+        if hours:
+            parts.append(f"{hours} {'hora' if hours == 1 else 'horas'}")
+        if minutes:
+            parts.append(f"{minutes} {'minuto' if minutes == 1 else 'minutos'}")
+        if seconds or not parts:
+            parts.append(f"{seconds} {'segundo' if seconds == 1 else 'segundos'}")
+
+        if len(parts) == 1:
+            return parts[0]
+        return ", ".join(parts[:-1]) + f" y {parts[-1]}"
+
 
 class ClientAni(Base):
     """Mapea ANI (ID de llamada) a un cliente dentro de un servicio.

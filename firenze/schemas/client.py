@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, StrictInt, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, StrictInt, field_validator, StrictBool
 
 
 class ClientExtraConfig(BaseModel):
@@ -12,6 +12,7 @@ class ClientExtraConfig(BaseModel):
 
     tarotista_favorita: StrictInt | None = Field(default=None, gt=0)
     aviso_creditos: StrictInt | None = Field(default=None, ge=0)
+    promo_post_llamada: StrictBool = Field(default=False)
 
 
 class ClientCreateRequest(BaseModel):
