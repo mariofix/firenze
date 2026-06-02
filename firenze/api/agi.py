@@ -69,7 +69,7 @@ def agi_dnc_check(
     send_measurement_event(
         "call_start",
         {
-            "query_ani": ani,
+            "query_ani": sha256(ani.encode("utf-8")).hexdigest(),
             "query_duration_ms": query_duration_ms,
         },
         client_id=session_client_id,
