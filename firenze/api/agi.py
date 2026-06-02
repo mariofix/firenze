@@ -520,6 +520,8 @@ def agi_operator_release(
 @agiRouter.post("/operators/by-phone/{ani}/login")
 def agi_operator_login(
     ani: str,
+    uniqueid: str | None = Query(default=None, description="Asterisk UNIQUEID for this call session"),
+    channel: str | None = Query(default=None, description="Asterisk channel name for this call session"),
     db: Session = Depends(get_db),
     redis_conn: redis.Redis | None = Depends(get_redis),
 ):
@@ -527,6 +529,8 @@ def agi_operator_login(
 
     Llamado desde el contexto dialplan ``[tarotista-login]``.
     """
+    session_client_id = _session_client_id(uniqueid=uniqueid, channel=channel)
+    started_at = time.perf_counter()
     try:
         login_by_phone(db, ani, redis_conn)
     except OperatorNotFound as e:
@@ -536,13 +540,30 @@ def agi_operator_login(
             e,
         )
         raise HTTPException(status_code=404, detail=str(e))
-    create_audit(db, title="operator_login", category="INFO", called_from="firenze.api.agi.agi_operator_login()", data={"ani": ani})
+    query_duration_ms = round((time.perf_counter() - started_at) * 1000, 3)
+    send_measurement_event(
+        "operator_login",
+        {
+            "operator_ani": ani,
+            "query_duration_ms": query_duration_ms,
+        },
+        client_id=session_client_id,
+    )
+    create_audit(
+        db,
+        title="operator_login",
+        category="INFO",
+        called_from="firenze.api.agi.agi_operator_login()",
+        data={"ani": ani},
+    )
     return {"ok": True}
 
 
 @agiRouter.post("/operators/by-phone/{ani}/logout")
 def agi_operator_logout(
     ani: str,
+    uniqueid: str | None = Query(default=None, description="Asterisk UNIQUEID for this call session"),
+    channel: str | None = Query(default=None, description="Asterisk channel name for this call session"),
     db: Session = Depends(get_db),
     redis_conn: redis.Redis | None = Depends(get_redis),
 ):
@@ -550,6 +571,8 @@ def agi_operator_logout(
 
     Llamado desde el contexto dialplan ``[tarotista-logout]``.
     """
+    session_client_id = _session_client_id(uniqueid=uniqueid, channel=channel)
+    started_at = time.perf_counter()
     try:
         logout_by_phone(db, ani, redis_conn)
     except OperatorNotFound as e:
@@ -559,5 +582,20 @@ def agi_operator_logout(
             e,
         )
         raise HTTPException(status_code=404, detail=str(e))
-    create_audit(db, title="operator_logout", category="INFO", called_from="firenze.api.agi.agi_operator_login()", data={"ani": ani})
+    query_duration_ms = round((time.perf_counter() - started_at) * 1000, 3)
+    send_measurement_event(
+        "operator_logout",
+        {
+            "operator_ani": ani,
+            "query_duration_ms": query_duration_ms,
+        },
+        client_id=session_client_id,
+    )
+    create_audit(
+        db,
+        title="operator_logout",
+        category="INFO",
+        called_from="firenze.api.agi.agi_operator_logout()",
+        data={"ani": ani},
+    )
     return {"ok": True}

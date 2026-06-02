@@ -224,6 +224,54 @@ def test_agi_credit_limit_sends_measurement_event(mock_measurement, mock_compute
     assert mock_measurement.call_args.kwargs["client_id"] == sha256(uniqueid.encode("utf-8")).hexdigest()
 
 
+@patch("firenze.api.agi.create_audit")
+@patch("firenze.api.agi.login_by_phone")
+@patch("firenze.api.agi.send_measurement_event")
+def test_agi_operator_login_sends_measurement_event(mock_measurement, mock_login_by_phone, mock_create_audit):
+    session = MagicMock()
+    redis_conn = MagicMock()
+    uniqueid = "1748812345.4004"
+
+    client_http = TestClient(_build_app(session, redis_conn))
+    r = client_http.post(f"/agi/operators/by-phone/{CALLER_ANI}/login", params={"uniqueid": uniqueid})
+
+    assert r.status_code == 200
+    assert r.json() == {"ok": True}
+    mock_login_by_phone.assert_called_once_with(session, CALLER_ANI, redis_conn)
+    mock_measurement.assert_called_once()
+    event_name, payload = mock_measurement.call_args.args
+    assert event_name == "operator_login"
+    assert payload["operator_ani"] == CALLER_ANI
+    assert isinstance(payload["query_duration_ms"], float)
+    assert payload["query_duration_ms"] >= 0
+    assert mock_measurement.call_args.kwargs["client_id"] == sha256(uniqueid.encode("utf-8")).hexdigest()
+    mock_create_audit.assert_called_once()
+
+
+@patch("firenze.api.agi.create_audit")
+@patch("firenze.api.agi.logout_by_phone")
+@patch("firenze.api.agi.send_measurement_event")
+def test_agi_operator_logout_sends_measurement_event(mock_measurement, mock_logout_by_phone, mock_create_audit):
+    session = MagicMock()
+    redis_conn = MagicMock()
+    channel = "SIP/provider-00000400"
+
+    client_http = TestClient(_build_app(session, redis_conn))
+    r = client_http.post(f"/agi/operators/by-phone/{CALLER_ANI}/logout", params={"channel": channel})
+
+    assert r.status_code == 200
+    assert r.json() == {"ok": True}
+    mock_logout_by_phone.assert_called_once_with(session, CALLER_ANI, redis_conn)
+    mock_measurement.assert_called_once()
+    event_name, payload = mock_measurement.call_args.args
+    assert event_name == "operator_logout"
+    assert payload["operator_ani"] == CALLER_ANI
+    assert isinstance(payload["query_duration_ms"], float)
+    assert payload["query_duration_ms"] >= 0
+    assert mock_measurement.call_args.kwargs["client_id"] == sha256(channel.encode("utf-8")).hexdigest()
+    mock_create_audit.assert_called_once()
+
+
 @patch("firenze.services.call_service.call_state")
 @patch("firenze.services.operator_service.operator_state")
 @patch("firenze.services.client_service.maybe_send_post_call_email")
