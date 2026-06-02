@@ -126,6 +126,30 @@ def test_agi_did_lookup_sends_measurement_event_found(mock_measurement, mock_res
     assert event_client_id == sha256(uniqueid.encode("utf-8")).hexdigest()
 
 
+@patch("firenze.api.agi.check_dnc")
+@patch("firenze.api.agi.send_measurement_event")
+def test_agi_dnc_check_sends_call_start_event_without_dnc_data(mock_measurement, mock_check_dnc):
+    session = MagicMock()
+    redis_conn = MagicMock()
+    uniqueid = "1748812345.3003"
+    mock_check_dnc.return_value = False
+
+    client_http = TestClient(_build_app(session, redis_conn))
+    r = client_http.get(f"/agi/dnc/{CALLER_ANI}", params={"uniqueid": uniqueid})
+
+    assert r.status_code == 200
+    assert r.json() == {"dnc": "NO"}
+    mock_measurement.assert_called_once()
+    event_name, payload = mock_measurement.call_args.args
+    assert event_name == "call_start"
+    assert payload["query_ani"] == CALLER_ANI
+    assert "dnc" not in payload
+    assert "in_dnc" not in payload
+    assert isinstance(payload["query_duration_ms"], float)
+    assert payload["query_duration_ms"] >= 0
+    assert mock_measurement.call_args.kwargs["client_id"] == sha256(uniqueid.encode("utf-8")).hexdigest()
+
+
 @patch("firenze.api.agi.resolve_did")
 @patch("firenze.api.agi.send_measurement_event")
 def test_agi_did_lookup_sends_measurement_event_not_found(mock_measurement, mock_resolve_did):

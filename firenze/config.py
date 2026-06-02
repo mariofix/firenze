@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     GA4_MEASUREMENT_ID: str | None = None
     GA4_API_SECRET: str | None = None
     GA4_CLIENT_ID: str = "firenze-api"
+    GA4_DEBUG_URL_ENABLED: bool = True
 
 
 @lru_cache

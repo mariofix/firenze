@@ -55,9 +55,25 @@ def _session_client_id(uniqueid: str | None = None, channel: str | None = None) 
 
 
 @agiRouter.get("/dnc/{ani}")
-def agi_dnc_check(ani: str, db: Session = Depends(get_db)):
+def agi_dnc_check(
+    ani: str,
+    uniqueid: str | None = Query(default=None, description="Asterisk UNIQUEID for this call session"),
+    channel: str | None = Query(default=None, description="Asterisk channel name for this call session"),
+    db: Session = Depends(get_db),
+):
     """Verifica si el ANI está en la lista de No Llamar."""
+    session_client_id = _session_client_id(uniqueid=uniqueid, channel=channel)
+    started_at = time.perf_counter()
     in_dnc = check_dnc(db, ani)
+    query_duration_ms = round((time.perf_counter() - started_at) * 1000, 3)
+    send_measurement_event(
+        "call_start",
+        {
+            "query_ani": ani,
+            "query_duration_ms": query_duration_ms,
+        },
+        client_id=session_client_id,
+    )
     return {"dnc": "YES" if in_dnc else "NO"}
 
 
