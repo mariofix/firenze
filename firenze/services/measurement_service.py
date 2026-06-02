@@ -52,7 +52,7 @@ def send_measurement_event(
         except ValueError:
             result = {"raw": response.text}
 
-        logger.info(
+        logger.debug(
             "measurement event response (%s): status=%s result=%s",
             event_name,
             response.status_code,
