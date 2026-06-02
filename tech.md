@@ -169,8 +169,6 @@ igual que en `service_lookup` (`uniqueid` prioridad alta, luego `channel`).
 
 Parámetros enviados en el evento `credit_compute`:
 - `requested_seconds`
-- `timeout`
-- `audio`
 - `minutes`
 - `query_duration_ms`
 
@@ -238,6 +236,9 @@ operador. El modo aleatorio baraja candidatos y bloquea uno a la vez.
 POST /agi/operators/select
 form: mode=random
 form: mode=option&selection=03
+form: client_id=42                 (opcional, para evento call_dialed)
+query: uniqueid={asterisk_uniqueid} (opcional, telemetría de sesión)
+query: channel={asterisk_channel}   (opcional, fallback de telemetría)
 
 éxito:
 -> {"ok": true,
@@ -251,6 +252,10 @@ fallo:
 -> {"ok": false, "reason": "no-operators"}
 -> {"ok": false, "reason": "no-phone-configured"}
 ```
+
+Cuando la selección tiene éxito (`ok=true`) se envía evento `call_dialed` con:
+- `client_id` (del form opcional)
+- `tarotista` (desde `operador_nombre`)
 
 ### Liberación de operador
 
@@ -302,7 +307,7 @@ Eventos y `params` emitidos actualmente:
 
 ```json
 {
-  "query_ani": "56912345678",
+  "query_ani": "<sha256(ani)>",
   "query_duration_ms": 1.234
 }
 ```
@@ -324,10 +329,28 @@ Eventos y `params` emitidos actualmente:
 ```json
 {
   "requested_seconds": 1800,
-  "timeout": 1800,
-  "audio": "zvn/saldo/30",
   "minutes": 30,
   "query_duration_ms": 0.456
+}
+```
+
+`call_ended` (POST `/agi/clients/{service}/{client_id}/deduct`):
+
+```json
+{
+  "client_id": 42,
+  "tarotista": "Maria",
+  "call_duration_seconds": 180,
+  "query_duration_ms": 2.345
+}
+```
+
+`call_dialed` (POST `/agi/operators/select`, solo cuando `ok=true`):
+
+```json
+{
+  "client_id": 42,
+  "tarotista": "Maria"
 }
 ```
 
@@ -335,7 +358,7 @@ Eventos y `params` emitidos actualmente:
 
 ```json
 {
-  "operator_ani": "56912345678",
+  "tarotista": "Maria",
   "query_duration_ms": 0.321
 }
 ```
@@ -344,7 +367,7 @@ Eventos y `params` emitidos actualmente:
 
 ```json
 {
-  "operator_ani": "56912345678",
+  "tarotista": "Maria",
   "query_duration_ms": 0.298
 }
 ```

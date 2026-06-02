@@ -142,8 +142,6 @@ def agi_credit_limit(
         "credit_compute",
         {
             "requested_seconds": seconds,
-            "timeout": result.get("timeout"),
-            "audio": result.get("audio", ""),
             "minutes": result.get("minutes"),
             "query_duration_ms": query_duration_ms,
         },
@@ -209,7 +207,7 @@ def agi_client_deduct(
             "call_ended",
             {
                 "client_id": client_id,
-                "operador": operator,
+                "tarotista": operator,
                 "call_duration_seconds": seconds,
                 "query_duration_ms": query_duration_ms,
             },
@@ -354,7 +352,7 @@ def agi_operator_select(
             "call_dialed",
             {
                 "client_id": client_id,
-                "operator_name": result.get("operador_nombre"),
+                "tarotista": result.get("operador_nombre"),
             },
             client_id=session_client_id,
         )
@@ -562,7 +560,23 @@ def agi_operator_login(
     session_client_id = _session_client_id(uniqueid=uniqueid, channel=channel)
     started_at = time.perf_counter()
     try:
-        login_by_phone(db, ani, redis_conn)
+        tarotista = login_by_phone(db, ani, redis_conn)
+        query_duration_ms = round((time.perf_counter() - started_at) * 1000, 3)
+        send_measurement_event(
+            "operator_login",
+            {
+                "tarotista": tarotista.name,
+                "query_duration_ms": query_duration_ms,
+            },
+            client_id=session_client_id,
+        )
+        create_audit(
+            db,
+            title="operator_login",
+            category="INFO",
+            called_from="firenze.api.agi.agi_operator_login()",
+            data={"ani": ani},
+        )
     except OperatorNotFound as e:
         logger.warning(
             "agi_operator_login: OperatorNotFound for ani=%r: %s",
@@ -570,22 +584,7 @@ def agi_operator_login(
             e,
         )
         raise HTTPException(status_code=404, detail=str(e))
-    query_duration_ms = round((time.perf_counter() - started_at) * 1000, 3)
-    send_measurement_event(
-        "operator_login",
-        {
-            "operator_ani": ani,
-            "query_duration_ms": query_duration_ms,
-        },
-        client_id=session_client_id,
-    )
-    create_audit(
-        db,
-        title="operator_login",
-        category="INFO",
-        called_from="firenze.api.agi.agi_operator_login()",
-        data={"ani": ani},
-    )
+    
     return {"ok": True}
 
 
@@ -604,7 +603,16 @@ def agi_operator_logout(
     session_client_id = _session_client_id(uniqueid=uniqueid, channel=channel)
     started_at = time.perf_counter()
     try:
-        logout_by_phone(db, ani, redis_conn)
+        tarotista = logout_by_phone(db, ani, redis_conn)
+        query_duration_ms = round((time.perf_counter() - started_at) * 1000, 3)
+        send_measurement_event(
+            "operator_logout",
+            {
+                "tarotista": tarotista.name,
+                "query_duration_ms": query_duration_ms,
+            },
+            client_id=session_client_id,
+        )
     except OperatorNotFound as e:
         logger.warning(
             "agi_operator_logout: OperatorNotFound for ani=%r: %s",
@@ -612,15 +620,7 @@ def agi_operator_logout(
             e,
         )
         raise HTTPException(status_code=404, detail=str(e))
-    query_duration_ms = round((time.perf_counter() - started_at) * 1000, 3)
-    send_measurement_event(
-        "operator_logout",
-        {
-            "operator_ani": ani,
-            "query_duration_ms": query_duration_ms,
-        },
-        client_id=session_client_id,
-    )
+    
     create_audit(
         db,
         title="operator_logout",
