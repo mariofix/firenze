@@ -57,7 +57,7 @@ el dialplan se migra pieza por pieza:
 ### Endpoints AGI (todos viven en :9002)
 
 - `GET  /agi/dnc/{ani}`
-- `GET  /agi/services/did/{did}`
+- `GET  /agi/services/did/{did}` (acepta `uniqueid` y `channel` opcionales para telemetría GA4 `service_lookup`)
 - `GET  /agi/credits/limit?seconds=N`
 - `GET  /agi/clients/lookup?service=&identifier=`
 - `POST /agi/clients/{service}/{client_id}/deduct`

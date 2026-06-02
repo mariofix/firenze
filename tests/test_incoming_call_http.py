@@ -9,6 +9,7 @@ Mounts a minimal app with only ``agiRouter`` and overrides ``get_db`` /
 ``get_redis`` so no real MySQL or Redis is touched.
 """
 
+from hashlib import sha256
 from unittest.mock import MagicMock, patch
 
 from fastapi import FastAPI
@@ -91,6 +92,112 @@ def _build_app(session, redis_conn):
     app.dependency_overrides[get_db] = lambda: session
     app.dependency_overrides[get_redis] = lambda: redis_conn
     return app
+
+
+@patch("firenze.api.agi.resolve_did")
+@patch("firenze.api.agi.send_measurement_event")
+def test_agi_did_lookup_sends_measurement_event_found(mock_measurement, mock_resolve_did):
+    session = MagicMock()
+    redis_conn = MagicMock()
+    mock_resolve_did.return_value = {
+        "siguiente": "prepago-service",
+        "servicio": SERVICE_SLUG,
+        "auth_method": "ani",
+        "intro_audio": "zvn/intro-fonotarot-cl",
+    }
+
+    client_http = TestClient(_build_app(session, redis_conn))
+    uniqueid = "1748812345.1001"
+    channel = "SIP/provider-0000002a"
+    r = client_http.get(f"/agi/services/did/{DID}", params={"uniqueid": uniqueid, "channel": channel})
+
+    assert r.status_code == 200
+    assert r.json()["servicio"] == SERVICE_SLUG
+    mock_measurement.assert_called_once()
+    event_name, payload = mock_measurement.call_args.args
+    event_client_id = mock_measurement.call_args.kwargs["client_id"]
+    assert event_name == "service_lookup"
+    assert payload["query_did"] == DID
+    assert payload["assigned_context"] == "prepago-service"
+    assert payload["service"] == SERVICE_SLUG
+    assert payload["found"] is True
+    assert isinstance(payload["query_duration_ms"], float)
+    assert payload["query_duration_ms"] >= 0
+    assert event_client_id == sha256(uniqueid.encode("utf-8")).hexdigest()
+
+
+@patch("firenze.api.agi.resolve_did")
+@patch("firenze.api.agi.send_measurement_event")
+def test_agi_did_lookup_sends_measurement_event_not_found(mock_measurement, mock_resolve_did):
+    session = MagicMock()
+    redis_conn = MagicMock()
+    mock_resolve_did.return_value = {
+        "siguiente": "",
+        "servicio": "",
+        "auth_method": "",
+        "intro_audio": "",
+    }
+
+    client_http = TestClient(_build_app(session, redis_conn))
+    r = client_http.get(f"/agi/services/did/{DID}")
+
+    assert r.status_code == 200
+    assert r.json()["servicio"] == ""
+    mock_measurement.assert_called_once()
+    event_name, payload = mock_measurement.call_args.args
+    assert event_name == "service_lookup"
+    assert payload["query_did"] == DID
+    assert payload["assigned_context"] == ""
+    assert payload["service"] == ""
+    assert payload["found"] is False
+    assert isinstance(payload["query_duration_ms"], float)
+    assert payload["query_duration_ms"] >= 0
+    assert mock_measurement.call_args.kwargs["client_id"] is None
+
+
+@patch("firenze.api.agi.resolve_did")
+@patch("firenze.api.agi.send_measurement_event")
+def test_agi_did_lookup_uses_channel_hash_when_uniqueid_missing(mock_measurement, mock_resolve_did):
+    session = MagicMock()
+    redis_conn = MagicMock()
+    channel = "SIP/provider-00000099"
+    mock_resolve_did.return_value = {
+        "siguiente": "prepago-service",
+        "servicio": SERVICE_SLUG,
+        "auth_method": "ani",
+        "intro_audio": "zvn/intro-fonotarot-cl",
+    }
+
+    client_http = TestClient(_build_app(session, redis_conn))
+    r = client_http.get(f"/agi/services/did/{DID}", params={"channel": channel})
+
+    assert r.status_code == 200
+    assert mock_measurement.call_args.kwargs["client_id"] == sha256(channel.encode("utf-8")).hexdigest()
+
+
+@patch("firenze.api.agi.compute_call_limit")
+@patch("firenze.api.agi.send_measurement_event")
+def test_agi_credit_limit_sends_measurement_event(mock_measurement, mock_compute_call_limit):
+    session = MagicMock()
+    redis_conn = MagicMock()
+    uniqueid = "1748812345.2002"
+    mock_compute_call_limit.return_value = {"timeout": 1800, "audio": "zvn/saldo/30", "minutes": 30}
+
+    client_http = TestClient(_build_app(session, redis_conn))
+    r = client_http.get("/agi/credits/limit", params={"seconds": 1800, "uniqueid": uniqueid})
+
+    assert r.status_code == 200
+    assert r.json() == {"timeout": 1800, "audio": "zvn/saldo/30", "minutes": 30}
+    mock_measurement.assert_called_once()
+    event_name, payload = mock_measurement.call_args.args
+    assert event_name == "credit_compute"
+    assert payload["requested_seconds"] == 1800
+    assert payload["timeout"] == 1800
+    assert payload["audio"] == "zvn/saldo/30"
+    assert payload["minutes"] == 30
+    assert isinstance(payload["query_duration_ms"], float)
+    assert payload["query_duration_ms"] >= 0
+    assert mock_measurement.call_args.kwargs["client_id"] == sha256(uniqueid.encode("utf-8")).hexdigest()
 
 
 @patch("firenze.services.call_service.call_state")

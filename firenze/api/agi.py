@@ -5,12 +5,15 @@ Sin autenticación JWT — protegido por enlace solo a localhost / LAN.
 """
 
 import logging
+import time
+from hashlib import sha256
 
 import redis
 from fastapi import APIRouter, Depends, Form, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from firenze.dependencies import get_db, get_redis
+from firenze.services.audit_service import create_audit
 from firenze.services.call_service import (
     delete_call,
     get_active_call,
@@ -27,16 +30,23 @@ from firenze.services.client_service import update_ani_stats as svc_ani_stats
 from firenze.services.credit_service import compute_call_limit
 from firenze.services.did_service import resolve_did
 from firenze.services.dnc_service import check_dnc
+from firenze.services.measurement_service import send_measurement_event
 from firenze.services.operator_service import OperatorNotFound, login_by_phone, logout_by_phone
 from firenze.services.operator_service import get_menu as svc_get_menu
 from firenze.services.operator_service import info_operator as svc_operator
 from firenze.services.operator_service import release_operator as svc_release
 from firenze.services.operator_service import select_operator as svc_select
-from firenze.services.audit_service import create_audit
 
 logger = logging.getLogger("firenze")
 
 agiRouter = APIRouter(prefix="/agi", tags=["agi"])
+
+
+def _session_client_id(uniqueid: str | None = None, channel: str | None = None) -> str | None:
+    session_source = uniqueid or channel
+    if not session_source:
+        return None
+    return sha256(session_source.encode("utf-8")).hexdigest()
 
 
 # ---------------------------------------------------------------------------
@@ -57,7 +67,12 @@ def agi_dnc_check(ani: str, db: Session = Depends(get_db)):
 
 
 @agiRouter.get("/services/did/{did}")
-def agi_did_lookup(did: str, db: Session = Depends(get_db)):
+def agi_did_lookup(
+    did: str,
+    uniqueid: str | None = Query(default=None, description="Asterisk UNIQUEID for this call session"),
+    channel: str | None = Query(default=None, description="Asterisk channel name for this call session"),
+    db: Session = Depends(get_db),
+):
     """Resuelve un DID a su configuración de servicio.
 
     Retorna el conjunto completo de variables de canal que el contexto
@@ -70,7 +85,22 @@ def agi_did_lookup(did: str, db: Session = Depends(get_db)):
         auth_method  — ``"ani"`` o ``"pin"``
         intro_audio  — cadena compatible con Playback (p. ej. ``"zvn/intro-alotarot"``)
     """
-    return resolve_did(db, did)
+    session_client_id = _session_client_id(uniqueid=uniqueid, channel=channel)
+    started_at = time.perf_counter()
+    data = resolve_did(db, did)
+    query_duration_ms = round((time.perf_counter() - started_at) * 1000, 3)
+    send_measurement_event(
+        "service_lookup",
+        {
+            "query_did": did,
+            "assigned_context": data.get("siguiente", ""),
+            "service": data.get("servicio", ""),
+            "found": bool(data.get("servicio")),
+            "query_duration_ms": query_duration_ms,
+        },
+        client_id=session_client_id,
+    )
+    return data
 
 
 # ---------------------------------------------------------------------------
@@ -79,12 +109,31 @@ def agi_did_lookup(did: str, db: Session = Depends(get_db)):
 
 
 @agiRouter.get("/credits/limit")
-def agi_credit_limit(seconds: int = Query(..., description="Credit balance in seconds")):
+def agi_credit_limit(
+    seconds: int = Query(..., description="Credit balance in seconds"),
+    uniqueid: str | None = Query(default=None, description="Asterisk UNIQUEID for this call session"),
+    channel: str | None = Query(default=None, description="Asterisk channel name for this call session"),
+):
     """Calcula timeout de llamada y archivo de audio para un saldo de crédito dado.
 
     Reemplaza la escalera ``[limite-saldo]`` de dialplan de 150 líneas.
     """
-    return compute_call_limit(seconds)
+    session_client_id = _session_client_id(uniqueid=uniqueid, channel=channel)
+    started_at = time.perf_counter()
+    result = compute_call_limit(seconds)
+    query_duration_ms = round((time.perf_counter() - started_at) * 1000, 3)
+    send_measurement_event(
+        "credit_compute",
+        {
+            "requested_seconds": seconds,
+            "timeout": result.get("timeout"),
+            "audio": result.get("audio", ""),
+            "minutes": result.get("minutes"),
+            "query_duration_ms": query_duration_ms,
+        },
+        client_id=session_client_id,
+    )
+    return result
 
 
 # ---------------------------------------------------------------------------

@@ -86,6 +86,11 @@ FIRENZE_API=http://localhost:9002/agi
 ; Números almacenados como 56XXXXXXXXX. Troncal indefinida -> strip=0.
 TRUNK_STRIP_didww-mia-out=0
 TRUNK_STRIP_tecno=2
+
+# GA4 Measurement Protocol (opcional)
+GA4_MEASUREMENT_ID=G-XXXXXXXXXX
+GA4_API_SECRET=xxxxxxxxxxxxxxxxxxxxxxxx
+GA4_CLIENT_ID=firenze-api
 ```
 
 `asterisk_config/new/extensions.conf` agrega `TRUNK_STRIP_tecnoera=2` y
@@ -125,7 +130,7 @@ GET /agi/dnc/{ani}
 ### Resolución de servicio / DID
 
 ```
-GET /agi/services/did/{did}
+GET /agi/services/did/{did}?uniqueid={asterisk_uniqueid}&channel={asterisk_channel}
 -> {"siguiente": "prepago-service",
     "servicio":  "alotarot",
     "auth_method": "ani",
@@ -135,16 +140,39 @@ no encontrado:
 -> {"siguiente": "", "servicio": "", "auth_method": "", "intro_audio": ""}
 ```
 
+`uniqueid` y `channel` son opcionales y se usan para telemetría `service_lookup`
+(GA4 Measurement Protocol). `client_id` se calcula como hash SHA-256 de:
+1. `uniqueid` (prioridad alta)
+2. `channel` (fallback)
+3. `GA4_CLIENT_ID` de settings (fallback final si no llegan query params)
+
+Parámetros enviados en el evento `service_lookup`:
+- `query_did`
+- `assigned_context`
+- `service`
+- `found`
+- `query_duration_ms`
+
 ### Límite de crédito
 
 Reemplaza la escalera dialplan `[limite-saldo]` antigua.
 
 ```
-GET /agi/credits/limit?seconds=N
+GET /agi/credits/limit?seconds=N&uniqueid={asterisk_uniqueid}&channel={asterisk_channel}
 -> {"timeout": 900, "audio": "zvn/saldo/15", "minutes": 15}
 saldo cero / negativo:
 -> {"timeout": 1, "audio": "", "minutes": 0}
 ```
+
+`uniqueid` y `channel` son opcionales y, si vienen, generan `client_id` hash
+igual que en `service_lookup` (`uniqueid` prioridad alta, luego `channel`).
+
+Parámetros enviados en el evento `credit_compute`:
+- `requested_seconds`
+- `timeout`
+- `audio`
+- `minutes`
+- `query_duration_ms`
 
 ### Búsqueda de cliente
 
