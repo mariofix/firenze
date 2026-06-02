@@ -118,6 +118,17 @@ class TestDeductCredits:
         session.commit.assert_called_once()
         assert result == {"ok": True, "remaining": 700, "before": 1000}
 
+    def test_triggers_post_call_email_after_commit(self):
+        svc = _make_service()
+        client = _make_client(credits=1000)
+        session = _mock_session_for_deduct(svc, client)
+
+        with patch("firenze.services.client_service.maybe_send_post_call_email") as mock_email:
+            result = deduct_credits(session, "fonotarot-latam", 100, 300)
+
+        mock_email.assert_called_once_with(client, svc)
+        assert result == {"ok": True, "remaining": 700, "before": 1000}
+
     def test_deduct_exact_balance(self):
         svc = _make_service()
         client = _make_client(credits=500)
@@ -148,8 +159,8 @@ class TestDeductCredits:
             result = deduct_credits(session, "fonotarot-latam", 100, 300)
 
         mock_notify.assert_called_once()
-        session.commit.assert_not_called()
-        assert result == {"ok": True, "remaining": 0, "before": 0}
+        session.commit.assert_called_once()
+        assert result == {"ok": True, "remaining": 0, "before": 0, "warning": True}
 
     def test_raises_client_not_found(self):
         svc = _make_service()

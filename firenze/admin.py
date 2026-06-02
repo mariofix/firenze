@@ -940,6 +940,7 @@ class FirenzeAdmin(Admin):
             cdr_top_client_rows = (
                 db.query(
                     AsteriskCDR.zvn_clientid.label("client_id"),
+                    func.min(AsteriskCDR.zvn_client_ani).label("ani"),
                     func.count(AsteriskCDR.cdrid).label("calls"),
                     func.max(AsteriskCDR.calldate).label("last_call"),
                 )
@@ -956,19 +957,6 @@ class FirenzeAdmin(Admin):
                 .limit(top_ani_limit)
                 .all()
             )
-            top_client_ids = [int(row.client_id) for row in cdr_top_client_rows]
-            if top_client_ids:
-                client_ani_rows = (
-                    db.query(
-                        ClientAni.client_id,
-                        func.min(ClientAni.ani).label("ani"),
-                    )
-                    .filter(ClientAni.client_id.in_(top_client_ids))
-                    .group_by(ClientAni.client_id)
-                    .all()
-                )
-            else:
-                client_ani_rows = []
             cdr_month_answered = (
                 db.query(
                     func.count(AsteriskCDR.cdrid).label("answered_calls"),
@@ -1281,11 +1269,10 @@ class FirenzeAdmin(Admin):
             }
             for row in disposition_rows
         ]
-        client_ani_map = {int(row.client_id): (row.ani or "—") for row in client_ani_rows}
         top_ani_calls = max((int(row.calls or 0) for row in cdr_top_client_rows), default=1)
         ani_top_callers = [
             {
-                "ani": client_ani_map.get(int(row.client_id), "—"),
+                "ani": row.ani or "—",
                 "client_id": int(row.client_id or 0),
                 "q_calls": int(row.calls or 0),
                 "share": round((int(row.calls or 0) / top_ani_calls) * 100, 1) if top_ani_calls else 0.0,

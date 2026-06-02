@@ -95,7 +95,8 @@ def _build_app(session, redis_conn):
 
 @patch("firenze.services.call_service.call_state")
 @patch("firenze.services.operator_service.operator_state")
-def test_incoming_call_happy_path_http(mock_op_state, mock_call_state):
+@patch("firenze.services.client_service.maybe_send_post_call_email")
+def test_incoming_call_happy_path_http(mock_post_call_email, mock_op_state, mock_call_state):
     session = MagicMock()
     redis_conn = MagicMock()
     svc = _make_service()
@@ -236,8 +237,11 @@ def test_incoming_call_happy_path_http(mock_op_state, mock_call_state):
         "ok": True,
         "remaining": INITIAL_CREDITS - CALL_DURATION,
         "before": INITIAL_CREDITS,
+        "client_id": CLIENT_ID,
+        "service": SERVICE_SLUG,
     }
     assert client.credits == INITIAL_CREDITS - CALL_DURATION
+    mock_post_call_email.assert_called_once_with(client, svc)
 
     # ----- Step 11: Release operator -----------------------------------------
     r = client_http.post(f"/agi/operators/{OPERATOR_NUMBER}/release")

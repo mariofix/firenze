@@ -6,10 +6,13 @@ Utilizado por extremos AGI - el dialplan de Asterisk llama a estos a través de 
 import datetime
 import logging
 
+from daleks.contrib.client import DaleksClient
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from firenze.config import settings
 from firenze.models.client import Client, ClientAni, _generate_pin
 from firenze.models.operator import Operator
 from firenze.models.service import Service
@@ -18,6 +21,7 @@ from firenze.services.notifications import notify
 logger = logging.getLogger("firenze")
 
 _MAX_PIN_SELECTION_ATTEMPTS = 256
+_POST_CALL_EMAIL_THRESHOLD = 600
 
 
 class ClientNotFound(Exception):
@@ -80,10 +84,24 @@ def deduct_credits(db: Session, service_slug: str, client_id: int, seconds: int)
         # Per-client one-call-at-a-time enforcement upstream should make this
         # unreachable. If we land here, the customer made a call without
         # credits - log loudly and notify, but don't fail the deduction.
-        logger.warning(f"deduct_credits called with no balance: {service_slug=} {client_id=} {seconds=} {client.credits=}")
-        audit_data = {"service_slug": service_slug, "client_id": client_id, "client.credits": client.credits, "seconds":seconds}
+        logger.warning(
+            "deduct_credits called with no balance: "
+            f"{service_slug=} {client_id=} {seconds=} {client.credits=}"
+        )
+        audit_data = {
+            "service_slug": service_slug,
+            "client_id": client_id,
+            "client.credits": client.credits,
+            "seconds": seconds,
+        }
         from firenze.services.audit_service import create_audit
-        create_audit(db, title="llamada sin saldo", category="ERROR", called_from="firenze.services.client_service.deduct_credits()", data=audit_data)
+        create_audit(
+            db,
+            title="llamada sin saldo",
+            category="ERROR",
+            called_from="firenze.services.client_service.deduct_credits()",
+            data=audit_data,
+        )
         # notify(
         #     subject=f"[firenze] deduct on zero balance: client {client_id}",
         #     body=(
@@ -106,8 +124,56 @@ def deduct_credits(db: Session, service_slug: str, client_id: int, seconds: int)
     db.refresh(client)
 
     logger.info(f"deduct_credits: {client.extra_config=}")
+    maybe_send_post_call_email(client, svc)
 
     return {"ok": True, "remaining": client.credits, "before": before_call}
+
+
+def _post_call_template_env() -> Environment:
+    return Environment(
+        loader=FileSystemLoader(str(settings.BASE_DIR / "firenze" / "templates")),
+        autoescape=select_autoescape(["html", "xml"]),
+    )
+
+
+def maybe_send_post_call_email(
+    client: Client,
+    service: Service,
+    *,
+    template_env: Environment | None = None,
+    subject: str = "[Prueba] Gracias por tu llamada.",
+) -> bool:
+    """Send the post-call reminder email when the client opted in and is below threshold."""
+    extra_config = client.extra_config if isinstance(client.extra_config, dict) else {}
+    if not extra_config.get("promo_post_llamada", False):
+        return False
+    if not client.email or client.credits >= _POST_CALL_EMAIL_THRESHOLD:
+        return False
+    if not settings.DALEKS_URL or not settings.DALEKS_FROM:
+        logger.info(
+            "daleks post-call reminder skipped (config missing): service=%s client_id=%s",
+            service.slug,
+            client.client_id,
+        )
+        return False
+
+    env = template_env or _post_call_template_env()
+    html_body = env.get_template("emails/post_llamada.html").render(client=client, service=service)
+    smtp_account = settings.DALEKS_SMTP_ACCOUNT or None
+
+    try:
+        with DaleksClient(settings.DALEKS_URL, smtp_account=smtp_account) as dalek:
+            dalek.send_email(
+                from_address=settings.DALEKS_FROM,
+                to=[client.email],
+                subject=subject,
+                html_body=html_body,
+            )
+    except Exception as exc:
+        logger.warning("daleks post-call reminder failed (%s): %s", type(exc).__name__, exc)
+        return False
+
+    return True
 
 
 def update_ani_stats(db: Session, service_slug: str, ani: str) -> None:
