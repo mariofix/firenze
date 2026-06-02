@@ -189,6 +189,9 @@ def agi_client_deduct(
     service: str,
     client_id: int,
     seconds: int = Form(..., description="Seconds to deduct"),
+    operator: str | None = Form(default=None, description="Operator Name"),
+    uniqueid: str | None = Query(default=None, description="Asterisk UNIQUEID for this call session"),
+    channel: str | None = Query(default=None, description="Asterisk channel name for this call session"),
     db: Session = Depends(get_db),
 ):
     """Descuenta créditos (segundos) del saldo de un cliente.
@@ -196,9 +199,22 @@ def agi_client_deduct(
     Llamado desde el manejador hangup ``[llama-operador]`` después de que termina una llamada.
     """
     try:
+        session_client_id = _session_client_id(uniqueid=uniqueid, channel=channel)
+        started_at = time.perf_counter()
         data_out = svc_deduct(db, service, client_id, seconds)
+        query_duration_ms = round((time.perf_counter() - started_at) * 1000, 3)
         data_out.update({"client_id": client_id, "service": service})
         create_audit(db, title="resta_saldo", category="INFO", called_from="firenze.api.agi.agi_client_deduct()", data=data_out)
+        send_measurement_event(
+            "call_ended",
+            {
+                "client_id": client_id,
+                "operador": operator,
+                "call_duration_seconds": seconds,
+                "query_duration_ms": query_duration_ms,
+            },
+            client_id=session_client_id,
+        )
         return data_out
     except ServiceNotFound as e:
         logger.warning(
@@ -309,6 +325,9 @@ def agi_operators_menu(
 def agi_operator_select(
     mode: str = Form(..., description='"random" or "option"'),
     selection: str | None = Form(default=None, description="Operator option digits, required when mode=option"),
+    client_id: int | None = Form(default=None, description="Internal client ID for measurement tracking"),
+    uniqueid: str | None = Query(default=None, description="Asterisk UNIQUEID for this call session"),
+    channel: str | None = Query(default=None, description="Asterisk channel name for this call session"),
     db: Session = Depends(get_db),
     redis_conn: redis.Redis | None = Depends(get_redis),
 ):
@@ -328,7 +347,18 @@ def agi_operator_select(
         ok      — falso
         reason  — "operator-busy" | "no-operators" | "no-phone-configured"
     """
-    return svc_select(db, mode=mode, selection=selection, redis_conn=redis_conn)
+    result = svc_select(db, mode=mode, selection=selection, redis_conn=redis_conn)
+    if result.get("ok"):
+        session_client_id = _session_client_id(uniqueid=uniqueid, channel=channel)
+        send_measurement_event(
+            "call_dialed",
+            {
+                "internal_client_id": client_id,
+                "operator_name": result.get("operador_nombre"),
+            },
+            client_id=session_client_id,
+        )
+    return result
 
 
 # ---------------------------------------------------------------------------
