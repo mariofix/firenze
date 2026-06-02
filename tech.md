@@ -269,6 +269,86 @@ POST /agi/operators/by-phone/{ani}/login   -> {"ok": true}
 POST /agi/operators/by-phone/{ani}/logout  -> {"ok": true}
 ```
 
+### Estructura de payloads de eventos de medición (GA4)
+
+Los eventos se envían vía `firenze.services.measurement_service.send_measurement_event()`
+al endpoint GA4 Measurement Protocol (`/mp/collect` o `/debug/mp/collect`).
+
+Estructura común del request enviado a GA4:
+
+```json
+{
+  "client_id": "<sha256(uniqueid)|sha256(channel)|GA4_CLIENT_ID>",
+  "timestamp_micros": 1748894708123456789,
+  "events": [
+    {
+      "name": "<event_name>",
+      "params": {
+        "...": "..."
+      }
+    }
+  ]
+}
+```
+
+Regla de `client_id` en endpoints AGI con telemetría de sesión:
+1. `sha256(uniqueid)` si llega `uniqueid`
+2. `sha256(channel)` si no llega `uniqueid` pero sí `channel`
+3. `GA4_CLIENT_ID` como fallback final
+
+Eventos y `params` emitidos actualmente:
+
+`call_start` (GET `/agi/dnc/{ani}`):
+
+```json
+{
+  "query_ani": "56912345678",
+  "query_duration_ms": 1.234
+}
+```
+
+`service_lookup` (GET `/agi/services/did/{did}`):
+
+```json
+{
+  "query_did": "56229402147",
+  "assigned_context": "prepago-service",
+  "service": "fonotarot-cl",
+  "found": "true",
+  "query_duration_ms": 0.987
+}
+```
+
+`credit_compute` (GET `/agi/credits/limit`):
+
+```json
+{
+  "requested_seconds": 1800,
+  "timeout": 1800,
+  "audio": "zvn/saldo/30",
+  "minutes": 30,
+  "query_duration_ms": 0.456
+}
+```
+
+`operator_login` (POST `/agi/operators/by-phone/{ani}/login`):
+
+```json
+{
+  "operator_ani": "56912345678",
+  "query_duration_ms": 0.321
+}
+```
+
+`operator_logout` (POST `/agi/operators/by-phone/{ani}/logout`):
+
+```json
+{
+  "operator_ani": "56912345678",
+  "query_duration_ms": 0.298
+}
+```
+
 ### Información de operador (búsqueda, sin reclamo)
 
 Búsquedas de solo lectura usadas entre `/operators/menu` y `/operators/select`.
