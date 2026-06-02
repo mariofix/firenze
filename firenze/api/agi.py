@@ -353,7 +353,7 @@ def agi_operator_select(
         send_measurement_event(
             "call_dialed",
             {
-                "internal_client_id": client_id,
+                "client_id": client_id,
                 "operator_name": result.get("operador_nombre"),
             },
             client_id=session_client_id,
