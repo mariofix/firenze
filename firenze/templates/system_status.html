@@ -682,6 +682,7 @@
     const previewUrl = "/api/v1/admin/system-status/client-credit/preview";
     const applyUrl = "/api/v1/admin/system-status/client-credit";
     let pendingPayload = null;
+    const clientCreditModal = modalEl && bootstrap.Modal ? (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)) : null;
 
     function setAlert(message, type) {
       if (!creditAlert) {
@@ -741,7 +742,7 @@
         modalAdd.textContent = `${data.credits_to_add} segundos`;
         modalNew.textContent = `${data.new_credits} segundos`;
 
-        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        clientCreditModal?.show();
       } catch (error) {
         setAlert(error.message || "No se pudo cargar el cliente.", "danger");
       } finally {
@@ -768,7 +769,7 @@
           body: JSON.stringify(pendingPayload),
         });
         const data = await readJsonResponse(response);
-        bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+        clientCreditModal?.hide();
         pendingPayload = null;
         setAlert(`Saldo actualizado para client_id ${data.client_id}: ${data.current_credits} -> ${data.new_credits} segundos.`, "success");
       } catch (error) {
