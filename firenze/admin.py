@@ -563,7 +563,7 @@ class MonthlyReportIndex(BaseView):
         try:
             year = int(request.query_params.get("year", today.year))
             month = int(request.query_params.get("month", today.month))
-        except TypeError, ValueError:
+        except (TypeError, ValueError):
             year, month = today.year, today.month
 
         month = max(1, min(12, month))
@@ -1306,6 +1306,7 @@ class FirenzeAdmin(Admin):
             "operator_activity_top5": operator_activity_top5,
             "active_calls": enriched_calls,
             "active_call_services": active_call_services,
+            "service_options": [{"slug": service.slug, "name": service.name} for service in services if service.slug],
             "redis_operators_count": len(redis_operators),
             "redis_calls_count": len(redis_calls),
             "pending_credits": int(pending_credits.total),

@@ -64,6 +64,36 @@
         </div>
       </div>
     </div>
+
+    <div class="card mt-3">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fa fa-wallet me-2"></i>Agregar saldo a cliente</h3>
+      </div>
+      <div class="card-body">
+        <div class="alert alert-danger d-none" id="client-credit-alert" role="alert"></div>
+        {% if service_options %}
+        <div class="mb-3">
+          <label class="form-label" for="client-credit-service">Servicio</label>
+          <select class="form-select" id="client-credit-service" required>
+            {% for service in service_options %}
+            <option value="{{ service.slug }}">{{ service.name }} ({{ service.slug }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="client-credit-client-id">Client ID</label>
+          <input class="form-control" id="client-credit-client-id" name="client_id" type="number" min="1" step="1" placeholder="Client ID">
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="client-credit-add">Saldo a Agregar</label>
+          <input class="form-control" id="client-credit-add" name="credits_to_add" type="number" min="1" step="1" placeholder="Segundos a agregar">
+        </div>
+        <button class="btn btn-primary w-100" id="client-credit-preview-btn" type="button">Save</button>
+        {% else %}
+        <div class="text-secondary">No hay servicios disponibles para seleccionar.</div>
+        {% endif %}
+      </div>
+    </div>
   </div>
 
   <div class="col-12 col-lg-9">
@@ -532,6 +562,36 @@
   </div>
 </div>
 
+<div class="modal modal-blur fade" id="client-credit-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirmar recarga de saldo</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info" id="client-credit-modal-summary" role="alert"></div>
+        <dl class="row mb-0">
+          <dt class="col-sm-5 text-secondary">Client ID</dt>
+          <dd class="col-sm-7 mb-2" id="client-credit-modal-client-id">—</dd>
+          <dt class="col-sm-5 text-secondary">Email</dt>
+          <dd class="col-sm-7 mb-2" id="client-credit-modal-email">—</dd>
+          <dt class="col-sm-5 text-secondary">Créditos actuales</dt>
+          <dd class="col-sm-7 mb-2" id="client-credit-modal-current">—</dd>
+          <dt class="col-sm-5 text-secondary">Créditos a agregar</dt>
+          <dd class="col-sm-7 mb-2" id="client-credit-modal-add">—</dd>
+          <dt class="col-sm-5 text-secondary">Nuevo saldo</dt>
+          <dd class="col-sm-7 mb-0" id="client-credit-modal-new">—</dd>
+        </dl>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="client-credit-confirm-btn">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block tail %}
@@ -587,6 +647,123 @@
 
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.forEach((tooltipTriggerEl) => new bootstrap.Tooltip(tooltipTriggerEl));
+
+    const creditAlert = document.getElementById("client-credit-alert");
+    const previewButton = document.getElementById("client-credit-preview-btn");
+    const confirmButton = document.getElementById("client-credit-confirm-btn");
+    const modalEl = document.getElementById("client-credit-modal");
+    const modalSummary = document.getElementById("client-credit-modal-summary");
+    const modalClientId = document.getElementById("client-credit-modal-client-id");
+    const modalEmail = document.getElementById("client-credit-modal-email");
+    const modalCurrent = document.getElementById("client-credit-modal-current");
+    const modalAdd = document.getElementById("client-credit-modal-add");
+    const modalNew = document.getElementById("client-credit-modal-new");
+    const serviceSelect = document.getElementById("client-credit-service");
+    const clientIdInput = document.getElementById("client-credit-client-id");
+    const creditsInput = document.getElementById("client-credit-add");
+    const previewUrl = "/api/v1/admin/system-status/client-credit/preview";
+    const applyUrl = "/api/v1/admin/system-status/client-credit";
+    let pendingPayload = null;
+
+    function setAlert(message, type) {
+      if (!creditAlert) {
+        return;
+      }
+      creditAlert.textContent = message;
+      creditAlert.className = `alert alert-${type}`;
+      creditAlert.classList.toggle("d-none", !message);
+    }
+
+    function setModalSummary(message, type) {
+      modalSummary.textContent = message;
+      modalSummary.className = `alert alert-${type}`;
+    }
+
+    async function readJsonResponse(response) {
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.detail || data.message || "Request failed");
+      }
+      return data;
+    }
+
+    previewButton?.addEventListener("click", async () => {
+      setAlert("", "danger");
+      const serviceSlug = serviceSelect?.value || "";
+      const clientId = Number.parseInt(clientIdInput?.value || "", 10);
+      const creditsToAdd = Number.parseInt(creditsInput?.value || "", 10);
+
+      if (!serviceSlug || !Number.isInteger(clientId) || clientId <= 0 || !Number.isInteger(creditsToAdd) || creditsToAdd <= 0) {
+        setAlert("Completa Servicio, Client ID y Saldo a Agregar con valores válidos.", "danger");
+        return;
+      }
+
+      previewButton.disabled = true;
+      previewButton.setAttribute("aria-busy", "true");
+      try {
+        const params = new URLSearchParams({
+          service_slug: serviceSlug,
+          client_id: String(clientId),
+          credits_to_add: String(creditsToAdd),
+        });
+        const response = await fetch(`${previewUrl}?${params.toString()}`, { credentials: "same-origin" });
+        const data = await readJsonResponse(response);
+
+        pendingPayload = {
+          service_slug: data.service_slug,
+          client_id: data.client_id,
+          credits_to_add: data.credits_to_add,
+        };
+
+        modalSummary.textContent = `Vas a agregar ${data.credits_to_add} segundos al cliente ${data.client_id}.`;
+        modalSummary.className = "alert alert-info";
+        modalClientId.textContent = String(data.client_id);
+        modalEmail.textContent = data.email || "Sin correo registrado";
+        modalCurrent.textContent = `${data.current_credits} segundos`;
+        modalAdd.textContent = `${data.credits_to_add} segundos`;
+        modalNew.textContent = `${data.new_credits} segundos`;
+
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+      } catch (error) {
+        setAlert(error.message || "No se pudo cargar el cliente.", "danger");
+      } finally {
+        previewButton.disabled = false;
+        previewButton.removeAttribute("aria-busy");
+      }
+    });
+
+    confirmButton?.addEventListener("click", async () => {
+      if (!pendingPayload) {
+        setModalSummary("Primero carga un cliente válido.", "warning");
+        return;
+      }
+
+      confirmButton.disabled = true;
+      confirmButton.setAttribute("aria-busy", "true");
+      try {
+        const response = await fetch(applyUrl, {
+          method: "POST",
+          credentials: "same-origin",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(pendingPayload),
+        });
+        const data = await readJsonResponse(response);
+        bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+        pendingPayload = null;
+        setAlert(`Saldo actualizado para client_id ${data.client_id}: ${data.current_credits} -> ${data.new_credits} segundos.`, "success");
+      } catch (error) {
+        setModalSummary(error.message || "No se pudo guardar el saldo.", "danger");
+      } finally {
+        confirmButton.disabled = false;
+        confirmButton.removeAttribute("aria-busy");
+      }
+    });
+
+    modalEl?.addEventListener("hidden.bs.modal", () => {
+      pendingPayload = null;
+    });
   });
 </script>
 {% endblock %}
