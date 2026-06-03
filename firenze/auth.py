@@ -89,6 +89,40 @@ async def loggedin_user(
     return user.id
 
 
+async def admin_loggedin_user(
+    security_scopes: SecurityScopes,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    user_id = request.session.get("admin_user_id")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Credenciales de administrador faltantes",
+        )
+
+    user = crud.get_user(db, user_id)
+    if not user or not user.enabled:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Usuario no encontrado",
+        )
+
+    if not auth_service.has_required_scopes(user, security_scopes.scopes):
+        missing = [scope for scope in security_scopes.scopes if scope not in user.scopes]
+        if missing:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Alcance insuficiente: '{missing[0]}' requerido",
+            )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No se pudo validar credenciales",
+        )
+
+    return user.id
+
+
 @authRouter.get(
     "/me",
     response_model=schemas.User,

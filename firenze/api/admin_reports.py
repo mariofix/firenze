@@ -7,7 +7,7 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 
 from firenze.admin import FirenzeAdmin
-from firenze.auth import loggedin_user
+from firenze.auth import admin_loggedin_user
 from firenze.dependencies import get_db
 from firenze.schemas.admin_reports import (
     SystemStatusClientCreditRequest,
@@ -30,7 +30,7 @@ async def admin_system_status(
         default="current_month",
         description="Operator period. Allowed values: current_month, last_month, last_3_months.",
     ),
-    _user_id: int = Security(loggedin_user, scopes=["admin", "reports"]),
+    _user_id: int = Security(admin_loggedin_user, scopes=["admin", "reports"]),
 ):
     top_ani_limit = top_ani if top_ani in {5, 10, 15} else 10
     normalized_operator_period = (
@@ -50,7 +50,7 @@ def admin_system_status_client_credit_preview(
     client_id: int = Query(..., gt=0),
     credits_to_add: int = Query(..., gt=0),
     db: Session = Depends(get_db),
-    _user_id: int = Security(loggedin_user, scopes=["admin", "reports"]),
+    _user_id: int = Security(admin_loggedin_user, scopes=["admin", "reports"]),
 ):
     try:
         client = get_client(db, service_slug, client_id)
@@ -80,7 +80,7 @@ def admin_system_status_client_credit_preview(
 def admin_system_status_client_credit_apply(
     payload: SystemStatusClientCreditRequest,
     db: Session = Depends(get_db),
-    _user_id: int = Security(loggedin_user, scopes=["admin", "reports"]),
+    _user_id: int = Security(admin_loggedin_user, scopes=["admin", "reports"]),
 ):
     try:
         client = get_client(db, payload.service_slug, payload.client_id)

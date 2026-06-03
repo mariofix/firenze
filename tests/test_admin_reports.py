@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from firenze.api.admin_reports import adminReportsRouter
-from firenze.auth import loggedin_user
+from firenze.auth import admin_loggedin_user
 from firenze.dependencies import get_db
 
 
@@ -12,7 +12,7 @@ def _build_app(session):
     app = FastAPI()
     app.include_router(adminReportsRouter)
     app.dependency_overrides[get_db] = lambda: session
-    app.dependency_overrides[loggedin_user] = lambda: 1
+    app.dependency_overrides[admin_loggedin_user] = lambda: 1
     return app
 
 
