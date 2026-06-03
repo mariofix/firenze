@@ -137,7 +137,7 @@
             {% set ani_stale_30_pct = (ani_stale_30 * 100 / ani_den) | round(1) %}
             {% set ani_stale_60_pct = (ani_stale_60 * 100 / ani_den) | round(1) %}
             <p class="mb-3">
-              Clientes Activos: <strong>{{ ani_reports.with_last_call }}</strong> de {{ ani_tracked_total + ani_reports.total_anis }} client_id activos
+              Clientes Activos: <strong>{{ ani_reports.with_last_call }}</strong> de {{ ani_reports.total_anis }} client_id activos
               <span class="text-secondary">({{ ani_coverage }}%)</span>
             </p>
             <div class="progress progress-separated mb-3">
@@ -341,8 +341,8 @@
         {% set busy = (logged_in - available) if logged_in >= available else 0 %}
         {% set logged_in_pct = (logged_in * 100 / total_ops) | round(1) %}
         {% set not_logged_in_pct = (not_logged_in * 100 / total_ops) | round(1) %}
-        {% set available_pct = (available * 100 / logged_in) if logged_in>0 else 0 | round(1) %}
-        {% set busy_pct = (busy * 100 / logged_in) if logged_in>0 else 0 | round(1) %}
+        {% set available_pct = ((available * 100 / logged_in) | round(1)) if logged_in > 0 else 0 %}
+        {% set busy_pct = ((busy * 100 / logged_in) | round(1)) if logged_in > 0 else 0 %}
 
         <div class="d-flex justify-content-between mb-1">
           <span>Conectado</span>
