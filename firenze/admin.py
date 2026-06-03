@@ -12,6 +12,7 @@ from starlette.requests import Request
 from starlette.responses import RedirectResponse
 from starlette.routing import Route
 
+from firenze.admin_logs import FirenzeApiLogViewer
 from firenze.config import settings
 from firenze.database import SessionLocal
 from firenze.models import (
@@ -1389,6 +1390,7 @@ def register_admin(admin):
     admin.add_view(AsteriskCDRAdmin)
     admin.add_view(MonthlyReportIndex)
     admin.add_view(MonthlyAgentReportIndex)
+    admin.add_view(FirenzeApiLogViewer)
     admin.add_view(OnlineCallsAdmin)
     admin.add_view(APIDocs)
     # admin.add_view(PostCallProcessAdmin)
