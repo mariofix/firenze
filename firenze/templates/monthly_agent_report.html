@@ -19,28 +19,36 @@
       <div class="card-body">
         <form method="GET" class="row g-3 align-items-end">
           <div class="col-auto">
-            <label class="form-label">Período</label>
-            <div class="form-control-plaintext fw-semibold">{{ months_es[month] }} {{ year }} (mes actual)</div>
+            <label class="form-label">Periodo</label>
+            <div class="d-flex flex-wrap gap-2">
+              <select name="month" class="form-select" style="min-width: 160px;">
+                {% for m_num, m_name in months_es.items() %}
+                <option value="{{ m_num }}"{% if m_num == month %} selected{% endif %}>{{ m_name }}</option>
+                {% endfor %}
+              </select>
+              <select name="year" class="form-select" style="min-width: 120px;">
+                {% for y in year_options %}
+                <option value="{{ y }}"{% if y == year %} selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+              </select>
+            </div>
           </div>
           <div class="col-12 col-lg">
-            <label class="form-label">Agentes (vacío = todos)</label>
-            <div class="d-flex flex-wrap gap-2">
-              {% for agent in data.all_agents if data %}
-              <label class="form-check form-check-inline mb-0">
-                <input
-                  class="form-check-input"
-                  type="checkbox"
-                  name="agents"
-                  value="{{ agent.number }}"
-                  {% if not selected_agents or agent.number in selected_agents %}checked{% endif %}
-                />
-                <span class="form-check-label">
-                  <strong>{{ agent.number }}</strong>
-                  <span class="text-muted small ms-1">{{ agent.name }}</span>
-                </span>
-              </label>
+            <label class="form-label" for="agents-select">Agentes</label>
+            <select
+              id="agents-select"
+              name="agents"
+              class="form-select js-select2"
+              multiple
+              data-placeholder="Todos los agentes"
+            >
+              {% if data %}
+              {% for agent in data.all_agents %}
+              <option value="{{ agent.number }}"{% if agent.number in selected_agents %} selected{% endif %}>{{ agent.number }} — {{ agent.name }}</option>
               {% endfor %}
-            </div>
+              {% endif %}
+            </select>
+            <div class="form-hint">Dejar vacío muestra todos los agentes.</div>
           </div>
           <div class="col-auto">
             <button type="submit" class="btn btn-primary">
@@ -113,4 +121,41 @@
     {% endif %}
   </div>
 </div>
+{% endblock %}
+
+{% block tail %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
+<style>
+  #agents-select + .select2 .select2-selection--multiple {
+    min-height: 38px;
+    height: auto;
+  }
+
+  #agents-select + .select2 .select2-selection__rendered {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    white-space: normal;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  #agents-select + .select2 .select2-selection__choice {
+    margin: 0;
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const $agents = window.jQuery && window.jQuery("#agents-select");
+    if ($agents && $agents.select2) {
+      $agents.select2({
+        width: "100%",
+        closeOnSelect: false,
+        placeholder: $agents.data("placeholder") || "Todos los agentes",
+      });
+    }
+  });
+</script>
 {% endblock %}

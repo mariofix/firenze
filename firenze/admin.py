@@ -603,8 +603,17 @@ class MonthlyAgentReportIndex(BaseView):
     @login_required
     async def index(self, request):
         today = datetime.date.today()
-        year = today.year
-        month = today.month
+        try:
+            year = int(request.query_params.get("year", today.year))
+        except (TypeError, ValueError):
+            year = today.year
+        try:
+            month = int(request.query_params.get("month", today.month))
+        except (TypeError, ValueError):
+            month = today.month
+
+        year = max(_REPORT_MIN_YEAR, min(today.year + 1, year))
+        month = max(1, min(12, month))
 
         selected_raw = request.query_params.getlist("agents")
         selected_agents = tuple(int(v) for v in selected_raw if v.isdigit())
@@ -618,6 +627,8 @@ class MonthlyAgentReportIndex(BaseView):
             _log.exception("monthly_agent_report failed")
             error = str(exc)
 
+        default_selected_agents = set(agent["number"] for agent in report["all_agents"]) if report else set()
+
         return await self.templates.TemplateResponse(
             request,
             "monthly_agent_report.html",
@@ -627,10 +638,12 @@ class MonthlyAgentReportIndex(BaseView):
                 "month": month,
                 "months_es": _MONTHS_ES,
                 "min_year": _REPORT_MIN_YEAR,
+                "max_year": today.year + 1,
                 "today": today,
                 "data": report,
                 "error": error,
-                "selected_agents": set(selected_agents) if selected_agents else set(),
+                "selected_agents": set(selected_agents) if selected_agents else default_selected_agents,
+                "year_options": list(range(_REPORT_MIN_YEAR, today.year + 2)),
             },
         )
 
