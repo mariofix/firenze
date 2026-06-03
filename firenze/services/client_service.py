@@ -123,7 +123,6 @@ def deduct_credits(db: Session, service_slug: str, client_id: int, seconds: int)
     db.commit()
     db.refresh(client)
 
-    logger.info(f"deduct_credits: {client.extra_config=}")
     maybe_send_post_call_email(client, svc)
 
     return {"ok": True, "remaining": client.credits, "before": before_call}
@@ -156,7 +155,7 @@ def maybe_send_post_call_email(
             client.client_id,
         )
         return False
-
+    logger.info(f"post_call_email about to send the email to {client.email=}")
     env = template_env or _post_call_template_env()
     html_body = env.get_template("emails/post_llamada.html").render(client=client, service=service)
     smtp_account = settings.DALEKS_SMTP_ACCOUNT or None
@@ -169,6 +168,7 @@ def maybe_send_post_call_email(
                 subject=subject,
                 html_body=html_body,
             )
+            logger.debug(f"post_call_email email sent")
     except Exception as exc:
         logger.warning("daleks post-call reminder failed (%s): %s", type(exc).__name__, exc)
         return False
