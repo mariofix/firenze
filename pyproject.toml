@@ -1,6 +1,6 @@
 [project]
 name = "firenze"
-version = "2026.5.2"
+version = "2026.6.0"
 description = "Servicio de comunicación y administración para servicio Tatot"
 readme = "README.md"
 authors = [{ name = "Mario Hernandez", email = "mariofix@proton.me" }]
@@ -8,6 +8,10 @@ requires-python = ">=3.14"
 dependencies = [
   "alembic>=1.18.4",
   "daleks[contrib] @ git+https://github.com/mariofix/daleks.git",
+  "flask>=3.1.1",
+  "flask-cors>=6.0.1",
+  "flask-smorest>=0.46.2",
+  "flask-admin @ file:///home/mariofix/proyectos/flask-admin",
   "fastapi[all]>=0.136.1",
   "itsdangerous>=2.2.0",
   "jinja2>=3.1.6",
@@ -19,11 +23,9 @@ dependencies = [
   "python-multipart>=0.0.26",
   "python-slugify>=8.0.4",
   "requests>=2.33.1",
-  "sqladmin>=0.25.0",
   "sqlalchemy>=2.0.48",
   "sqlalchemy-repr>=0.1.0",
   "typer>=0.24.2",
-  "uvicorn[standard]>=0.46.0",
   "valkey>=6.1.1",
   "bcrypt>=4.3",
   "argon2-cffi>=23.1.0",
@@ -36,6 +38,7 @@ firenze = "firenze.cli:cli"
 
 [project.optional-dependencies]
 dev = [
+  "flask-debugtoolbar-extrapanels @ file:///home/mariofix/proyectos/flask-debugtoolbar-extrapanels",
   "fastapi-debug-toolbar (>=0.6.3,<0.7.0)",
   "isort (>=8.0.1,<9.0.0)",
   "pytest (>=9.0.3,<10.0.0)",
@@ -84,6 +87,7 @@ packages = ["firenze"]
 
 [dependency-groups]
 dev = [
+  "flask-debugtoolbar (>=0.16.0,<0.17.0)",
   "fastapi-debug-toolbar (>=0.6.3,<0.7.0)",
   "isort (>=8.0.1,<9.0.0)",
   "pytest (>=9.0.3,<10.0.0)",

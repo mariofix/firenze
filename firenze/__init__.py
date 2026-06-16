@@ -1,83 +1,56 @@
-import logging
-import logging.config
 
-from debug_toolbar.middleware import DebugToolbarMiddleware
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.sessions import SessionMiddleware
-from starlette.middleware.trustedhost import TrustedHostMiddleware
+from ipaddress import ip_address, ip_network
 
-from firenze.admin import FirenzeAdmin, register_admin
-from firenze.api.admin_reports import adminReportsRouter
-from firenze.api.agi import agiRouter
-from firenze.api.clients import clientsRouter
-from firenze.api.payments import paymentsRouter
-from firenze.api.public import publicRouter
-from firenze.auth import AdminAuth, authRouter
-from firenze.config import LOGGING_CONFIG, Settings, settings
-from firenze.database import engine
-from firenze.middleware import InternalOnlyMiddleware
+from flask import Flask, jsonify, request
+from flask_cors import CORS
+from flask_debugtoolbar import DebugToolbarExtension
+from werkzeug.exceptions import Forbidden
+
+from firenze.config import Settings
+from firenze.database import SessionLocal, engine
 
 from .version import __version__
 
 
 def create_app():
-    app = FastAPI(
-        title="Firenze",
-        description="Servicio de comunicacion y administracion para servicio Tatot",
-        version=__version__,
-        debug=settings.DEBUG,
-        docs_url="/api-docs",
-    )
-    logging.config.dictConfig(LOGGING_CONFIG)
-    app.logger = logging.getLogger("firenze")
-    app.state.logger = logging.getLogger("firenze")
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.CORS_ORIGINS,
-        allow_credentials=True,
-        allow_methods=["*"],
+    app = Flask(__name__)
+    app.config.from_object(Settings)
+    app.config.from_prefixed_env()
+
+    allowed_domains = set(app.config.get("ALLOWED_DOMAINS", []))
+    agi_networks = [ip_network(cidr) for cidr in app.config.get("AGI_ALLOWED_NETWORKS", [])]
+    app.extensions["db_engine"] = engine
+    app.extensions["db_session_factory"] = SessionLocal
+
+    CORS(
+        app,
+        origins=app.config.get("CORS_ORIGINS", []),
+        supports_credentials=True,
         allow_headers=["*"],
+        methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     )
-    app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
-    app.add_middleware(DebugToolbarMiddleware, settings=[Settings()])
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.ALLOWED_DOMAINS)
-    app.add_middleware(
-        InternalOnlyMiddleware,
-        path_prefix=settings.AGI_PATH_PREFIX,
-        allowed_networks=settings.AGI_ALLOWED_NETWORKS,
-    )
+    DebugToolbarExtension(app)
+
+    @app.before_request
+    def enforce_request_guards():
+        host = request.host.split(":", 1)[0] if request.host else ""
+        if allowed_domains and host not in allowed_domains:
+            raise Forbidden("Host not allowed")
+
+        path_prefix = app.config.get("AGI_PATH_PREFIX", "/agi")
+        if request.path.startswith(path_prefix):
+            peer = request.remote_addr
+            if not peer:
+                raise Forbidden("Forbidden")
+            try:
+                addr = ip_address(peer)
+            except ValueError as exc:
+                raise Forbidden("Forbidden") from exc
+            if not any(addr in network for network in agi_networks):
+                raise Forbidden("Forbidden")
 
     @app.get("/")
     def root_index():
-        return {"status": "ok"}
-
-    # sqladmin
-    authentication_backend = AdminAuth(secret_key=settings.SECRET_KEY)
-    admin = FirenzeAdmin(
-        app,
-        engine,
-        title="Firenze Admin",
-        authentication_backend=authentication_backend,
-        templates_dir=str(settings.BASE_DIR / "firenze" / "templates"),
-    )
-
-    register_admin(admin)
-    app.state.admin = admin
-    # AGI endpoints (called by Asterisk dialplan via CURL)
-    app.include_router(agiRouter)
-
-    # Auth endpoints (/api/v1/auth/me and passwordless request)
-    app.include_router(authRouter)
-
-    # Payment / storefront endpoints (called by nuevo-fonotarot)
-    app.include_router(paymentsRouter)
-
-    # Client CRUD endpoints
-    app.include_router(clientsRouter)
-
-    # public endpoints
-    app.include_router(publicRouter)
-    app.include_router(adminReportsRouter)
+        return jsonify({"status": "ok"})
 
     return app

@@ -2,33 +2,27 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from .version import __version__
+from dataclasses import dataclass
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-class Settings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_file=f"{BASE_DIR}/.env",
-        env_file_encoding="utf-8",
-        case_sensitive=True,
-        extra="ignore",
-    )
-
+@dataclass
+class Settings:
     ENVIRONMENT: str = "production"
     SQLALCHEMY_DATABASE_URL: str = ""
     DEBUG: bool = False
     LOG_LEVEL: str = "INFO"
     SECRET_KEY: str = "CHANGE-ME-this-is-a-dev-only-default-key-replace-in-production"
-    REDIS_URL: str = "redis://zvn-lin3.local:6379"
+    REDIS_URL: str = "redis://localhost:6379"
     REDIS_SOCKET_CONNECT_TIMEOUT: float = 2.0
     REDIS_SOCKET_TIMEOUT: float = 2.0
     ALLOWED_DOMAINS: list[str] = ["localhost", "tardis.local"]
-    CORS_ORIGINS: list[str] = ["https://nuevo.fonotarot.com"]
+    CORS_ORIGINS: list[str] = ["http://localhost"]
     AGI_PATH_PREFIX: str = "/agi"
     AGI_ALLOWED_NETWORKS: list[str] = ["127.0.0.1/32"]
     BASE_DIR: Any = BASE_DIR
-    LEGACY_API_URL: str = "https://firenze.156.cl"
+    LEGACY_API_URL: str = "http://localhost:9000"
     LEGACY_API_USER: str = ""
     LEGACY_API_PASSWORD: str = ""
     DALEKS_URL: str | None = None
@@ -46,6 +40,24 @@ class Settings(BaseSettings):
     GA4_API_SECRET: str | None = None
     GA4_CLIENT_ID: str = "firenze-api"
     GA4_DEBUG_URL_ENABLED: bool = True
+    API_TITLE: str = "Firenze"
+    API_VERSION: str = __version__
+    OPENAPI_VERSION: str =  "3.0.3"
+    JSON_SORT_KEYS:bool =  False
+    DEBUG_TB_PANELS = (
+        "flask_debugtoolbar.panels.versions.VersionDebugPanel",
+        "flask_debugtoolbar.panels.timer.TimerDebugPanel",
+        "flask_debugtoolbar.panels.headers.HeaderDebugPanel",
+        "flask_debugtoolbar.panels.request_vars.RequestVarsDebugPanel",
+        "flask_debugtoolbar.panels.config_vars.ConfigVarsDebugPanel",
+        "flask_debugtoolbar.panels.template.TemplateDebugPanel",
+        "flask_debugtoolbar.panels.sqlalchemy.SQLAlchemyDebugPanel",
+        "flask_debugtoolbar.panels.logger.LoggingPanel",
+        "flask_debugtoolbar.panels.route_list.RouteListDebugPanel",
+        "flask_debugtoolbar.panels.profiler.ProfilerDebugPanel",
+        "flask_debugtoolbar.panels.g.GDebugPanel",
+        "flask_debugtoolbar_extrapanels.SignalsPanel",
+    )
 
 
 @lru_cache
@@ -54,6 +66,17 @@ def get_settings():
 
 
 settings = get_settings()
+
+
+def build_flask_app_config(*, api_version: str) -> dict[str, Any]:
+    return {
+        "API_TITLE": "Firenze",
+        "API_VERSION": api_version,
+        "OPENAPI_VERSION": "3.0.3",
+        "JSON_SORT_KEYS": False,
+        "DEBUG_TB_ENABLED": settings.DEBUG,
+    }
+
 
 # Logger available at 'Request.app.logger' or logging.getLogger("firenze")
 
