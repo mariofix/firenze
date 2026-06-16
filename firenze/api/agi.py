@@ -11,6 +11,7 @@ from hashlib import sha256
 import redis
 from fastapi import APIRouter, Depends, Form, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 
 from firenze.dependencies import get_db, get_redis
 from firenze.services.audit_service import create_audit
@@ -196,6 +197,25 @@ def agi_client_deduct(
 
     Llamado desde el manejador hangup ``[llama-operador]`` después de que termina una llamada.
     """
+    segundos = None
+    if channel:
+        logger.info(f"Calculando nuevo billsec con CEL y channelname='{channel}'")
+        query = text("""
+            SELECT 
+                TIMESTAMPDIFF(SECOND,
+                    MAX(CASE WHEN eventtype = 'BRIDGE_ENTER' THEN eventtime END),
+                    MAX(CASE WHEN eventtype = 'BRIDGE_EXIT'  THEN eventtime END)
+                ) AS duration_seconds
+            FROM zvn_asterisk.cel
+            WHERE channame = :channel
+        """)
+        try:
+            row = db.execute(query, {"channel": channel}).first()
+            if row and row.duration_seconds is not None:
+                logger.info(f"Nuevos segundos calculados para {channel}: {row.duration_seconds}")
+        except Exception as e:
+            logger.warning(e)
+
     try:
         session_client_id = _session_client_id(uniqueid=uniqueid, channel=channel)
         started_at = time.perf_counter()
