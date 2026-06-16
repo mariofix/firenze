@@ -199,7 +199,7 @@ def agi_client_deduct(
     """
     segundos = None
     if channel:
-        logger.info(f"Calculando nuevo billsec con CEL y channelname='{channel}'")
+        logger.debug(f"agi_client_deduct: Calculando nuevo billsec con CEL y channelname='{channel}'")
         query = text("""
             SELECT 
                 TIMESTAMPDIFF(SECOND,
@@ -212,14 +212,15 @@ def agi_client_deduct(
         try:
             row = db.execute(query, {"channel": channel}).first()
             if row and row.duration_seconds is not None:
-                logger.info(f"Nuevos segundos calculados para {channel}: {row.duration_seconds}")
+                logger.info(f"agi_client_deduct: Nuevos segundos calculados para {channel}: {row.duration_seconds}")
+                segundos = int(row.duration_seconds)
         except Exception as e:
             logger.warning(e)
 
     try:
         session_client_id = _session_client_id(uniqueid=uniqueid, channel=channel)
         started_at = time.perf_counter()
-        data_out = svc_deduct(db, service, client_id, seconds)
+        data_out = svc_deduct(db, service, client_id, segundos or seconds)
         query_duration_ms = round((time.perf_counter() - started_at) * 1000, 3)
         data_out.update({"client_id": client_id, "service": service})
         create_audit(db, title="resta_saldo", category="INFO", called_from="firenze.api.agi.agi_client_deduct()", data=data_out)
@@ -228,7 +229,7 @@ def agi_client_deduct(
             {
                 "client_id": client_id,
                 "tarotista": operator,
-                "call_duration_seconds": seconds,
+                "call_duration_seconds": segundos or seconds,
                 "query_duration_ms": query_duration_ms,
             },
             client_id=session_client_id,
@@ -239,7 +240,7 @@ def agi_client_deduct(
             "agi_client_deduct: ServiceNotFound for service=%r client_id=%s seconds=%s: %s",
             service,
             client_id,
-            seconds,
+            segundos or seconds,
             e,
         )
         raise HTTPException(status_code=404, detail=str(e))
@@ -248,7 +249,7 @@ def agi_client_deduct(
             "agi_client_deduct: ClientNotFound for service=%r client_id=%s seconds=%s: %s",
             service,
             client_id,
-            seconds,
+            segundos or seconds,
             e,
         )
         raise HTTPException(status_code=404, detail=str(e))
