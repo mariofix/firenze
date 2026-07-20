@@ -1,36 +1,38 @@
 [project]
 name = "firenze"
-version = "2026.6.0"
+version = "2026.7.0"
 description = "Servicio de comunicación y administración para servicio Tatot"
 readme = "README.md"
 authors = [{ name = "Mario Hernandez", email = "mariofix@proton.me" }]
-requires-python = ">=3.14"
+requires-python = ">=3.14,<4.0"
 dependencies = [
-  "alembic>=1.18.4",
-  "daleks[contrib] @ git+https://github.com/mariofix/daleks.git",
-  "flask>=3.1.1",
-  "flask-cors>=6.0.1",
-  "flask-smorest>=0.46.2",
-  "flask-admin @ file:///home/mariofix/proyectos/flask-admin",
-  "fastapi[all]>=0.136.1",
-  "itsdangerous>=2.2.0",
-  "jinja2>=3.1.6",
-  "phonenumbers>=9.0.28",
-  "pydantic-settings>=2.14.0",
-  "pydantic[email]>=2.13.3",
-  "pymysql>=1.1.2",
-  "python-dotenv>=1.2.2",
-  "python-multipart>=0.0.26",
-  "python-slugify>=8.0.4",
-  "requests>=2.33.1",
-  "sqlalchemy>=2.0.48",
-  "sqlalchemy-repr>=0.1.0",
-  "typer>=0.24.2",
-  "valkey>=6.1.1",
-  "bcrypt>=4.3",
-  "argon2-cffi>=23.1.0",
-  "gunicorn (>=25.3.0,<27.0.0)",
-  "redis (>=7.4.0,<9.0.0)",
+    "flask>=3.1.3",
+    "flask-admin[images,sqlalchemy-with-utils,translation] @ git+https://github.com/mariofix/flask-admin.git@tabler-ui",
+    "flask-security[babel,common,fsqla] (>=5.8.1,<7.0.0)",
+    "python-slugify (>=8.0.4,<9.0.0)",
+    "python-dotenv (>=1.2.2,<2.0.0)",
+    "flask-limiter (>=4.1.1,<5.0.0)",
+    "flask-migrate (>=4.1.0,<5.0.0)",
+    "flask-cors>=6.0.1",
+    "flask-smorest>=0.46.2",
+
+
+    "daleks[contrib] @ git+https://github.com/mariofix/daleks.git",
+    "phonenumbers>=9.0.28",
+    "pydantic-settings>=2.14.0",
+    "pydantic[email]>=2.13.3",
+    "pymysql>=1.1.2",
+    "python-dotenv>=1.2.2",
+    "python-multipart>=0.0.26",
+    "python-slugify>=8.0.4",
+    "requests>=2.33.1",
+    "sqlalchemy>=2.0.48",
+    "sqlalchemy-repr>=0.1.0",
+    "valkey>=6.1.1",
+    "bcrypt>=4.3",
+    "argon2-cffi>=23.1.0",
+    "gunicorn (>=25.3.0,<27.0.0)",
+    "flask-alembic (>=3.2.0,<4.0.0)",
 ]
 
 [project.scripts]
@@ -38,16 +40,15 @@ firenze = "firenze.cli:cli"
 
 [project.optional-dependencies]
 dev = [
-  "flask-debugtoolbar-extrapanels @ file:///home/mariofix/proyectos/flask-debugtoolbar-extrapanels",
-  "fastapi-debug-toolbar (>=0.6.3,<0.7.0)",
-  "isort (>=8.0.1,<9.0.0)",
-  "pytest (>=9.0.3,<10.0.0)",
-  "pytest-flask (>=1.3.0,<2.0.0)",
-  "black (>=26.3.1,<27.0.0)",
-  "pre-commit (>=4.6.0,<5.0.0)",
-  "coverage (>=7.13.5,<8.0.0)",
-  "ruff (>=0.15.12,<0.16.0)",
-  "httpx (>=0.28.1,<0.29.0)",
+    "flask-debugtoolbar-extrapanels",
+    "isort (>=8.0.1,<9.0.0)",
+    "pytest (>=9.0.3,<10.0.0)",
+    "pytest-flask (>=1.3.0,<2.0.0)",
+    "black (>=26.3.1,<27.0.0)",
+    "pre-commit (>=4.6.0,<5.0.0)",
+    "coverage (>=7.13.5,<8.0.0)",
+    "ruff (>=0.15.12,<0.16.0)",
+    "httpx (>=0.28.1,<0.29.0)",
 ]
 
 [tool.poetry]
@@ -87,14 +88,13 @@ packages = ["firenze"]
 
 [dependency-groups]
 dev = [
-  "flask-debugtoolbar (>=0.16.0,<0.17.0)",
-  "fastapi-debug-toolbar (>=0.6.3,<0.7.0)",
-  "isort (>=8.0.1,<9.0.0)",
-  "pytest (>=9.0.3,<10.0.0)",
-  "pytest-flask (>=1.3.0,<2.0.0)",
-  "black (>=26.3.1,<27.0.0)",
-  "pre-commit (>=4.6.0,<5.0.0)",
-  "coverage (>=7.13.5,<8.0.0)",
-  "ruff (>=0.15.12,<0.16.0)",
-  "httpx (>=0.28.1,<0.29.0)",
+    "flask-debugtoolbar-extrapanels",
+    "isort (>=8.0.1,<9.0.0)",
+    "pytest (>=9.0.3,<10.0.0)",
+    "pytest-flask (>=1.3.0,<2.0.0)",
+    "black (>=26.3.1,<27.0.0)",
+    "pre-commit (>=4.6.0,<5.0.0)",
+    "coverage (>=7.13.5,<8.0.0)",
+    "ruff (>=0.15.12,<0.16.0)",
+    "httpx (>=0.28.1,<0.29.0)",
 ]

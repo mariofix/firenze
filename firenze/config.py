@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any
 
 from .version import __version__
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -17,7 +17,7 @@ class Settings:
     REDIS_URL: str = "redis://localhost:6379"
     REDIS_SOCKET_CONNECT_TIMEOUT: float = 2.0
     REDIS_SOCKET_TIMEOUT: float = 2.0
-    ALLOWED_DOMAINS: list[str] = ["localhost", "tardis.local"]
+    ALLOWED_DOMAINS: list[str] = field(default_factory=lambda: ["localhost", "tardis.local"])
     CORS_ORIGINS: list[str] = ["http://localhost"]
     AGI_PATH_PREFIX: str = "/agi"
     AGI_ALLOWED_NETWORKS: list[str] = ["127.0.0.1/32"]
