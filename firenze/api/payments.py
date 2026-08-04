@@ -13,12 +13,12 @@ from firenze.schemas.payment import (
     PurchaseRequest,
     PurchaseResponse,
 )
+from firenze.services.audit_service import create_audit
 from firenze.services.client_service import ClientNotFound, ServiceNotFound
 from firenze.services.payment_service import (
     apply_purchase,
     update_client,
 )
-from firenze.services.audit_service import create_audit
 
 logger = logging.getLogger("firenze")
 
@@ -68,7 +68,13 @@ def payments_complete(
         raise HTTPException(status_code=404, detail=str(e))
     logger.info(f"payments_complete: NewPayment: {result=}")
     audit_data = {"payload": payload.model_dump_json(), "apply_purchase": result}
-    create_audit(db, title="nuevo_pago", category="INFO", called_from="firenze.api.payments.payments_complete()", data=audit_data)
+    create_audit(
+        db,
+        title="nuevo_pago",
+        category="INFO",
+        called_from="firenze.api.payments.payments_complete()",
+        data=audit_data,
+    )
     return PurchaseResponse(**result)
 
 

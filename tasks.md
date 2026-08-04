@@ -5,7 +5,7 @@
 
 ## Dónde estamos ahora
 
-**Dos tiempos de ejecución de Firenze se están ejecutando lado a lado en producción** mientras 
+**Dos tiempos de ejecución de Firenze se están ejecutando lado a lado en producción** mientras
 el dialplan se migra pieza por pieza:
 
 - Heredado: Subprocesos CLI AGI (`${FIRENZE}` y `${AUDIOTEX}` globales en
@@ -117,7 +117,7 @@ el dialplan se migra pieza por pieza:
 - **Hibridación de dialplan.** `new_config/` ya hace CURL al nuevo servicio
   para DNC, resolución DID, límite de crédito e inserción/cierre de llamada en línea,
   en paralelo con las llamadas AGI antiguas. Aún no hemos eliminado las llamadas AGI.
-- **`ServiceNumber.asterisk_context`.** Aún apunta a contextos por servicio 
+- **`ServiceNumber.asterisk_context`.** Aún apunta a contextos por servicio
   (`prepago-fonotarot-cl`, `prepago-alotarot`,
   `prepago-fonotarot-latam`). El objetivo es `prepago-service` para cada DID,
   que es lo que `asterisk_config/new/` asume.

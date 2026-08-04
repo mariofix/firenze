@@ -1,19 +1,17 @@
-from __future__ import annotations
-
 import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from firenze.database import Base
-from firenze.models.base import TimestampMixin
+from ..extensions import db
+from .base import TimestampMixin
 
 if TYPE_CHECKING:
     from firenze.models.user import User
 
 
-class ApiCredential(Base, TimestampMixin):
+class ApiCredential(db.Model, TimestampMixin):
     __tablename__ = "api_credential"
 
     id: Mapped[int] = mapped_column(primary_key=True)

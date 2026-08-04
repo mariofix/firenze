@@ -1,10 +1,8 @@
 """Esquemas para extremos CRUD de clientes."""
 
-from __future__ import annotations
-
 import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, StrictInt, field_validator, StrictBool
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, StrictBool, StrictInt, field_validator
 
 
 class ClientExtraConfig(BaseModel):

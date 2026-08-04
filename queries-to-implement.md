@@ -25,9 +25,9 @@ SELECT
     zvn_operator,
     COUNT(*)                                            AS calls_to_operator,
     SUM(billsec)                                        AS billsec_with_operator,
-    ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER 
+    ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER
         (PARTITION BY zvn_clientid), 1)                     AS pct_of_client_calls,
-    ROUND(SUM(billsec) * 100.0 / SUM(SUM(billsec)) OVER 
+    ROUND(SUM(billsec) * 100.0 / SUM(SUM(billsec)) OVER
         (PARTITION BY zvn_clientid), 1)                     AS pct_of_client_billsec
 FROM cdr
 WHERE calldate >= NOW() - INTERVAL 60 DAY
@@ -36,7 +36,7 @@ GROUP BY zvn_clientid, zvn_operator
 ORDER BY zvn_clientid, calls_to_operator DESC;
 -- 1. OPERATOR PROFILE
 -- Who they are, how many clients, total usage, avg session length
-SELECT 
+SELECT
     zvn_operator,
     COUNT(DISTINCT zvn_clientid)            AS unique_clients,
     COUNT(*)                            AS total_calls,

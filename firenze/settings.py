@@ -3,16 +3,19 @@ from typing import Any
 
 BASE_DIR: Any = Path(__file__).resolve().parent.parent
 SECRET_KEY: str
-DEBUG: bool = True
+DEBUG: bool = False
 LOG_LEVEL: str = "DEBUG" if DEBUG else "INFO"
 TRUSTED_HOSTS: list[str] = [
     "localhost",
     "tardis.local",
 ]
-SESSION_COOKIE_NAME: str = "new-firenze"
+SESSION_COOKIE_NAME: str = "newfirenze"
 
-#API
+# API
 CORS_ORIGINS: list[str] = ["http://localhost", "http://*.local"]
+CORS_SUPPORTS_CREDENTIALS: bool = True
+CORS_ALLOW_HEADERS: str = "*"
+CORS_METHODS: list[str] = ["GET", "POST", "PATCH", "DELETE", "OPTIONS"]
 AGI_PATH_PREFIX: str = "/agi"
 AGI_ALLOWED_NETWORKS: list[str] = ["127.0.0.1/32", "10.0.0.0/24"]
 
@@ -28,7 +31,7 @@ SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True, "pool_recycle": 1800}
 
 # Flask-Security
 SECURITY_EMAIL_SENDER = ""
-SECURITY_PASSWORD_SALT = ""
+SECURITY_PASSWORD_SALT = ""  # nosec B105 - overridden via env in prod
 SECURITY_LOGIN_URL = "/login/"
 SECURITY_LOGOUT_URL = "/logout/"
 SECURITY_POST_LOGIN_VIEW = "/"
@@ -49,13 +52,18 @@ BABEL_DEFAULT_TIMEZONE = "America/Santiago"
 BABEL_DEFAULT_FOLDER = "firenze/translations"
 BABEL_DOMAIN = "firenze"
 AVAILABLE_LANGUAGES = {
-    "es": {"flag": "es", "flag_icon": "🇪🇸","name": "Español"},
+    "es": {"flag": "es", "flag_icon": "🇪🇸", "name": "Español"},
 }
 
-# Valkey
-VALKEY_URL: str = "valkey://localhost:6379"
+# Valkey/Redis
+CACHE_URL: str = "zvn-lin3.local:6379"
+CACHE_DB: int = 0
+VALKEY_URL: str = f"valkey://{CACHE_URL}/{CACHE_DB}"
 VALKEY_SOCKET_CONNECT_TIMEOUT: float = 2.0
 VALKEY_SOCKET_TIMEOUT: float = 2.0
+REDIS_URL: str = f"redis://{CACHE_URL}/{CACHE_DB}"
+REDIS_SOCKET_CONNECT_TIMEOUT: float = 2.0
+REDIS_SOCKET_TIMEOUT: float = 2.0
 
 # Flask Debugtoolbar
 DEBUG_TB_ENABLED = True
@@ -90,3 +98,11 @@ ALEMBIC = {
         "black.entrypoint": "black",
     }
 }
+
+
+API_TITLE: str = "Firenze"
+API_VERSION: str = "2026.8.1"
+OPENAPI_VERSION: str = "3.1.1"
+OPENAPI_URL_PREFIX: str = "/api/v1"
+OPENAPI_SWAGGER_UI_PATH: str = "/docs"
+OPENAPI_SWAGGER_UI_URL: str = "https://cdn.jsdelivr.net/npm/swagger-ui-dist/"

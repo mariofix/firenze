@@ -85,8 +85,7 @@ def deduct_credits(db: Session, service_slug: str, client_id: int, seconds: int)
         # unreachable. If we land here, the customer made a call without
         # credits - log loudly and notify, but don't fail the deduction.
         logger.warning(
-            "deduct_credits called with no balance: "
-            f"{service_slug=} {client_id=} {seconds=} {client.credits=}"
+            "deduct_credits called with no balance: " f"{service_slug=} {client_id=} {seconds=} {client.credits=}"
         )
         audit_data = {
             "service_slug": service_slug,
@@ -95,6 +94,7 @@ def deduct_credits(db: Session, service_slug: str, client_id: int, seconds: int)
             "seconds": seconds,
         }
         from firenze.services.audit_service import create_audit
+
         create_audit(
             db,
             title="llamada sin saldo",

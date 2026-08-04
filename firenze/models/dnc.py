@@ -1,11 +1,12 @@
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from firenze.database import Base
 from firenze.models.base import TimestampMixin
 
+from ..extensions import db
 
-class DoNotCall(Base, TimestampMixin):
+
+class DoNotCall(db.Model, TimestampMixin):
     __tablename__ = "dnc"
 
     id: Mapped[int] = mapped_column(primary_key=True)

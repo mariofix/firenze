@@ -1,9 +1,9 @@
+from flask_alembic import Alembic
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy_repr import RepresentableBase
 
 from .config import Settings
-from flask_alembic import Alembic
 
 migrations = Alembic()
 

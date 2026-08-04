@@ -1,143 +1,143 @@
 {% extends "sqladmin/layout.html" %}
 
 {% block content_header %}
-<div class="row align-items-center">
-  <div class="col-auto">
-    <h2 class="page-title">API Logs</h2>
-    <div class="page-pretitle">logs/firenze-api.log y rotaciones</div>
+  <div class="row align-items-center">
+    <div class="col-auto">
+      <h2 class="page-title">API Logs</h2>
+      <div class="page-pretitle">logs/firenze-api.log y rotaciones</div>
+    </div>
   </div>
-</div>
 {% endblock %}
 
 {% block content %}
-<div class="row row-cards">
-  <div class="col-12">
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-filter me-2"></i>Filtros</h3>
+  <div class="row row-cards">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title"><i class="fa fa-filter me-2"></i>Filtros</h3>
+        </div>
+        <div class="card-body">
+          <form method="GET" class="row g-3 align-items-end">
+            <div class="col-12 col-lg-4">
+              <label class="form-label" for="log-files">Archivos</label>
+              <select id="log-files" name="files" class="form-select" multiple size="5">
+                {% for file in log_files %}
+                  <option value="{{ file.name }}"{% if file.name in selected_files %} selected{% endif %}>
+                    {{ file.name }}
+                  </option>
+                {% endfor %}
+              </select>
+              <div class="form-hint">Dejar vacío muestra todos los archivos descubiertos.</div>
+            </div>
+            <div class="col-6 col-lg-2">
+              <label class="form-label" for="log-level">Nivel</label>
+              <select id="log-level" name="level" class="form-select">
+                {% for current_level in log_levels %}
+                  <option value="{{ current_level }}"{% if current_level == selected_level %} selected{% endif %}>{{ current_level }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-6 col-lg-2">
+              <label class="form-label" for="log-limit">Límite</label>
+              <input id="log-limit" name="limit" type="number" min="1" max="1000" value="{{ limit }}" class="form-control">
+            </div>
+            <div class="col-12 col-lg-4">
+              <label class="form-label" for="log-query">Buscar</label>
+              <input id="log-query" name="q" type="text" value="{{ query }}" class="form-control" placeholder="Texto en mensaje, archivo o logger">
+            </div>
+            <div class="col-12 col-lg-3">
+              <label class="form-label" for="log-after">Desde</label>
+              <input id="log-after" name="after" type="datetime-local" value="{{ after }}" class="form-control">
+            </div>
+            <div class="col-12 col-lg-3">
+              <label class="form-label" for="log-before">Hasta</label>
+              <input id="log-before" name="before" type="datetime-local" value="{{ before }}" class="form-control">
+            </div>
+            <div class="col-auto">
+              <button type="submit" class="btn btn-primary">
+                <i class="fa fa-search me-1"></i>Filtrar
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-      <div class="card-body">
-        <form method="GET" class="row g-3 align-items-end">
-          <div class="col-12 col-lg-4">
-            <label class="form-label" for="log-files">Archivos</label>
-            <select id="log-files" name="files" class="form-select" multiple size="5">
+    </div>
+
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title"><i class="fa fa-folder-open me-2"></i>Archivos detectados</h3>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-vcenter card-table">
+            <thead>
+              <tr>
+                <th>Archivo</th>
+                <th class="text-end">Tamaño</th>
+                <th>Modificado</th>
+              </tr>
+            </thead>
+            <tbody>
               {% for file in log_files %}
-              <option value="{{ file.name }}"{% if file.name in selected_files %} selected{% endif %}>
-                {{ file.name }}
-              </option>
+                <tr{% if file.name in selected_files %} class="table-active"{% endif %}>
+                  <td><code>{{ file.name }}</code></td>
+                  <td class="text-end">{{ file.size }}</td>
+                  <td>{{ file.modified_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                </tr>
+              {% else %}
+                <tr>
+                  <td colspan="3" class="text-muted">No se encontraron archivos de log.</td>
+                </tr>
               {% endfor %}
-            </select>
-            <div class="form-hint">Dejar vacío muestra todos los archivos descubiertos.</div>
-          </div>
-          <div class="col-6 col-lg-2">
-            <label class="form-label" for="log-level">Nivel</label>
-            <select id="log-level" name="level" class="form-select">
-              {% for current_level in log_levels %}
-              <option value="{{ current_level }}"{% if current_level == selected_level %} selected{% endif %}>{{ current_level }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="col-6 col-lg-2">
-            <label class="form-label" for="log-limit">Límite</label>
-            <input id="log-limit" name="limit" type="number" min="1" max="1000" value="{{ limit }}" class="form-control">
-          </div>
-          <div class="col-12 col-lg-4">
-            <label class="form-label" for="log-query">Buscar</label>
-            <input id="log-query" name="q" type="text" value="{{ query }}" class="form-control" placeholder="Texto en mensaje, archivo o logger">
-          </div>
-          <div class="col-12 col-lg-3">
-            <label class="form-label" for="log-after">Desde</label>
-            <input id="log-after" name="after" type="datetime-local" value="{{ after }}" class="form-control">
-          </div>
-          <div class="col-12 col-lg-3">
-            <label class="form-label" for="log-before">Hasta</label>
-            <input id="log-before" name="before" type="datetime-local" value="{{ before }}" class="form-control">
-          </div>
-          <div class="col-auto">
-            <button type="submit" class="btn btn-primary">
-              <i class="fa fa-search me-1"></i>Filtrar
-            </button>
-          </div>
-        </form>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
-  </div>
 
-  <div class="col-12">
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-folder-open me-2"></i>Archivos detectados</h3>
-      </div>
-      <div class="table-responsive">
-        <table class="table table-sm table-vcenter card-table">
-          <thead>
-            <tr>
-              <th>Archivo</th>
-              <th class="text-end">Tamaño</th>
-              <th>Modificado</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for file in log_files %}
-            <tr{% if file.name in selected_files %} class="table-active"{% endif %}>
-              <td><code>{{ file.name }}</code></td>
-              <td class="text-end">{{ file.size }}</td>
-              <td>{{ file.modified_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-            </tr>
-            {% else %}
-            <tr>
-              <td colspan="3" class="text-muted">No se encontraron archivos de log.</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-12">
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-list me-2"></i>Entradas</h3>
-        <div class="card-actions text-secondary">{{ total_records }} registros</div>
-      </div>
-      <div class="table-responsive">
-        <table class="table table-sm table-vcenter card-table">
-          <thead>
-            <tr>
-              <th>Fecha</th>
-              <th>Nivel</th>
-              <th>Archivo</th>
-              <th>Origen</th>
-              <th>Mensaje</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for entry in entries %}
-            <tr>
-              <td class="text-nowrap">{{ entry.display_timestamp }}</td>
-              <td><span class="badge bg-{{ 'red' if entry.level == 'ERROR' else 'yellow' if entry.level == 'WARNING' else 'blue' if entry.level == 'INFO' else 'secondary' }}">{{ entry.level }}</span></td>
-              <td><code>{{ entry.file_name }}</code></td>
-              <td><code>{{ entry.source_file }}:{{ entry.source_line }}</code></td>
-              <td>
-                <div>{{ entry.message }}</div>
-                {% if "\n" in entry.raw %}
-                <details class="mt-2">
-                  <summary class="text-secondary">Ver detalle</summary>
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title"><i class="fa fa-list me-2"></i>Entradas</h3>
+          <div class="card-actions text-secondary">{{ total_records }} registros</div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-vcenter card-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Nivel</th>
+                <th>Archivo</th>
+                <th>Origen</th>
+                <th>Mensaje</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for entry in entries %}
+                <tr>
+                  <td class="text-nowrap">{{ entry.display_timestamp }}</td>
+                  <td><span class="badge bg-{{ 'red' if entry.level == 'ERROR' else 'yellow' if entry.level == 'WARNING' else 'blue' if entry.level == 'INFO' else 'secondary' }}">{{ entry.level }}</span></td>
+                  <td><code>{{ entry.file_name }}</code></td>
+                  <td><code>{{ entry.source_file }}:{{ entry.source_line }}</code></td>
+                  <td>
+                    <div>{{ entry.message }}</div>
+                    {% if "\n" in entry.raw %}
+                      <details class="mt-2">
+                        <summary class="text-secondary">Ver detalle</summary>
                   <pre class="mb-0 mt-2">{{ entry.raw }}</pre>
-                </details>
-                {% endif %}
-              </td>
-            </tr>
-            {% else %}
-            <tr>
-              <td colspan="5" class="text-muted">No hay entradas para los filtros actuales.</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+                      </details>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% else %}
+                <tr>
+                  <td colspan="5" class="text-muted">No hay entradas para los filtros actuales.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
-</div>
 {% endblock %}

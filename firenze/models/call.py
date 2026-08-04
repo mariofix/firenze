@@ -2,11 +2,12 @@ from sqlalchemy import String, UniqueConstraint
 from sqlalchemy.dialects.mysql import JSON
 from sqlalchemy.orm import Mapped, mapped_column
 
-from firenze.database import Base
 from firenze.models.base import TimestampMixin
 
+from ..extensions import db
 
-class OnlineCalls(Base, TimestampMixin):
+
+class OnlineCalls(db.Model, TimestampMixin):
     __tablename__ = "onlinecalls"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -22,7 +23,7 @@ class OnlineCalls(Base, TimestampMixin):
         return self.ani
 
 
-class PostCallProcess(Base, TimestampMixin):
+class PostCallProcess(db.Model, TimestampMixin):
     __tablename__ = "post_call_process"
 
     id: Mapped[int] = mapped_column(primary_key=True)

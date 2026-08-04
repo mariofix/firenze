@@ -1,11 +1,13 @@
+## DEPRECATED
+from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
 from .version import __version__
-from dataclasses import dataclass, field
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
 
 @dataclass
 class Settings:
@@ -42,8 +44,8 @@ class Settings:
     GA4_DEBUG_URL_ENABLED: bool = True
     API_TITLE: str = "Firenze"
     API_VERSION: str = __version__
-    OPENAPI_VERSION: str =  "3.0.3"
-    JSON_SORT_KEYS:bool =  False
+    OPENAPI_VERSION: str = "3.0.3"
+    JSON_SORT_KEYS: bool = False
     DEBUG_TB_PANELS = (
         "flask_debugtoolbar.panels.versions.VersionDebugPanel",
         "flask_debugtoolbar.panels.timer.TimerDebugPanel",

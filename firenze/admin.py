@@ -211,7 +211,7 @@ class ClientAdmin(ModelView, model=Client):
     column_formatters = {
         Client.anis: lambda model, _: (
             [
-                Markup(
+                Markup(  # nosec B704
                     f'<span class="badge bg-blue-lt text-blue">{escape(client_ani.ani)} '
                     f"({escape(client_ani.q_calls)})</span>"
                 )
@@ -350,8 +350,12 @@ class OperatorAdmin(ModelView, model=Operator):
         "number": {"description": "Número interno de extensión SIP, por ejemplo 1001"},
         "name": {"description": "Nombre de visualización del operador, usado en audio IVR y registros"},
         "description": {"description": "Notas internas sobre este operador (opcional)"},
-        "option": {"description": "Código de 1-2 dígitos que el llamador presiona para seleccionar este operador, por ejemplo 01"},
-        "enable_valkey": {"description": "Usar Redis/Valkey para estado de disponibilidad en tiempo real (recomendado)"},
+        "option": {
+            "description": "Código de 1-2 dígitos que el llamador presiona para seleccionar este operador, por ejemplo 01"
+        },
+        "enable_valkey": {
+            "description": "Usar Redis/Valkey para estado de disponibilidad en tiempo real (recomendado)"
+        },
     }
 
 
@@ -374,7 +378,9 @@ class OperatorPhoneAdmin(ModelView, model=OperatorPhone):
         "number": {"description": "Número de teléfono a marcar, por ejemplo 56912345678"},
         "enabled": {"description": "Desmarcar para deshabilitar temporalmente este número de teléfono"},
         "contact": {"description": "Marcar como número de contacto principal para este operador"},
-        "pin": {"description": "PIN de 4 dígitos utilizado para el inicio de sesión del operador desde teléfono (opcional)"},
+        "pin": {
+            "description": "PIN de 4 dígitos utilizado para el inicio de sesión del operador desde teléfono (opcional)"
+        },
         "trunk": {
             "description": (
                 "Troncal SIP saliente a utilizar para este número, por ejemplo claro1, didww-mia-out. "
@@ -517,7 +523,9 @@ class ApiCredentialAdmin(ModelView, model=ApiCredential):
     column_searchable_list = [ApiCredential.api_key, ApiCredential.name]
     form_args = {
         "name": {"description": "Etiqueta interna opcional para esta credencial"},
-        "api_key": {"description": "Identificador de clave pública. Crear/rotar a través de comandos CLI de usuarios."},
+        "api_key": {
+            "description": "Identificador de clave pública. Crear/rotar a través de comandos CLI de usuarios."
+        },
         "enabled": {"description": "Deshabilitar para bloquear inmediatamente esta credencial"},
         "expires_at": {"description": "Marca de tiempo de vencimiento opcional (UTC)"},
     }
@@ -542,6 +550,7 @@ class AdminIndex(BaseView):
     async def admin(self, request):
         return RedirectResponse(url="/admin")
 
+
 class APIDocs(BaseView):
     name = "API Docs"
     icon = "fa fa-dna"
@@ -564,7 +573,7 @@ class MonthlyReportIndex(BaseView):
         try:
             year = int(request.query_params.get("year", today.year))
             month = int(request.query_params.get("month", today.month))
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             year, month = today.year, today.month
 
         month = max(1, min(12, month))
@@ -606,11 +615,11 @@ class MonthlyAgentReportIndex(BaseView):
         today = datetime.date.today()
         try:
             year = int(request.query_params.get("year", today.year))
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             year = today.year
         try:
             month = int(request.query_params.get("month", today.month))
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             month = today.month
 
         year = max(_REPORT_MIN_YEAR, min(today.year + 1, year))
@@ -628,7 +637,7 @@ class MonthlyAgentReportIndex(BaseView):
             _log.exception("monthly_agent_report failed")
             error = str(exc)
 
-        default_selected_agents = set(agent["number"] for agent in report["all_agents"]) if report else set()
+        default_selected_agents = {agent["number"] for agent in report["all_agents"]} if report else set()
 
         return await self.templates.TemplateResponse(
             request,
@@ -891,7 +900,11 @@ class FirenzeAdmin(Admin):
                         0,
                     ).label("avg_billsec"),
                 )
-                .filter(AsteriskCDR.calldate >= today_start, AsteriskCDR.calldate < tomorrow_start, AsteriskCDR.lastapp == "Dial")
+                .filter(
+                    AsteriskCDR.calldate >= today_start,
+                    AsteriskCDR.calldate < tomorrow_start,
+                    AsteriskCDR.lastapp == "Dial",
+                )
                 .one()
             )
             cdr_client_activity = (

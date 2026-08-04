@@ -1,66 +1,66 @@
 {% extends "sqladmin/base.html" %}
 {% block body %}
-<div class="d-flex align-items-center justify-content-center vh-100">
-  {% set step = request.query_params.get("step", "") %}
-  {% if step == "code" %}
-  <form class="col-lg-6 col-md-6 card card-md" action="{{ url_for('admin:passwordless-verify') }}" method="POST" autocomplete="off">
-    <div class="card-body">
-      <h2 class="card-title text-center mb-4">Ingresa el código de inicio de sesión</h2>
-      {% set message = request.query_params.get("message", "") %}
-      {% if message %}
-      <div class="alert alert-info" role="alert">{{ message }}</div>
-      {% endif %}
-      {% set code_error = request.query_params.get("error", "") %}
-      <div class="mb-3">
-        <label class="form-label">Correo Electrónico</label>
-        <input name="identifier" type="text" class="form-control{% if code_error and request.query_params.get('identifier') %} is-invalid{% endif %}"
-          value="{{ request.query_params.get('identifier', '') }}" placeholder="tu@ejemplo.com" autocomplete="off">
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Código</label>
-        <input name="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" class="form-control{% if code_error %} is-invalid{% endif %}" placeholder="código de 6 dígitos"
-          autocomplete="one-time-code">
-        {% if code_error %}
-        <div class="invalid-feedback">{{ code_error }}</div>
-        {% endif %}
-      </div>
-      <div class="d-flex gap-2">
-        <button type="submit" class="btn btn-primary flex-fill">Verificar e Iniciar Sesión</button>
-        <a href="{{ url_for('admin:login') }}" class="btn btn-secondary flex-fill">Atrás</a>
-      </div>
-    </div>
-  </form>
-  {% else %}
-  <form class="col-lg-6 col-md-6 card card-md" action="{{ url_for('admin:login') }}" method="POST" autocomplete="off">
-    <div class="card-body">
-      <h2 class="card-title text-center mb-4">Inicia Sesión en {{ admin.title }}</h2>
-      <div class="mb-3">
-        <label class="form-label">Correo Electrónico</label>
-        {% set login_error = error or request.query_params.get("error", "") %}
-        {% if login_error %}
-        <input name="username" type="text" class="form-control is-invalid" placeholder="tu@ejemplo.com" autocomplete="off">
-        <div class="invalid-feedback">{{ login_error }}</div>
-        {% else %}
-        <input name="username" type="text" class="form-control" placeholder="tu@ejemplo.com" autocomplete="off">
-        {% endif %}
-      </div>
-      <div class="mb-2">
-        <label class="form-label">Contraseña</label>
-        <div class="input-group input-group-flat">
-          {% if error %}
-          <input name="password" type="password" class="form-control is-invalid" placeholder="Contraseña" autocomplete="off">
-          <div class="invalid-feedback">{{ error }}</div>
-          {% else %}
-          <input name="password" type="password" class="form-control" placeholder="Contraseña" autocomplete="off">
+  <div class="d-flex align-items-center justify-content-center vh-100">
+    {% set step = request.query_params.get("step", "") %}
+    {% if step == "code" %}
+      <form class="col-lg-6 col-md-6 card card-md" action="{{ url_for('admin:passwordless-verify') }}" method="POST" autocomplete="off">
+        <div class="card-body">
+          <h2 class="card-title text-center mb-4">Ingresa el código de inicio de sesión</h2>
+          {% set message = request.query_params.get("message", "") %}
+          {% if message %}
+            <div class="alert alert-info" role="alert">{{ message }}</div>
           {% endif %}
+          {% set code_error = request.query_params.get("error", "") %}
+          <div class="mb-3">
+            <label class="form-label">Correo Electrónico</label>
+            <input name="identifier" type="text" class="form-control{% if code_error and request.query_params.get('identifier') %} is-invalid{% endif %}"
+                   value="{{ request.query_params.get('identifier', '') }}" placeholder="tu@ejemplo.com" autocomplete="off">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Código</label>
+            <input name="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" class="form-control{% if code_error %} is-invalid{% endif %}" placeholder="código de 6 dígitos"
+                   autocomplete="one-time-code">
+            {% if code_error %}
+              <div class="invalid-feedback">{{ code_error }}</div>
+            {% endif %}
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-fill">Verificar e Iniciar Sesión</button>
+            <a href="{{ url_for('admin:login') }}" class="btn btn-secondary flex-fill">Atrás</a>
+          </div>
         </div>
-      </div>
-      <div class="d-flex gap-2">
-        <button type="submit" class="btn btn-primary flex-fill">Iniciar Sesión</button>
-        <button type="submit" class="btn btn-outline-primary flex-fill" formaction="{{ url_for('admin:passwordless-request') }}" formmethod="POST">Iniciar Sesión sin Contraseña</button>
-      </div>
-    </div>
-  </form>
-  {% endif %}
-</div>
+      </form>
+    {% else %}
+      <form class="col-lg-6 col-md-6 card card-md" action="{{ url_for('admin:login') }}" method="POST" autocomplete="off">
+        <div class="card-body">
+          <h2 class="card-title text-center mb-4">Inicia Sesión en {{ admin.title }}</h2>
+          <div class="mb-3">
+            <label class="form-label">Correo Electrónico</label>
+            {% set login_error = error or request.query_params.get("error", "") %}
+            {% if login_error %}
+              <input name="username" type="text" class="form-control is-invalid" placeholder="tu@ejemplo.com" autocomplete="off">
+              <div class="invalid-feedback">{{ login_error }}</div>
+            {% else %}
+              <input name="username" type="text" class="form-control" placeholder="tu@ejemplo.com" autocomplete="off">
+            {% endif %}
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Contraseña</label>
+            <div class="input-group input-group-flat">
+              {% if error %}
+                <input name="password" type="password" class="form-control is-invalid" placeholder="Contraseña" autocomplete="off">
+                <div class="invalid-feedback">{{ error }}</div>
+              {% else %}
+                <input name="password" type="password" class="form-control" placeholder="Contraseña" autocomplete="off">
+              {% endif %}
+            </div>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-fill">Iniciar Sesión</button>
+            <button type="submit" class="btn btn-outline-primary flex-fill" formaction="{{ url_for('admin:passwordless-request') }}" formmethod="POST">Iniciar Sesión sin Contraseña</button>
+          </div>
+        </div>
+      </form>
+    {% endif %}
+  </div>
 {% endblock %}

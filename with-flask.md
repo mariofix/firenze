@@ -1,6 +1,6 @@
 # with-flask migration plan
 
-Branch: `with-flask`  
+Branch: `with-flask`
 Target: migrate from FastAPI/sqladmin to Flask + Flask-Smorest + Flask-Admin (Tabler working copy at `../flask-admin/`).
 
 ## Steps (agreed scope: up to step 7)

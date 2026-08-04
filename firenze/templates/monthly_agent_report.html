@@ -1,161 +1,161 @@
 {% extends "sqladmin/layout.html" %}
 
 {% block content_header %}
-<div class="row align-items-center">
-  <div class="col-auto">
-    <h2 class="page-title">Reporte Agentes</h2>
-    <div class="page-pretitle">Minutos respondidos por agente y día</div>
+  <div class="row align-items-center">
+    <div class="col-auto">
+      <h2 class="page-title">Reporte Agentes</h2>
+      <div class="page-pretitle">Minutos respondidos por agente y día</div>
+    </div>
   </div>
-</div>
 {% endblock %}
 
 {% block content %}
-<div class="row row-cards">
-  <div class="col-12">
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-filter me-2"></i>Filtros</h3>
-      </div>
-      <div class="card-body">
-        <form method="GET" class="row g-3 align-items-end">
-          <div class="col-auto">
-            <label class="form-label">Periodo</label>
-            <div class="d-flex flex-wrap gap-2">
-              <select name="month" class="form-select" style="min-width: 160px;">
-                {% for m_num, m_name in months_es.items() %}
-                <option value="{{ m_num }}"{% if m_num == month %} selected{% endif %}>{{ m_name }}</option>
-                {% endfor %}
-              </select>
-              <select name="year" class="form-select" style="min-width: 120px;">
-                {% for y in year_options %}
-                <option value="{{ y }}"{% if y == year %} selected{% endif %}>{{ y }}</option>
-                {% endfor %}
-              </select>
+  <div class="row row-cards">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title"><i class="fa fa-filter me-2"></i>Filtros</h3>
+        </div>
+        <div class="card-body">
+          <form method="GET" class="row g-3 align-items-end">
+            <div class="col-auto">
+              <label class="form-label">Periodo</label>
+              <div class="d-flex flex-wrap gap-2">
+                <select name="month" class="form-select" style="min-width: 160px;">
+                  {% for m_num, m_name in months_es.items() %}
+                    <option value="{{ m_num }}"{% if m_num == month %} selected{% endif %}>{{ m_name }}</option>
+                  {% endfor %}
+                </select>
+                <select name="year" class="form-select" style="min-width: 120px;">
+                  {% for y in year_options %}
+                    <option value="{{ y }}"{% if y == year %} selected{% endif %}>{{ y }}</option>
+                  {% endfor %}
+                </select>
+              </div>
             </div>
-          </div>
-          <div class="col-12 col-lg">
-            <label class="form-label" for="agents-select">Agentes</label>
-            <select
-              id="agents-select"
-              name="agents"
-              class="form-select js-select2"
-              multiple
-              data-placeholder="Todos los agentes"
-            >
-              {% if data %}
-              {% for agent in data.all_agents %}
-              <option value="{{ agent.number }}"{% if agent.number in selected_agents %} selected{% endif %}>{{ agent.number }} — {{ agent.name }}</option>
-              {% endfor %}
-              {% endif %}
-            </select>
-            <div class="form-hint">Dejar vacío muestra todos los agentes.</div>
-          </div>
-          <div class="col-auto">
-            <button type="submit" class="btn btn-primary">
-              <i class="fa fa-search me-1"></i>Ver reporte
-            </button>
-          </div>
-        </form>
+            <div class="col-12 col-lg">
+              <label class="form-label" for="agents-select">Agentes</label>
+              <select
+                id="agents-select"
+                name="agents"
+                class="form-select js-select2"
+                multiple
+                data-placeholder="Todos los agentes"
+              >
+                {% if data %}
+                  {% for agent in data.all_agents %}
+                    <option value="{{ agent.number }}"{% if agent.number in selected_agents %} selected{% endif %}>{{ agent.number }} — {{ agent.name }}</option>
+                  {% endfor %}
+                {% endif %}
+              </select>
+              <div class="form-hint">Dejar vacío muestra todos los agentes.</div>
+            </div>
+            <div class="col-auto">
+              <button type="submit" class="btn btn-primary">
+                <i class="fa fa-search me-1"></i>Ver reporte
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
-  </div>
 
-  <div class="col-12">
-    {% if error %}
-    <div class="alert alert-danger">
-      <i class="fa fa-triangle-exclamation me-2"></i>
-      No se pudo generar el reporte: <code>{{ error }}</code>
+    <div class="col-12">
+      {% if error %}
+        <div class="alert alert-danger">
+          <i class="fa fa-triangle-exclamation me-2"></i>
+          No se pudo generar el reporte: <code>{{ error }}</code>
+        </div>
+      {% elif data and data.agents %}
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title"><i class="fa fa-users me-2"></i>{{ months_es[month] }} {{ year }} — Minutos por Agente</h3>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm table-vcenter card-table">
+              <thead>
+                <tr>
+                  <th>Día</th>
+                  {% for agent in data.agents %}
+                    <th class="text-end" title="{{ agent.name }}">{{ agent.number }}</th>
+                  {% endfor %}
+                  <th class="text-end fw-bold">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in data.days %}
+                  <tr{% if row.total == 0 %} class="text-muted"{% endif %}>
+                    <td>{{ row.date }}</td>
+                    {% for agent in data.agents %}
+                      <td class="text-end">
+                        {% set mins = row.minutes_by_agent.get(agent.number, 0) %}
+                        {% if mins %}<strong>{{ mins }}</strong>{% else %}<span class="text-muted">—</span>{% endif %}
+                      </td>
+                    {% endfor %}
+                    <td class="text-end fw-bold">
+                      {% if row.total %}{{ row.total }}{% else %}<span class="text-muted">—</span>{% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+              <tfoot>
+                <tr class="table-active fw-bold">
+                  <td>Totales</td>
+                  {% for agent in data.agents %}
+                    <td class="text-end">{{ data.totals.by_agent.get(agent.number, 0) }}</td>
+                  {% endfor %}
+                  <td class="text-end">{{ data.totals.total }}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      {% elif data and not data.agents %}
+        <div class="alert alert-warning">
+          <i class="fa fa-circle-exclamation me-2"></i>Ningún agente seleccionado.
+        </div>
+      {% else %}
+        <div class="alert alert-info">
+          <i class="fa fa-circle-info me-2"></i>Sin datos para este período.
+        </div>
+      {% endif %}
     </div>
-    {% elif data and data.agents %}
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-users me-2"></i>{{ months_es[month] }} {{ year }} — Minutos por Agente</h3>
-      </div>
-      <div class="table-responsive">
-        <table class="table table-sm table-vcenter card-table">
-          <thead>
-            <tr>
-              <th>Día</th>
-              {% for agent in data.agents %}
-              <th class="text-end" title="{{ agent.name }}">{{ agent.number }}</th>
-              {% endfor %}
-              <th class="text-end fw-bold">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in data.days %}
-            <tr{% if row.total == 0 %} class="text-muted"{% endif %}>
-              <td>{{ row.date }}</td>
-              {% for agent in data.agents %}
-              <td class="text-end">
-                {% set mins = row.minutes_by_agent.get(agent.number, 0) %}
-                {% if mins %}<strong>{{ mins }}</strong>{% else %}<span class="text-muted">—</span>{% endif %}
-              </td>
-              {% endfor %}
-              <td class="text-end fw-bold">
-                {% if row.total %}{{ row.total }}{% else %}<span class="text-muted">—</span>{% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-          <tfoot>
-            <tr class="table-active fw-bold">
-              <td>Totales</td>
-              {% for agent in data.agents %}
-              <td class="text-end">{{ data.totals.by_agent.get(agent.number, 0) }}</td>
-              {% endfor %}
-              <td class="text-end">{{ data.totals.total }}</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </div>
-    {% elif data and not data.agents %}
-    <div class="alert alert-warning">
-      <i class="fa fa-circle-exclamation me-2"></i>Ningún agente seleccionado.
-    </div>
-    {% else %}
-    <div class="alert alert-info">
-      <i class="fa fa-circle-info me-2"></i>Sin datos para este período.
-    </div>
-    {% endif %}
   </div>
-</div>
 {% endblock %}
 
 {% block tail %}
-{{ super() }}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
-<style>
-  #agents-select + .select2 .select2-selection--multiple {
-    min-height: 38px;
-    height: auto;
-  }
-
-  #agents-select + .select2 .select2-selection__rendered {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    white-space: normal;
-    gap: 0.25rem;
-    padding: 0.25rem 0.5rem;
-  }
-
-  #agents-select + .select2 .select2-selection__choice {
-    margin: 0;
-  }
-</style>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const $agents = window.jQuery && window.jQuery("#agents-select");
-    if ($agents && $agents.select2) {
-      $agents.select2({
-        width: "100%",
-        closeOnSelect: false,
-        placeholder: $agents.data("placeholder") || "Todos los agentes",
-      });
+  {{ super() }}
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
+  <style>
+    #agents-select + .select2 .select2-selection--multiple {
+      min-height: 38px;
+      height: auto;
     }
-  });
-</script>
+
+    #agents-select + .select2 .select2-selection__rendered {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      white-space: normal;
+      gap: 0.25rem;
+      padding: 0.25rem 0.5rem;
+    }
+
+    #agents-select + .select2 .select2-selection__choice {
+      margin: 0;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const $agents = window.jQuery && window.jQuery("#agents-select");
+      if ($agents && $agents.select2) {
+        $agents.select2({
+          width: "100%",
+          closeOnSelect: false,
+          placeholder: $agents.data("placeholder") || "Todos los agentes",
+        });
+      }
+    });
+  </script>
 {% endblock %}

@@ -1,207 +1,207 @@
 {% extends "sqladmin/layout.html" %}
 {% block content %}
-<div class="col-12">
-  <div class="card">
-    <div class="card-body">
-      <div class="row row-cards">
-        <div class="col-lg-4">
-          <div class="card">
-            <div class="card-body text-center">
-              <span class="avatar avatar-xl mb-3 rounded">
-                {{ (model.full_name or "C")[:1] | upper }}
-              </span>
-              <h3 class="m-0">{{ model.full_name or "Cliente sin nombre" }}</h3>
-              <div class="text-secondary mt-1">Client ID: <strong>{{ model.client_id }}</strong></div>
-              <div class="mt-3">
-                <span class="badge bg-blue-lt text-blue me-1">{{ model.service.name if model.service else "Sin servicio" }}</span>
-                <span class="badge bg-green-lt text-green">{{ model.credits }} segundos</span>
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body">
+        <div class="row row-cards">
+          <div class="col-lg-4">
+            <div class="card">
+              <div class="card-body text-center">
+                <span class="avatar avatar-xl mb-3 rounded">
+                  {{ (model.full_name or "C")[:1] | upper }}
+                </span>
+                <h3 class="m-0">{{ model.full_name or "Cliente sin nombre" }}</h3>
+                <div class="text-secondary mt-1">Client ID: <strong>{{ model.client_id }}</strong></div>
+                <div class="mt-3">
+                  <span class="badge bg-blue-lt text-blue me-1">{{ model.service.name if model.service else "Sin servicio" }}</span>
+                  <span class="badge bg-green-lt text-green">{{ model.credits }} segundos</span>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="card mt-3">
-            <div class="card-header">
-              <h3 class="card-title">Acceso</h3>
+            <div class="card mt-3">
+              <div class="card-header">
+                <h3 class="card-title">Acceso</h3>
+              </div>
+              <div class="card-body">
+                <dl class="row mb-0">
+                  <dt class="col-sm-5 text-secondary">PIN</dt>
+                  <dd class="col-sm-7">
+                    {% if model.pin %}
+                      {{ model.pin }}
+                    {% else %}
+                      No definido
+                    {% endif %}
+                  </dd>
+                  <dt class="col-sm-5 text-secondary">Creado</dt>
+                  <dd class="col-sm-7">{{ model.created_at or "-" }}</dd>
+                  <dt class="col-sm-5 text-secondary">Actualizado</dt>
+                  <dd class="col-sm-7">{{ model.modified_at or "-" }}</dd>
+                </dl>
+              </div>
             </div>
-            <div class="card-body">
-              <dl class="row mb-0">
-                <dt class="col-sm-5 text-secondary">PIN</dt>
-                <dd class="col-sm-7">
-                  {% if model.pin %}
-                  {{ model.pin }}
-                  {% else %}
-                  No definido
-                  {% endif %}
-                </dd>
-                <dt class="col-sm-5 text-secondary">Creado</dt>
-                <dd class="col-sm-7">{{ model.created_at or "-" }}</dd>
-                <dt class="col-sm-5 text-secondary">Actualizado</dt>
-                <dd class="col-sm-7">{{ model.modified_at or "-" }}</dd>
-              </dl>
-            </div>
-          </div>
-          <div class="card mt-3">
-            <div class="card-header">
-              <h3 class="card-title">Configuración adicional</h3>
-            </div>
-            <div class="card-body">
-              {% if model.extra_config %}
+            <div class="card mt-3">
+              <div class="card-header">
+                <h3 class="card-title">Configuración adicional</h3>
+              </div>
+              <div class="card-body">
+                {% if model.extra_config %}
               <pre class="mb-0 text-break"><code>{{ model.extra_config | tojson(indent=2) }}</code></pre>
-              {% else %}
-              <div class="text-secondary">Sin configuración adicional.</div>
-              {% endif %}
-            </div>
-          </div>
-        </div>
-        <div class="col-lg-8">
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">Perfil del cliente</h3>
-            </div>
-            <div class="card-body">
-              <div class="row g-3">
-                <div class="col-md-6">
-                  <div class="text-secondary small">Correo</div>
-                  <div>{{ model.email or "Sin correo registrado" }}</div>
-                </div>
-                <div class="col-md-6">
-                  <div class="text-secondary small">Servicio asociado</div>
-                  <div>{{ model.service.name if model.service else "Sin servicio asociado" }}</div>
-                </div>
+                {% else %}
+                  <div class="text-secondary">Sin configuración adicional.</div>
+                {% endif %}
               </div>
             </div>
           </div>
-          <div class="card mt-3">
-            <div class="card-header">
-              <h3 class="card-title">Teléfonos (ANI)</h3>
+          <div class="col-lg-8">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Perfil del cliente</h3>
+              </div>
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <div class="text-secondary small">Correo</div>
+                    <div>{{ model.email or "Sin correo registrado" }}</div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="text-secondary small">Servicio asociado</div>
+                    <div>{{ model.service.name if model.service else "Sin servicio asociado" }}</div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="table-responsive">
-              <table class="table card-table table-vcenter">
-                <thead>
-                  <tr>
-                    <th>ANI</th>
-                    <th>Llamadas</th>
-                    <th>Última llamada</th>
-                    <th>DNC</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% if model.anis %}
-                  {% for ani in model.anis %}
-                  <tr>
-                    <td><span class="badge bg-blue-lt text-blue">{{ ani.ani }}</span></td>
-                    <td>{{ ani.q_calls }}</td>
-                    <td>{{ ani.last_call or "-" }}</td>
-                    <td>
-                      {% if ani.ani in model.dnc_ani_set %}
-                      <span class="badge bg-red text-red-fg">En DNC</span>
-                      {% else %}
-                      <span class="badge bg-green-lt text-green">OK</span>
-                      {% endif %}
-                    </td>
-                  </tr>
-                  {% endfor %}
-                  {% else %}
-                  <tr>
-                    <td colspan="4" class="text-secondary">No hay ANI registrados.</td>
-                  </tr>
-                  {% endif %}
-                </tbody>
-              </table>
+            <div class="card mt-3">
+              <div class="card-header">
+                <h3 class="card-title">Teléfonos (ANI)</h3>
+              </div>
+              <div class="table-responsive">
+                <table class="table card-table table-vcenter">
+                  <thead>
+                    <tr>
+                      <th>ANI</th>
+                      <th>Llamadas</th>
+                      <th>Última llamada</th>
+                      <th>DNC</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% if model.anis %}
+                      {% for ani in model.anis %}
+                        <tr>
+                          <td><span class="badge bg-blue-lt text-blue">{{ ani.ani }}</span></td>
+                          <td>{{ ani.q_calls }}</td>
+                          <td>{{ ani.last_call or "-" }}</td>
+                          <td>
+                            {% if ani.ani in model.dnc_ani_set %}
+                              <span class="badge bg-red text-red-fg">En DNC</span>
+                            {% else %}
+                              <span class="badge bg-green-lt text-green">OK</span>
+                            {% endif %}
+                          </td>
+                        </tr>
+                      {% endfor %}
+                    {% else %}
+                      <tr>
+                        <td colspan="4" class="text-secondary">No hay ANI registrados.</td>
+                      </tr>
+                    {% endif %}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
-          
-          <div class="card mt-3">
-            <div class="card-header">
-              <h3 class="card-title">Últimas 15 llamadas (CDR)</h3>
-            </div>
-            <div class="table-responsive">
-              <table class="table card-table table-vcenter">
-                <thead>
-                  <tr>
-                    <th>Fecha</th>
-                    <th>ANI</th>
-                    <th>Operador</th>
-                    <th>Estado</th>
-                    <th>Duración</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% if model.last_calls %}
-                  {% for call in model.last_calls %}
-                  <tr>
-                    <td>{{ call.calldate }}</td>
-                    <td>{{ call.zvn_client_ani or call.src or "-" }}</td>
-                    <td>{{ call.zvn_operator or "-" }}</td>
-                    <td>{{ call.disposition or "-" }}</td>
-                    <td>{{ call.billsec }}s</td>
-                  </tr>
-                  {% endfor %}
-                  {% else %}
-                  <tr>
-                    <td colspan="5" class="text-secondary">Sin llamadas para este client_id.</td>
-                  </tr>
-                  {% endif %}
-                </tbody>
-              </table>
+
+            <div class="card mt-3">
+              <div class="card-header">
+                <h3 class="card-title">Últimas 15 llamadas (CDR)</h3>
+              </div>
+              <div class="table-responsive">
+                <table class="table card-table table-vcenter">
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>ANI</th>
+                      <th>Operador</th>
+                      <th>Estado</th>
+                      <th>Duración</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% if model.last_calls %}
+                      {% for call in model.last_calls %}
+                        <tr>
+                          <td>{{ call.calldate }}</td>
+                          <td>{{ call.zvn_client_ani or call.src or "-" }}</td>
+                          <td>{{ call.zvn_operator or "-" }}</td>
+                          <td>{{ call.disposition or "-" }}</td>
+                          <td>{{ call.billsec }}s</td>
+                        </tr>
+                      {% endfor %}
+                    {% else %}
+                      <tr>
+                        <td colspan="5" class="text-secondary">Sin llamadas para este client_id.</td>
+                      </tr>
+                    {% endif %}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-    <div class="card-footer">
-      <div class="row row-gap-2">
-        <div class="col-auto">
-          <a href="{{ url_for('admin:list', identity=model_view.identity) }}" class="btn">
-            Go Back
-          </a>
-        </div>
-        {% if model_view.check_can_delete(request, model) %}
-        <div class="col-auto">
-          <a href="#" data-name="{{ model_view.name }}" data-pk="{{ get_object_identifier(model) }}"
-            data-url="{{ model_view._url_for_delete(request, model) }}" data-bs-toggle="modal"
-            data-bs-target="#modal-delete" class="btn btn-danger">
-            Delete
-          </a>
-        </div>
-        {% endif %}
-        {% if model_view.check_can_edit(request, model) %}
-        <div class="col-auto">
-          <a href="{{ model_view._build_url_for('admin:edit', request, model) }}" class="btn btn-primary">
-            Edit
-          </a>
-        </div>
-        {% endif %}
-        {% for custom_action,label in model_view._custom_actions_in_detail.items() %}
-        <div class="col-auto">
-          {% if custom_action in model_view._custom_actions_confirmation %}
-          <a href="#" class="btn btn-secondary" data-bs-toggle="modal"
-            data-bs-target="#modal-confirmation-{{ custom_action }}">
-            {{ label }}
-          </a>
-          {% else %}
-          <a href="{{ model_view._url_for_action(request, custom_action) }}?pks={{ get_object_identifier(model) }}"
-            class="btn btn-secondary">
-            {{ label }}
-          </a>
+      <div class="card-footer">
+        <div class="row row-gap-2">
+          <div class="col-auto">
+            <a href="{{ url_for('admin:list', identity=model_view.identity) }}" class="btn">
+              Go Back
+            </a>
+          </div>
+          {% if model_view.check_can_delete(request, model) %}
+            <div class="col-auto">
+              <a href="#" data-name="{{ model_view.name }}" data-pk="{{ get_object_identifier(model) }}"
+                 data-url="{{ model_view._url_for_delete(request, model) }}" data-bs-toggle="modal"
+                 data-bs-target="#modal-delete" class="btn btn-danger">
+                Delete
+              </a>
+            </div>
           {% endif %}
+          {% if model_view.check_can_edit(request, model) %}
+            <div class="col-auto">
+              <a href="{{ model_view._build_url_for('admin:edit', request, model) }}" class="btn btn-primary">
+                Edit
+              </a>
+            </div>
+          {% endif %}
+          {% for custom_action,label in model_view._custom_actions_in_detail.items() %}
+            <div class="col-auto">
+              {% if custom_action in model_view._custom_actions_confirmation %}
+                <a href="#" class="btn btn-secondary" data-bs-toggle="modal"
+                   data-bs-target="#modal-confirmation-{{ custom_action }}">
+                  {{ label }}
+                </a>
+              {% else %}
+                <a href="{{ model_view._url_for_action(request, custom_action) }}?pks={{ get_object_identifier(model) }}"
+                   class="btn btn-secondary">
+                  {{ label }}
+                </a>
+              {% endif %}
+            </div>
+          {% endfor %}
         </div>
-        {% endfor %}
       </div>
     </div>
   </div>
-</div>
-{% block action_buttons_bottom %}
-{% if model_view.can_delete %}
-{% include 'sqladmin/modals/delete.html' %}
-{% endif %}
+  {% block action_buttons_bottom %}
+    {% if model_view.can_delete %}
+      {% include 'sqladmin/modals/delete.html' %}
+    {% endif %}
 
-{% for custom_action in model_view._custom_actions_in_detail %}
-{% if custom_action in model_view._custom_actions_confirmation %}
-{% with confirmation_message = model_view._custom_actions_confirmation[custom_action], custom_action=custom_action,
-url=model_view._url_for_action(request, custom_action) + '?pks=' + (get_object_identifier(model) | string) %}
-{% include 'sqladmin/modals/details_action_confirmation.html' %}
-{% endwith %}
-{% endif %}
-{% endfor %}
+    {% for custom_action in model_view._custom_actions_in_detail %}
+      {% if custom_action in model_view._custom_actions_confirmation %}
+        {% with confirmation_message = model_view._custom_actions_confirmation[custom_action], custom_action=custom_action,
+        url=model_view._url_for_action(request, custom_action) + '?pks=' + (get_object_identifier(model) | string) %}
+        {% include 'sqladmin/modals/details_action_confirmation.html' %}
+      {% endwith %}
+    {% endif %}
+  {% endfor %}
 {% endblock %}
 {% endblock %}

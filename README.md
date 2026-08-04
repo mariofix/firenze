@@ -232,7 +232,7 @@ prepago/6.wav = orig-espere-línea.wav
 
 ### Agregado
 
-- Archivo extensions.conf  
+- Archivo extensions.conf
 - Audios en /var/lib/asterisk/sounds/es/zvn/
 - Proyecto Poetry **zvn-agi** (**zvn** en /var/lib/asterisk/agi-bin/)
 

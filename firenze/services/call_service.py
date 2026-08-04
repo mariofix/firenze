@@ -8,17 +8,16 @@ caché caliente consumida por lectores PHP heredados y tableros.
 import logging
 
 import redis
+from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
 
-from firenze.models.call import OnlineCalls
-from firenze.redis import call_state
+from ..models.call import OnlineCalls
 
 logger = logging.getLogger("firenze")
 
 
 def insert_call(
-    db: Session,
+    db: SQLAlchemy,
     service: str,
     ani: str,
     did: str,
@@ -50,22 +49,11 @@ def insert_call(
         return {"ok": False, "reason": "call-already-active"}
     db.refresh(call)
 
-    if redis_conn is not None:
-        call_state.set_call(
-            redis_conn,
-            service,
-            ani,
-            did=did,
-            operator=operator,
-            client_id=client_id,
-            created_at=int(call.created_at.timestamp()) if call.created_at else None,
-        )
-
     return {"ok": True}
 
 
 def delete_call(
-    db: Session,
+    db: SQLAlchemy,
     service: str,
     ani: str,
     redis_conn: redis.Redis | None = None,
@@ -80,14 +68,11 @@ def delete_call(
         db.delete(call)
         db.commit()
 
-    if redis_conn is not None:
-        call_state.delete_call(redis_conn, service, ani)
-
     return {"ok": True}
 
 
 def update_call_operator(
-    db: Session,
+    db: SQLAlchemy,
     service: str,
     ani: str,
     operator: int,
@@ -110,13 +95,10 @@ def update_call_operator(
     call.operator = operator
     db.commit()
 
-    if redis_conn is not None:
-        call_state.update_operator(redis_conn, service, ani, operator)
-
     return {"ok": True}
 
 
-def get_active_call(db: Session, service: str, ani: str) -> dict:
+def get_active_call(db: SQLAlchemy, service: str, ani: str) -> dict:
     """Verifica si un ANI ya tiene una llamada activa para el servicio.
 
     Retorna ``{"llamada_activa": "true"}`` o ``{"llamada_activa": "false"}``.

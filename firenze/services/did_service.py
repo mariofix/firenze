@@ -1,9 +1,9 @@
-from sqlalchemy.orm import Session
+from flask_sqlalchemy import SQLAlchemy
 
 from firenze.models import ServiceNumber
 
 
-def resolve_did(db: Session, did: str) -> dict:
+def resolve_did(db: SQLAlchemy, did: str) -> dict:
     """Retorna la configuración completa del servicio para un DID, o cadenas vacías si no se encuentra.
 
     Usado por ``GET /agi/services/did/{did}`` — el dialplan de Asterisk lee todos

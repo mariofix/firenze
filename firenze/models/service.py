@@ -1,11 +1,11 @@
 from sqlalchemy import Boolean, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from firenze.database import Base
-from firenze.models.base import TimestampMixin
+from ..extensions import db
+from .base import TimestampMixin
 
 
-class Service(Base, TimestampMixin):
+class Service(db.Model, TimestampMixin):
     __tablename__ = "service"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -19,7 +19,7 @@ class Service(Base, TimestampMixin):
         return self.name
 
 
-class ServiceNumber(Base, TimestampMixin):
+class ServiceNumber(db.Model, TimestampMixin):
     __tablename__ = "service_did"
 
     id: Mapped[int] = mapped_column(primary_key=True)

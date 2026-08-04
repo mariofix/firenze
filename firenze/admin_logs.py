@@ -1,7 +1,5 @@
 """SQLAdmin view for browsing Firenze API logs."""
 
-from __future__ import annotations
-
 import asyncio
 import datetime as dt
 import gzip

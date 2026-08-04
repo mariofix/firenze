@@ -1,394 +1,394 @@
 {% extends "sqladmin/layout.html" %}
 
 {% block content_header %}
-<div class="row align-items-center">
-  <div class="col-auto">
-    <h2 class="page-title">Firenze</h2>
-    <div class="page-pretitle">Panel de Fonotarot / Estado de Firenze</div>
+  <div class="row align-items-center">
+    <div class="col-auto">
+      <h2 class="page-title">Firenze</h2>
+      <div class="page-pretitle">Panel de Fonotarot / Estado de Firenze</div>
+    </div>
+    <div class="col-auto ms-auto d-print-none">
+      <a href="{{ request.url }}" class="btn btn-secondary">
+        <i class="fa fa-refresh me-1"></i> Actualizar
+      </a>
+    </div>
   </div>
-  <div class="col-auto ms-auto d-print-none">
-    <a href="{{ request.url }}" class="btn btn-secondary">
-      <i class="fa fa-refresh me-1"></i> Actualizar
-    </a>
-  </div>
-</div>
 {% endblock %}
 
 {% block content %}
 
-<div class="row row-cards">
-  <div class="col-12 col-lg-3">
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-wallet me-2"></i>Agregar saldo a cliente</h3>
-      </div>
-      <div class="card-body">
-        <div class="alert alert-danger d-none" id="client-credit-alert" role="alert"></div>
-        {% if service_options %}
-        <div class="mb-3">
-          <label class="form-label" for="client-credit-service">Servicio</label>
-          <select class="form-select" id="client-credit-service" required>
-            {% for service in service_options %}
-            <option value="{{ service.slug }}">{{ service.name }} ({{ service.slug }})</option>
-            {% endfor %}
-          </select>
+  <div class="row row-cards">
+    <div class="col-12 col-lg-3">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title"><i class="fa fa-wallet me-2"></i>Agregar saldo a cliente</h3>
         </div>
-        <div class="mb-3">
-          <label class="form-label" for="client-credit-client-id">Client ID</label>
-          <input class="form-control" id="client-credit-client-id" name="client_id" type="number" min="1" step="1" placeholder="Client ID">
+        <div class="card-body">
+          <div class="alert alert-danger d-none" id="client-credit-alert" role="alert"></div>
+          {% if service_options %}
+            <div class="mb-3">
+              <label class="form-label" for="client-credit-service">Servicio</label>
+              <select class="form-select" id="client-credit-service" required>
+                {% for service in service_options %}
+                  <option value="{{ service.slug }}">{{ service.name }} ({{ service.slug }})</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="client-credit-client-id">Client ID</label>
+              <input class="form-control" id="client-credit-client-id" name="client_id" type="number" min="1" step="1" placeholder="Client ID">
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="client-credit-add">Saldo a Agregar</label>
+              <input class="form-control" id="client-credit-add" name="credits_to_add" type="number" min="1" step="1" placeholder="Segundos a agregar">
+            </div>
+            <button class="btn btn-primary w-100" id="client-credit-preview-btn" type="button">Save</button>
+          {% else %}
+            <div class="text-secondary">No hay servicios disponibles para seleccionar.</div>
+          {% endif %}
         </div>
-        <div class="mb-3">
-          <label class="form-label" for="client-credit-add">Saldo a Agregar</label>
-          <input class="form-control" id="client-credit-add" name="credits_to_add" type="number" min="1" step="1" placeholder="Segundos a agregar">
-        </div>
-        <button class="btn btn-primary w-100" id="client-credit-preview-btn" type="button">Save</button>
-        {% else %}
-        <div class="text-secondary">No hay servicios disponibles para seleccionar.</div>
-        {% endif %}
       </div>
     </div>
-  </div>
 
-  <div class="col-12 col-lg-9">
-    <div class="row row-cards">
-      <div class="col-6 col-md-3">
-        <div class="card">
-          <div class="card-body">
-            <div class="subheader">Llamadas Hoy</div>
-            <div class="h2 mb-0">{{ cdr_reports.today.total_calls }}</div>
-            <div class="text-secondary small">De Medianoche a Ahora</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-6 col-md-3">
-        <div class="card">
-          <div class="card-body">
-            <div class="subheader">Contestadas</div>
-            <div class="h2 mb-0 text-success">{{ cdr_reports.today.answered_calls }}</div>
-            <div class="text-secondary small">Incluye todos los servicios.</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-6 col-md-3">
-        <div class="card">
-          <div class="card-body">
-            <div class="subheader">Duración Promedio</div>
-            <div class="h2 mb-0">{{ (cdr_reports.today.avg_billsec / 60) | round(1) }} min</div>
-            <div class="text-secondary small">y en segundos: {{cdr_reports.today.avg_billsec}}</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-6 col-md-3">
-        <div class="card">
-          <div class="card-body">
-            <div class="subheader">ANIs Registrados</div>
-            <div class="h2 mb-0">{{ ani_reports.total_anis }}</div>
-            <div class="text-secondary small">En todos los servicios</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-6 col-md-3">
-        <div class="card">
-          <div class="card-body">
-            <div class="subheader">Llamadas Totales</div>
-            <div class="h2 mb-0">{{ ani_reports.total_calls }}</div>
-            <div class="text-secondary small">{{ ani_reports.avg_calls | round(1) }} avg / client_id</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-6 col-md-3">
-        <div class="card">
-          <div class="card-body">
-            <div class="subheader">Clientes Activos (24h)</div>
-            <div class="h2 mb-0 text-green">{{ ani_reports.active_24h }}</div>
-            <div class="text-secondary small">Cantidad de Clientes que han llamado.</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-6 col-md-3">
-        <div class="card">
-          <div class="card-body">
-            <div class="subheader">Clientes Activos (7d)</div>
-            <div class="h2 mb-0 text-azure">{{ ani_reports.active_7d }}</div>
-            <div class="text-secondary small">Cantidad de Clientes que han llamado.</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-6 col-md-3">
-        <div class="card">
-          <div class="card-body">
-            <div class="subheader">Minutos por entregar</div>
-            <div class="h2 mb-0 text-azure">{{ ((pending_credits) / 60) | round | int }} mins</div>
-            <div class="text-secondary small">Minutos comprados no consumidos.</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-12">
-        <div class="card">
-          <div class="card-body">
-            {% set ani_tracked_total = ani_reports.total_anis - ani_reports.no_last_call %}
-            {% set ani_den = ani_tracked_total if ani_tracked_total > 0 else 1 %}
-            {% set ani_coverage = (ani_reports.with_last_call * 100 / ani_den) | round(1) %}
-            {% set ani_active_15 = ani_reports.active_15d %}
-            {% set ani_stale_30 = ani_reports.stale_30d %}
-            {% set ani_stale_60 = ani_reports.stale_60d %}
-            {% set ani_no_last_call = ani_reports.no_last_call %}
-            {% set ani_active_15_pct = (ani_active_15 * 100 / ani_den) | round(1) %}
-            {% set ani_stale_30_pct = (ani_stale_30 * 100 / ani_den) | round(1) %}
-            {% set ani_stale_60_pct = (ani_stale_60 * 100 / ani_den) | round(1) %}
-            <p class="mb-3">
-              Clientes Activos: <strong>{{ ani_reports.with_last_call }}</strong> de {{ ani_reports.total_anis }} client_id activos
-              <span class="text-secondary">({{ ani_coverage }}%)</span>
-            </p>
-            <div class="progress progress-separated mb-3">
-              <div class="progress-bar bg-green" role="progressbar" style="width: {{ ani_active_15_pct }}%" aria-label="Con Actividad en los ultimos 15 dias."></div>
-              <div class="progress-bar bg-yellow" role="progressbar" style="width: {{ ani_stale_30_pct }}%" aria-label="Con Actividad el mes pasado."></div>
-              <div class="progress-bar bg-orange" role="progressbar" style="width: {{ ani_stale_60_pct }}%" aria-label="Con Actividad hace mas de 2 meses."></div>
+    <div class="col-12 col-lg-9">
+      <div class="row row-cards">
+        <div class="col-6 col-md-3">
+          <div class="card">
+            <div class="card-body">
+              <div class="subheader">Llamadas Hoy</div>
+              <div class="h2 mb-0">{{ cdr_reports.today.total_calls }}</div>
+              <div class="text-secondary small">De Medianoche a Ahora</div>
             </div>
-            <div class="row mb-3">
-              <div class="col-auto d-flex align-items-center pe-2">
-                <span class="legend me-2 bg-green"></span>
-                <span>Activos (&lt;=15d)</span>
-                <span class="ms-2 text-secondary">{{ ani_active_15 }}</span>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card">
+            <div class="card-body">
+              <div class="subheader">Contestadas</div>
+              <div class="h2 mb-0 text-success">{{ cdr_reports.today.answered_calls }}</div>
+              <div class="text-secondary small">Incluye todos los servicios.</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card">
+            <div class="card-body">
+              <div class="subheader">Duración Promedio</div>
+              <div class="h2 mb-0">{{ (cdr_reports.today.avg_billsec / 60) | round(1) }} min</div>
+              <div class="text-secondary small">y en segundos: {{cdr_reports.today.avg_billsec}}</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card">
+            <div class="card-body">
+              <div class="subheader">ANIs Registrados</div>
+              <div class="h2 mb-0">{{ ani_reports.total_anis }}</div>
+              <div class="text-secondary small">En todos los servicios</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card">
+            <div class="card-body">
+              <div class="subheader">Llamadas Totales</div>
+              <div class="h2 mb-0">{{ ani_reports.total_calls }}</div>
+              <div class="text-secondary small">{{ ani_reports.avg_calls | round(1) }} avg / client_id</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card">
+            <div class="card-body">
+              <div class="subheader">Clientes Activos (24h)</div>
+              <div class="h2 mb-0 text-green">{{ ani_reports.active_24h }}</div>
+              <div class="text-secondary small">Cantidad de Clientes que han llamado.</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card">
+            <div class="card-body">
+              <div class="subheader">Clientes Activos (7d)</div>
+              <div class="h2 mb-0 text-azure">{{ ani_reports.active_7d }}</div>
+              <div class="text-secondary small">Cantidad de Clientes que han llamado.</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card">
+            <div class="card-body">
+              <div class="subheader">Minutos por entregar</div>
+              <div class="h2 mb-0 text-azure">{{ ((pending_credits) / 60) | round | int }} mins</div>
+              <div class="text-secondary small">Minutos comprados no consumidos.</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-12">
+          <div class="card">
+            <div class="card-body">
+              {% set ani_tracked_total = ani_reports.total_anis - ani_reports.no_last_call %}
+              {% set ani_den = ani_tracked_total if ani_tracked_total > 0 else 1 %}
+              {% set ani_coverage = (ani_reports.with_last_call * 100 / ani_den) | round(1) %}
+              {% set ani_active_15 = ani_reports.active_15d %}
+              {% set ani_stale_30 = ani_reports.stale_30d %}
+              {% set ani_stale_60 = ani_reports.stale_60d %}
+              {% set ani_no_last_call = ani_reports.no_last_call %}
+              {% set ani_active_15_pct = (ani_active_15 * 100 / ani_den) | round(1) %}
+              {% set ani_stale_30_pct = (ani_stale_30 * 100 / ani_den) | round(1) %}
+              {% set ani_stale_60_pct = (ani_stale_60 * 100 / ani_den) | round(1) %}
+              <p class="mb-3">
+                Clientes Activos: <strong>{{ ani_reports.with_last_call }}</strong> de {{ ani_reports.total_anis }} client_id activos
+                <span class="text-secondary">({{ ani_coverage }}%)</span>
+              </p>
+              <div class="progress progress-separated mb-3">
+                <div class="progress-bar bg-green" role="progressbar" style="width: {{ ani_active_15_pct }}%" aria-label="Con Actividad en los ultimos 15 dias."></div>
+                <div class="progress-bar bg-yellow" role="progressbar" style="width: {{ ani_stale_30_pct }}%" aria-label="Con Actividad el mes pasado."></div>
+                <div class="progress-bar bg-orange" role="progressbar" style="width: {{ ani_stale_60_pct }}%" aria-label="Con Actividad hace mas de 2 meses."></div>
               </div>
-              <div class="col-auto d-flex align-items-center px-2">
-                <span class="legend me-2 bg-yellow"></span>
-                <span>Activos Mes Pasado (30-59d)</span>
-                <span class="ms-2 text-secondary">{{ ani_stale_30 }}</span>
+              <div class="row mb-3">
+                <div class="col-auto d-flex align-items-center pe-2">
+                  <span class="legend me-2 bg-green"></span>
+                  <span>Activos (&lt;=15d)</span>
+                  <span class="ms-2 text-secondary">{{ ani_active_15 }}</span>
+                </div>
+                <div class="col-auto d-flex align-items-center px-2">
+                  <span class="legend me-2 bg-yellow"></span>
+                  <span>Activos Mes Pasado (30-59d)</span>
+                  <span class="ms-2 text-secondary">{{ ani_stale_30 }}</span>
+                </div>
+                <div class="col-auto d-flex align-items-center px-2">
+                  <span class="legend me-2 bg-orange"></span>
+                  <span>Activos 2meses+ (&gt;=60d)</span>
+                  <span class="ms-2 text-secondary">{{ ani_stale_60 }}</span>
+                </div>
+                <div class="col-auto d-flex align-items-center px-2">
+                  <span class="legend me-2 bg-secondary"></span>
+                  <span>Sin llamada</span>
+                  <span class="ms-2 text-secondary">{{ ani_no_last_call }}</span>
+                </div>
+                <div class="col-auto d-flex align-items-center ps-2 text-secondary">
+                  Última Llamada:
+                  {% if ani_reports.latest_last_call %}
+                    <span class="ms-1">{{ ani_reports.latest_last_call.strftime('%Y-%m-%d %H:%M:%S') }} (hace {{ ani_reports.latest_last_call_hours }}h)</span>
+                  {% else %}
+                    <span class="ms-1">—</span>
+                  {% endif %}
+                </div>
               </div>
-              <div class="col-auto d-flex align-items-center px-2">
-                <span class="legend me-2 bg-orange"></span>
-                <span>Activos 2meses+ (&gt;=60d)</span>
-                <span class="ms-2 text-secondary">{{ ani_stale_60 }}</span>
-              </div>
-              <div class="col-auto d-flex align-items-center px-2">
-                <span class="legend me-2 bg-secondary"></span>
-                <span>Sin llamada</span>
-                <span class="ms-2 text-secondary">{{ ani_no_last_call }}</span>
-              </div>
-              <div class="col-auto d-flex align-items-center ps-2 text-secondary">
-                Última Llamada:
-                {% if ani_reports.latest_last_call %}
-                  <span class="ms-1">{{ ani_reports.latest_last_call.strftime('%Y-%m-%d %H:%M:%S') }} (hace {{ ani_reports.latest_last_call_hours }}h)</span>
+              {% set top5_total_calls = operator_activity_top5 | sum(attribute='calls') %}
+              <p class="mb-3">
+                Operadores mas Consultados <strong>Top 5</strong> en los ultimos 15 dias
+                <span class="text-secondary">(entre {{ top5_total_calls }} llamadas)</span>
+              </p>
+              <div class="progress progress-separated mb-3">
+                {% for op in operator_activity_top5 %}
+                  <div class="progress-bar {{ op.color_class }}" role="progressbar" style="width: {{ op.share }}%" aria-label="{{ op.name }}"></div>
                 {% else %}
-                  <span class="ms-1">—</span>
-                {% endif %}
+                  <div class="progress-bar bg-secondary" role="progressbar" style="width: 100%" aria-label="No data"></div>
+                {% endfor %}
               </div>
-            </div>
-            {% set top5_total_calls = operator_activity_top5 | sum(attribute='calls') %}
-            <p class="mb-3">
-              Operadores mas Consultados <strong>Top 5</strong> en los ultimos 15 dias
-              <span class="text-secondary">(entre {{ top5_total_calls }} llamadas)</span>
-            </p>
-            <div class="progress progress-separated mb-3">
-              {% for op in operator_activity_top5 %}
-              <div class="progress-bar {{ op.color_class }}" role="progressbar" style="width: {{ op.share }}%" aria-label="{{ op.name }}"></div>
-              {% else %}
-              <div class="progress-bar bg-secondary" role="progressbar" style="width: 100%" aria-label="No data"></div>
-              {% endfor %}
-            </div>
-            <div class="row">
-              {% for op in operator_activity_top5 %}
-              <div class="col-auto d-flex align-items-center pe-2">
-                <span class="legend me-2 {{ op.color_class }}"></span>
-                <span>{{ op.name }} ({{ op.operator }})</span>
-                <span class="ms-2 text-secondary">{{ op.calls }}</span>
+              <div class="row">
+                {% for op in operator_activity_top5 %}
+                  <div class="col-auto d-flex align-items-center pe-2">
+                    <span class="legend me-2 {{ op.color_class }}"></span>
+                    <span>{{ op.name }} ({{ op.operator }})</span>
+                    <span class="ms-2 text-secondary">{{ op.calls }}</span>
+                  </div>
+                {% else %}
+                  <div class="col-auto d-flex align-items-center pe-2 text-secondary">
+                    No operator activity in the last 15 days.
+                  </div>
+                {% endfor %}
               </div>
-              {% else %}
-              <div class="col-auto d-flex align-items-center pe-2 text-secondary">
-                No operator activity in the last 15 days.
-              </div>
-              {% endfor %}
             </div>
           </div>
         </div>
-      </div>
 
-      
+
+      </div>
     </div>
-  </div>
 
-  <div class="col-12 col-lg-6">
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-bolt me-2"></i>Llamadas En Línea</h3>
-      </div>
-      <div class="card-body">
-        <div class="divide-y">
-          {% for call in active_calls[:12] %}
-            <div>
-              <div class="row py-2 align-items-center">
-                <div class="col-auto">
-                  <span class="badge {% if call.source == 'db+redis' %}bg-success-lt{% elif call.source == 'db_only' %}bg-warning-lt text-warning{% else %}bg-azure-lt{% endif %}">
-                    {{ call.source }}
-                  </span>
-                </div>
-                <div class="col">
-                  <div class="text-truncate">
-                    <strong>{{ call.service }} • client_id {{ call.client_id if call.client_id else '—' }} 🡢 Operator {{ call.operator if call.operator else '—' }}</strong>
+    <div class="col-12 col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title"><i class="fa fa-bolt me-2"></i>Llamadas En Línea</h3>
+        </div>
+        <div class="card-body">
+          <div class="divide-y">
+            {% for call in active_calls[:12] %}
+              <div>
+                <div class="row py-2 align-items-center">
+                  <div class="col-auto">
+                    <span class="badge {% if call.source == 'db+redis' %}bg-success-lt{% elif call.source == 'db_only' %}bg-warning-lt text-warning{% else %}bg-azure-lt{% endif %}">
+                      {{ call.source }}
+                    </span>
                   </div>
-                  <div class="text-secondary small">ANI <code>{{ call.ani }}</code> · DID <code>{{ call.did if call.did else '—' }}</code> · Duration {{ call.call_duration }}</div>
-                </div>
-                <div class="col-auto text-secondary small">
-                  {{ call.created_at.strftime('%H:%M:%S') if call.created_at else '—' }}
+                  <div class="col">
+                    <div class="text-truncate">
+                      <strong>{{ call.service }} • client_id {{ call.client_id if call.client_id else '—' }} 🡢 Operator {{ call.operator if call.operator else '—' }}</strong>
+                    </div>
+                    <div class="text-secondary small">ANI <code>{{ call.ani }}</code> · DID <code>{{ call.did if call.did else '—' }}</code> · Duration {{ call.call_duration }}</div>
+                  </div>
+                  <div class="col-auto text-secondary small">
+                    {{ call.created_at.strftime('%H:%M:%S') if call.created_at else '—' }}
+                  </div>
                 </div>
               </div>
-            </div>
-          {% else %}
-            <div class="text-muted">No active calls at this time.</div>
-          {% endfor %}
+            {% else %}
+              <div class="text-muted">No active calls at this time.</div>
+            {% endfor %}
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <div class="col-12 col-lg-6">
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-mobile-screen-button me-2"></i>Clientes con llamadas hoy</h3>
-        <div class="card-actions">
-          <div class="dropdown">
-            <a
-              class="dropdown-toggle text-secondary"
-              id="top-client-dropdown"
-              href="#"
-              data-bs-toggle="dropdown"
-              aria-haspopup="true"
-              aria-expanded="false"
-            >Top {{ ani_reports.top_limit }}</a>
-            <div class="dropdown-menu dropdown-menu-end" aria-labelledby="top-client-dropdown">
-              {% for opt in ani_reports.top_options %}
+    <div class="col-12 col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title"><i class="fa fa-mobile-screen-button me-2"></i>Clientes con llamadas hoy</h3>
+          <div class="card-actions">
+            <div class="dropdown">
               <a
-                class="dropdown-item {% if ani_reports.top_limit == opt %}active{% endif %}"
-                {% if ani_reports.top_limit == opt %}aria-current="true"{% endif %}
-                href="{{ request.url.include_query_params(top_ani=opt) }}"
-              >Top {{ opt }}</a>
-              {% endfor %}
+                class="dropdown-toggle text-secondary"
+                id="top-client-dropdown"
+                href="#"
+                data-bs-toggle="dropdown"
+                aria-haspopup="true"
+                aria-expanded="false"
+              >Top {{ ani_reports.top_limit }}</a>
+              <div class="dropdown-menu dropdown-menu-end" aria-labelledby="top-client-dropdown">
+                {% for opt in ani_reports.top_options %}
+                  <a
+                    class="dropdown-item {% if ani_reports.top_limit == opt %}active{% endif %}"
+                    {% if ani_reports.top_limit == opt %}aria-current="true"{% endif %}
+                    href="{{ request.url.include_query_params(top_ani=opt) }}"
+                  >Top {{ opt }}</a>
+                {% endfor %}
+              </div>
             </div>
           </div>
         </div>
-      </div>
-      <table class="table card-table table-vcenter table-sm">
-        <thead>
-          <tr>
-            <th>Client ID</th>
-            <th>Calls</th>
-            <th class="w-50">Load</th>
-            <th>Última Llamada</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for ani in ani_reports.top_callers %}
-          <tr>
-            <td><a href="/admin/client/list?search={{ ani.client_id }}">{{ ani.client_id }}</a></td>
-            <td>{{ ani.q_calls }}</td>
-            <td>
-              <div class="progress progress-xs">
-                <div class="progress-bar bg-cyan" style="width: {{ ani.share }}%"></div>
-              </div>
-            </td>
-            <td class="text-secondary">
-              {% if ani.last_call %}
-                {{ ani.last_call.strftime('%Y-%m-%d %H:%M') }}
-              {% else %}
-                —
-              {% endif %}
-            </td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="5" class="text-center text-muted py-3">No client_id activity tracked yet.</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="col-12 col-lg-6">
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-phone me-2"></i>Llamadas En Línea por Servicio</h3>
-      </div>
-      <div class="card-body">
-        {% for service in active_call_services %}
-          <div class="d-flex justify-content-between align-items-center mb-1">
-            <span class="text-truncate">
-              <span class="badge bg-blue-lt text-blue me-1">{{ service.service }}</span>
-            </span>
-            <span class="fw-bold">{{ service.count }} calls</span>
-          </div>
-          <div class="progress progress-sm mb-3">
-            <div class="progress-bar bg-azure" style="width: {{ service.share }}%"></div>
-          </div>
-        {% else %}
-          <div class="text-muted"><span class="badge bg-secondary-lt text-secondary">Sin llamadas activas ahora</span></div>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-
-  <div class="col-12 col-lg-6">
-    <div class="card" id="operator-live-report">
-      <div class="card-header">
-        <h3 class="card-title"><i class="fa fa-headset me-2"></i>Disponibilidad del Operador</h3>
-      </div>
-      <div class="card-body">
-        {% set total_ops = operator_summary.total if operator_summary.total else 1 %}
-        {% set logged_in = operator_summary.logged_in %}
-        {% set available = operator_summary.available %}
-        {% set not_logged_in = operator_summary.total - logged_in %}
-        {% set busy = (logged_in - available) if logged_in >= available else 0 %}
-        {% set logged_in_pct = (logged_in * 100 / total_ops) | round(1) %}
-        {% set not_logged_in_pct = (not_logged_in * 100 / total_ops) | round(1) %}
-        {% set available_pct = ((available * 100 / logged_in) | round(1)) if logged_in > 0 else 0 %}
-        {% set busy_pct = ((busy * 100 / logged_in) | round(1)) if logged_in > 0 else 0 %}
-
-        <div class="d-flex justify-content-between mb-1">
-          <span>Conectado</span>
-          <span class="fw-bold">{{ logged_in }}/{{ operator_summary.total }}</span>
-        </div>
-        <div class="progress progress-separated mb-3" role="progressbar" aria-label="Operator login distribution">
-          <div class="progress-bar bg-blue" style="width: {{ logged_in_pct }}%" title="{{ logged_in }} logged in ({{ logged_in_pct }}%)"></div>
-          <div class="progress-bar bg-secondary" style="width: {{ not_logged_in_pct }}%" title="{{ not_logged_in }} not logged in ({{ not_logged_in_pct }}%)"></div>
-        </div>
-
-        <div class="d-flex justify-content-between mb-1">
-          <span>Availability</span>
-          <span class="fw-bold">{{ available }} available · {{ busy }} in call</span>
-        </div>
-        <div class="progress progress-separated mb-3" role="progressbar" aria-label="Operator availability distribution">
-          <div class="progress-bar bg-green" style="width: {{ available_pct }}%" title="{{ available }} Disponible ({{ available_pct }}%)"></div>
-          <div class="progress-bar bg-orange" style="width: {{ busy_pct }}%" title="{{ busy }} en una llamada ({{ busy_pct }}%)"></div>
-        </div>
-
-        <div class="row g-2 mb-3">
-          {% for op in operators %}
-          <div class="col-12 col-lg-4">
-            <div class="card card-sm h-100">
-              {% if op.db_loggedin %}
-              <div class="ribbon ribbon-top {% if op.db_available %}bg-success{% else %}bg-blue{% endif %}">
-                {{ op.option if op.option is not none else "—" }}
-              </div>
-              {% endif %}
-              <div class="card-status-top {% if op.db_loggedin %}bg-success{% else %}bg-danger{% endif %}"></div>
-              <div class="card-body p-2">
-                <div class="fw-medium text-truncate">{{ op.name }} <span class="text-secondary">({{ op.number }})</span></div>
-                <div class="text-secondary small">Última llamada: {{ op.lastcall_ago }}</div>
-              </div>
-              <div class="card-footer p-2">
-                <div class="d-flex align-items-center justify-content-between gap-2">
-                  <div>
-                    {% if op.db_loggedin %}
-                      {% if op.db_available %}
-                        <span class="badge bg-success-lt text-success">Disponible</span>
-                      {% else %}
-                        <span class="badge bg-blue-lt text-blue">En llamada</span>
-                      {% endif %}
-                    {% else %}
-                      <span class="badge bg-danger-lt text-danger">Sin Conexión</span>
-                    {% endif %}
+        <table class="table card-table table-vcenter table-sm">
+          <thead>
+            <tr>
+              <th>Client ID</th>
+              <th>Calls</th>
+              <th class="w-50">Load</th>
+              <th>Última Llamada</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ani in ani_reports.top_callers %}
+              <tr>
+                <td><a href="/admin/client/list?search={{ ani.client_id }}">{{ ani.client_id }}</a></td>
+                <td>{{ ani.q_calls }}</td>
+                <td>
+                  <div class="progress progress-xs">
+                    <div class="progress-bar bg-cyan" style="width: {{ ani.share }}%"></div>
                   </div>
+                </td>
+                <td class="text-secondary">
+                  {% if ani.last_call %}
+                    {{ ani.last_call.strftime('%Y-%m-%d %H:%M') }}
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="5" class="text-center text-muted py-3">No client_id activity tracked yet.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title"><i class="fa fa-phone me-2"></i>Llamadas En Línea por Servicio</h3>
+        </div>
+        <div class="card-body">
+          {% for service in active_call_services %}
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span class="text-truncate">
+                <span class="badge bg-blue-lt text-blue me-1">{{ service.service }}</span>
+              </span>
+              <span class="fw-bold">{{ service.count }} calls</span>
+            </div>
+            <div class="progress progress-sm mb-3">
+              <div class="progress-bar bg-azure" style="width: {{ service.share }}%"></div>
+            </div>
+          {% else %}
+            <div class="text-muted"><span class="badge bg-secondary-lt text-secondary">Sin llamadas activas ahora</span></div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+      <div class="card" id="operator-live-report">
+        <div class="card-header">
+          <h3 class="card-title"><i class="fa fa-headset me-2"></i>Disponibilidad del Operador</h3>
+        </div>
+        <div class="card-body">
+          {% set total_ops = operator_summary.total if operator_summary.total else 1 %}
+          {% set logged_in = operator_summary.logged_in %}
+          {% set available = operator_summary.available %}
+          {% set not_logged_in = operator_summary.total - logged_in %}
+          {% set busy = (logged_in - available) if logged_in >= available else 0 %}
+          {% set logged_in_pct = (logged_in * 100 / total_ops) | round(1) %}
+          {% set not_logged_in_pct = (not_logged_in * 100 / total_ops) | round(1) %}
+          {% set available_pct = ((available * 100 / logged_in) | round(1)) if logged_in > 0 else 0 %}
+          {% set busy_pct = ((busy * 100 / logged_in) | round(1)) if logged_in > 0 else 0 %}
+
+          <div class="d-flex justify-content-between mb-1">
+            <span>Conectado</span>
+            <span class="fw-bold">{{ logged_in }}/{{ operator_summary.total }}</span>
+          </div>
+          <div class="progress progress-separated mb-3" role="progressbar" aria-label="Operator login distribution">
+            <div class="progress-bar bg-blue" style="width: {{ logged_in_pct }}%" title="{{ logged_in }} logged in ({{ logged_in_pct }}%)"></div>
+            <div class="progress-bar bg-secondary" style="width: {{ not_logged_in_pct }}%" title="{{ not_logged_in }} not logged in ({{ not_logged_in_pct }}%)"></div>
+          </div>
+
+          <div class="d-flex justify-content-between mb-1">
+            <span>Availability</span>
+            <span class="fw-bold">{{ available }} available · {{ busy }} in call</span>
+          </div>
+          <div class="progress progress-separated mb-3" role="progressbar" aria-label="Operator availability distribution">
+            <div class="progress-bar bg-green" style="width: {{ available_pct }}%" title="{{ available }} Disponible ({{ available_pct }}%)"></div>
+            <div class="progress-bar bg-orange" style="width: {{ busy_pct }}%" title="{{ busy }} en una llamada ({{ busy_pct }}%)"></div>
+          </div>
+
+          <div class="row g-2 mb-3">
+            {% for op in operators %}
+              <div class="col-12 col-lg-4">
+                <div class="card card-sm h-100">
+                  {% if op.db_loggedin %}
+                    <div class="ribbon ribbon-top {% if op.db_available %}bg-success{% else %}bg-blue{% endif %}">
+                      {{ op.option if op.option is not none else "—" }}
+                    </div>
+                  {% endif %}
+                  <div class="card-status-top {% if op.db_loggedin %}bg-success{% else %}bg-danger{% endif %}"></div>
+                  <div class="card-body p-2">
+                    <div class="fw-medium text-truncate">{{ op.name }} <span class="text-secondary">({{ op.number }})</span></div>
+                    <div class="text-secondary small">Última llamada: {{ op.lastcall_ago }}</div>
+                  </div>
+                  <div class="card-footer p-2">
+                    <div class="d-flex align-items-center justify-content-between gap-2">
+                      <div>
+                        {% if op.db_loggedin %}
+                          {% if op.db_available %}
+                            <span class="badge bg-success-lt text-success">Disponible</span>
+                          {% else %}
+                            <span class="badge bg-blue-lt text-blue">En llamada</span>
+                          {% endif %}
+                        {% else %}
+                          <span class="badge bg-danger-lt text-danger">Sin Conexión</span>
+                        {% endif %}
+                      </div>
                   {# <div>
                     {% if op.enable_valkey and op.sincronizados is sameas true %}
                       <span class="badge bg-success-lt text-success" title="Redis cache sincronizados">
@@ -402,240 +402,240 @@
                       </span>
                     {% endif %}
                   </div> #}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% else %}
+              <div class="col-12 text-muted small">No operators configured.</div>
+            {% endfor %}
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <h3 class="card-title"><i class="fa fa-chart-bar me-2"></i>Reporte Servicios</h3>
+          <a href="{{ request.url_for('admin:monthly-report') }}" class="btn btn-sm btn-outline-primary ms-auto">
+            <i class="fa fa-up-right-from-square me-1"></i>Ver reporte mensual
+          </a>
+        </div>
+        <div class="card-body">
+          <div id="chart-mentions" class="position-relative chart-lg"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div class="card" id="operator-report">
+        <div class="card-header">
+          <h3 class="card-title">Reporte de Operadores — {{ cdr_reports.operator_period_label }}</h3>
+          <div class="card-actions">
+            <div class="dropdown">
+              <a
+                class="dropdown-toggle text-secondary"
+                id="operator-period-dropdown"
+                href="#"
+                data-bs-toggle="dropdown"
+                aria-haspopup="true"
+                aria-expanded="false"
+              >{{ cdr_reports.operator_period_label }}</a>
+              <div class="dropdown-menu dropdown-menu-end" aria-labelledby="operator-period-dropdown">
+                {% for opt in cdr_reports.operator_period_options %}
+                  <a
+                    class="dropdown-item {% if cdr_reports.operator_period == opt['value'] %}active{% endif %}"
+                    {% if cdr_reports.operator_period == opt['value'] %}aria-current="true"{% endif %}
+                    href="{{ request.url.include_query_params(operator_period=opt['value']) }}"
+                  >{{ opt['label'] }}</a>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+        <table class="table card-table table-vcenter">
+          <thead>
+            <tr>
+              <th>Operator</th>
+              <th >Minutos</th>
+              <th >Llamadas</th>
+              <th>% Minutos</th>
+              <th>% Llamadas</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for op in cdr_reports.operator_totals %}
+              {% set minutes_share = ((op.minutes * 100) / cdr_reports.operator_max_minutes) | round(1) %}
+              {% set calls_share = ((op.calls * 100) / cdr_reports.operator_max_calls) | round(1) %}
+              {% set minutes_hue = (minutes_share * 0.6) if minutes_share <= 50 else (30 + ((minutes_share - 50) * 1.8)) %}
+              {% set calls_hue = (calls_share * 0.6) if calls_share <= 50 else (30 + ((calls_share - 50) * 1.8)) %}
+              <tr>
+                <td>{{ op.name }} <span class="text-secondary">({{ op.operator }})</span></td>
+                <td>
+                  <span class="fw-semibold">{{ op.minutes }}</span>
+                  <span class="text-secondary small ms-1">de un total {{ cdr_reports.operator_total_minutes }}</span>
+                </td>
+                <td>
+                  <span class="fw-semibold">{{ op.calls }}</span>
+                  <span class="text-secondary small ms-1">de un total {{ cdr_reports.operator_total_calls }}</span>
+                </td>
+                <td class="w-20">
+                  <div class="progress progress-xs">
+                    <div
+                      class="progress-bar"
+                      style="width: {{ minutes_share }}%; background-color: hsl({{ minutes_hue }}, 85%, 52%);"
+                      data-bs-toggle="tooltip"
+                      data-bs-placement="top"
+                      title="{{ minutes_share }}% relativo al mejor operator."
+                    ></div>
+                  </div>
+                </td>
+                <td class="w-20">
+                  <div class="progress progress-xs">
+                    <div
+                      class="progress-bar"
+                      style="width: {{ calls_share }}%; background-color: hsl({{ calls_hue }}, 85%, 52%);"
+                      data-bs-toggle="tooltip"
+                      data-bs-placement="top"
+                      title="{{ calls_share }}% relativo al mejor operator."
+                    ></div>
+                  </div>
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="5" class="text-center text-muted py-3">No operator usage for this period yet.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-3">
+      <div class="card">
+        <div class="card-header">
+          <a
+            class="card-title text-reset text-decoration-none d-flex align-items-center justify-content-between w-100"
+            data-bs-toggle="collapse"
+            href="#service-status-collapse"
+            role="button"
+            aria-expanded="false"
+            aria-controls="service-status-collapse"
+          >
+            <span><i class="fa fa-heart-pulse me-2"></i>Estado del Servicio</span>
+            <i class="fa fa-chevron-down small"></i>
+          </a>
+        </div>
+        <div class="collapse" id="service-status-collapse">
+          <div class="card-body">
+            <div class="datagrid">
+              <div class="datagrid-item">
+                <div class="datagrid-title">Redis / Valkey</div>
+                <div class="datagrid-content">
+                  <span class="badge {% if redis_online %}bg-success-lt text-success{% else %}bg-danger-lt text-danger{% endif %}">
+                    {% if redis_online %}Saludable{% else %}Sin Conexión{% endif %}
+                  </span>
+                </div>
+              </div>
+              <div class="datagrid-item">
+                <div class="datagrid-title">Sincronización de Caché</div>
+                <div class="datagrid-content">
+                  <span class="badge {% if operator_summary.drift == 0 %}bg-success-lt text-success{% else %}bg-warning-lt text-warning{% endif %}">
+                    {{ operator_summary.sincronizados }}/{{ operator_summary.total }} sincronizados
+                  </span>
+                </div>
+              </div>
+              <div class="datagrid-item">
+                <div class="datagrid-title">Alertas de Desviación</div>
+                <div class="datagrid-content">
+                  <span class="badge {% if operator_summary.drift == 0 %}bg-success-lt text-success{% else %}bg-warning-lt text-warning{% endif %}">
+                    {{ operator_summary.drift }}
+                  </span>
+                </div>
+              </div>
+              <div class="datagrid-item">
+                <div class="datagrid-title">Llamadas En Línea</div>
+                <div class="datagrid-content">
+                  <span class="badge bg-blue-lt text-blue">{{ active_calls|length }} en progreso</span>
                 </div>
               </div>
             </div>
-          </div>
-          {% else %}
-          <div class="col-12 text-muted small">No operators configured.</div>
-          {% endfor %}
-        </div>
-
-      </div>
-    </div>
-  </div>
-
-  <div class="col-12">
-    <div class="card">
-      <div class="card-header d-flex align-items-center justify-content-between">
-        <h3 class="card-title"><i class="fa fa-chart-bar me-2"></i>Reporte Servicios</h3>
-        <a href="{{ request.url_for('admin:monthly-report') }}" class="btn btn-sm btn-outline-primary ms-auto">
-          <i class="fa fa-up-right-from-square me-1"></i>Ver reporte mensual
-        </a>
-      </div>
-      <div class="card-body">
-        <div id="chart-mentions" class="position-relative chart-lg"></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-12">
-    <div class="card" id="operator-report">
-      <div class="card-header">
-        <h3 class="card-title">Reporte de Operadores — {{ cdr_reports.operator_period_label }}</h3>
-        <div class="card-actions">
-          <div class="dropdown">
-            <a
-              class="dropdown-toggle text-secondary"
-              id="operator-period-dropdown"
-              href="#"
-              data-bs-toggle="dropdown"
-              aria-haspopup="true"
-              aria-expanded="false"
-            >{{ cdr_reports.operator_period_label }}</a>
-            <div class="dropdown-menu dropdown-menu-end" aria-labelledby="operator-period-dropdown">
-              {% for opt in cdr_reports.operator_period_options %}
-              <a
-                class="dropdown-item {% if cdr_reports.operator_period == opt['value'] %}active{% endif %}"
-                {% if cdr_reports.operator_period == opt['value'] %}aria-current="true"{% endif %}
-                href="{{ request.url.include_query_params(operator_period=opt['value']) }}"
-              >{{ opt['label'] }}</a>
-              {% endfor %}
+            <div class="row g-2 text-secondary small mt-3">
+              <div class="col-6">Versión de Redis: <strong>{{ redis_info.get("redis_version", "—") }}</strong></div>
+              <div class="col-6">Clientes: <strong>{{ redis_info.get("connected_clients", "—") }}</strong></div>
+              <div class="col-6">Memoria: <strong>{{ redis_info.get("used_memory_human", "—") }}</strong></div>
+              <div class="col-6">Función: <strong>{{ redis_info.get("role", "—") | title }}</strong></div>
+              <div class="col-12">Claves del Operador: <strong>{{ redis_operators_count }}</strong> · Claves de Llamadas: <strong>{{ redis_calls_count }}</strong></div>
             </div>
           </div>
         </div>
       </div>
-      <table class="table card-table table-vcenter">
-        <thead>
-          <tr>
-            <th>Operator</th>
-            <th >Minutos</th>
-            <th >Llamadas</th>
-            <th>% Minutos</th>
-            <th>% Llamadas</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for op in cdr_reports.operator_totals %}
-          {% set minutes_share = ((op.minutes * 100) / cdr_reports.operator_max_minutes) | round(1) %}
-          {% set calls_share = ((op.calls * 100) / cdr_reports.operator_max_calls) | round(1) %}
-          {% set minutes_hue = (minutes_share * 0.6) if minutes_share <= 50 else (30 + ((minutes_share - 50) * 1.8)) %}
-          {% set calls_hue = (calls_share * 0.6) if calls_share <= 50 else (30 + ((calls_share - 50) * 1.8)) %}
-          <tr>
-            <td>{{ op.name }} <span class="text-secondary">({{ op.operator }})</span></td>
-            <td>
-              <span class="fw-semibold">{{ op.minutes }}</span>
-              <span class="text-secondary small ms-1">de un total {{ cdr_reports.operator_total_minutes }}</span>
-            </td>
-            <td>
-              <span class="fw-semibold">{{ op.calls }}</span>
-              <span class="text-secondary small ms-1">de un total {{ cdr_reports.operator_total_calls }}</span>
-            </td>
-            <td class="w-20">
-              <div class="progress progress-xs">
-                <div
-                  class="progress-bar"
-                  style="width: {{ minutes_share }}%; background-color: hsl({{ minutes_hue }}, 85%, 52%);"
-                  data-bs-toggle="tooltip"
-                  data-bs-placement="top"
-                  title="{{ minutes_share }}% relativo al mejor operator."
-                ></div>
-              </div>
-            </td>
-            <td class="w-20">
-              <div class="progress progress-xs">
-                <div
-                  class="progress-bar"
-                  style="width: {{ calls_share }}%; background-color: hsl({{ calls_hue }}, 85%, 52%);"
-                  data-bs-toggle="tooltip"
-                  data-bs-placement="top"
-                  title="{{ calls_share }}% relativo al mejor operator."
-                ></div>
-              </div>
-            </td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="5" class="text-center text-muted py-3">No operator usage for this period yet.</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
     </div>
+
   </div>
 
-  <div class="col-12 col-lg-3">
-    <div class="card">
-      <div class="card-header">
-        <a
-          class="card-title text-reset text-decoration-none d-flex align-items-center justify-content-between w-100"
-          data-bs-toggle="collapse"
-          href="#service-status-collapse"
-          role="button"
-          aria-expanded="false"
-          aria-controls="service-status-collapse"
-        >
-          <span><i class="fa fa-heart-pulse me-2"></i>Estado del Servicio</span>
-          <i class="fa fa-chevron-down small"></i>
-        </a>
-      </div>
-      <div class="collapse" id="service-status-collapse">
-        <div class="card-body">
+  <div class="modal modal-blur fade" id="client-credit-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Confirmar recarga de saldo</h5>
+          <button type="button" class="btn-close" id="client-credit-modal-close" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-info" id="client-credit-modal-summary" role="alert"></div>
           <div class="datagrid">
             <div class="datagrid-item">
-              <div class="datagrid-title">Redis / Valkey</div>
-              <div class="datagrid-content">
-                <span class="badge {% if redis_online %}bg-success-lt text-success{% else %}bg-danger-lt text-danger{% endif %}">
-                  {% if redis_online %}Saludable{% else %}Sin Conexión{% endif %}
-                </span>
-              </div>
+              <div class="datagrid-title">Servicio</div>
+              <div class="datagrid-content" id="client-credit-modal-service">—</div>
             </div>
             <div class="datagrid-item">
-              <div class="datagrid-title">Sincronización de Caché</div>
-              <div class="datagrid-content">
-                <span class="badge {% if operator_summary.drift == 0 %}bg-success-lt text-success{% else %}bg-warning-lt text-warning{% endif %}">
-                  {{ operator_summary.sincronizados }}/{{ operator_summary.total }} sincronizados
-                </span>
-              </div>
+              <div class="datagrid-title">Client ID</div>
+              <div class="datagrid-content" id="client-credit-modal-client-id">—</div>
             </div>
             <div class="datagrid-item">
-              <div class="datagrid-title">Alertas de Desviación</div>
-              <div class="datagrid-content">
-                <span class="badge {% if operator_summary.drift == 0 %}bg-success-lt text-success{% else %}bg-warning-lt text-warning{% endif %}">
-                  {{ operator_summary.drift }}
-                </span>
-              </div>
+              <div class="datagrid-title">Email</div>
+              <div class="datagrid-content" id="client-credit-modal-email">—</div>
             </div>
             <div class="datagrid-item">
-              <div class="datagrid-title">Llamadas En Línea</div>
-              <div class="datagrid-content">
-                <span class="badge bg-blue-lt text-blue">{{ active_calls|length }} en progreso</span>
-              </div>
+              <div class="datagrid-title">Créditos actuales</div>
+              <div class="datagrid-content" id="client-credit-modal-current">—</div>
+            </div>
+            <div class="datagrid-item">
+              <div class="datagrid-title">Créditos a agregar</div>
+              <div class="datagrid-content" id="client-credit-modal-add">—</div>
+            </div>
+            <div class="datagrid-item">
+              <div class="datagrid-title">Nuevo saldo</div>
+              <div class="datagrid-content" id="client-credit-modal-new">—</div>
             </div>
           </div>
-          <div class="row g-2 text-secondary small mt-3">
-            <div class="col-6">Versión de Redis: <strong>{{ redis_info.get("redis_version", "—") }}</strong></div>
-            <div class="col-6">Clientes: <strong>{{ redis_info.get("connected_clients", "—") }}</strong></div>
-            <div class="col-6">Memoria: <strong>{{ redis_info.get("used_memory_human", "—") }}</strong></div>
-            <div class="col-6">Función: <strong>{{ redis_info.get("role", "—") | title }}</strong></div>
-            <div class="col-12">Claves del Operador: <strong>{{ redis_operators_count }}</strong> · Claves de Llamadas: <strong>{{ redis_calls_count }}</strong></div>
-          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="client-credit-modal-cancel">Cancel</button>
+          <button type="button" class="btn btn-primary" id="client-credit-confirm-btn">Save</button>
         </div>
       </div>
     </div>
   </div>
 
-</div>
 
-<div class="modal modal-blur fade" id="client-credit-modal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Confirmar recarga de saldo</h5>
-        <button type="button" class="btn-close" id="client-credit-modal-close" aria-label="Cerrar"></button>
-      </div>
-      <div class="modal-body">
-        <div class="alert alert-info" id="client-credit-modal-summary" role="alert"></div>
-      <div class="datagrid">
-        <div class="datagrid-item">
-          <div class="datagrid-title">Servicio</div>
-          <div class="datagrid-content" id="client-credit-modal-service">—</div>
-        </div>
-        <div class="datagrid-item">
-          <div class="datagrid-title">Client ID</div>
-          <div class="datagrid-content" id="client-credit-modal-client-id">—</div>
-        </div>
-        <div class="datagrid-item">
-          <div class="datagrid-title">Email</div>
-          <div class="datagrid-content" id="client-credit-modal-email">—</div>
-        </div>
-        <div class="datagrid-item">
-          <div class="datagrid-title">Créditos actuales</div>
-          <div class="datagrid-content" id="client-credit-modal-current">—</div>
-        </div>
-        <div class="datagrid-item">
-          <div class="datagrid-title">Créditos a agregar</div>
-          <div class="datagrid-content" id="client-credit-modal-add">—</div>
-        </div>
-        <div class="datagrid-item">
-          <div class="datagrid-title">Nuevo saldo</div>
-          <div class="datagrid-content" id="client-credit-modal-new">—</div>
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button type="button" class="btn btn-secondary" id="client-credit-modal-cancel">Cancel</button>
-      <button type="button" class="btn btn-primary" id="client-credit-confirm-btn">Save</button>
-    </div>
-    </div>
   </div>
-</div>
-
-
-</div>
 
 {% endblock %}
 
 {% block tail %}
-{{ super() }}
-<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const labels = {{ cdr_reports.carrier_chart.labels | tojson }};
-    const chartSeries = {{ cdr_reports.carrier_chart.series | tojson }};
-    const chartColors = {{ cdr_reports.carrier_chart.colors | tojson }};
+  {{ super() }}
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const labels = {{ cdr_reports.carrier_chart.labels | tojson }};
+      const chartSeries = {{ cdr_reports.carrier_chart.series | tojson }};
+      const chartColors = {{ cdr_reports.carrier_chart.colors | tojson }};
 
-    window.ApexCharts &&
+      window.ApexCharts &&
       new ApexCharts(document.getElementById("chart-mentions"), {
         chart: {
           type: "bar",
@@ -677,138 +677,138 @@
         legend: { show: true, position: "top" },
       }).render();
 
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.forEach((tooltipTriggerEl) => new bootstrap.Tooltip(tooltipTriggerEl));
+      const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+      tooltipTriggerList.forEach((tooltipTriggerEl) => new bootstrap.Tooltip(tooltipTriggerEl));
 
-    const creditAlert = document.getElementById("client-credit-alert");
-    const previewButton = document.getElementById("client-credit-preview-btn");
-    const confirmButton = document.getElementById("client-credit-confirm-btn");
-    const modalEl = document.getElementById("client-credit-modal");
-    const modalSummary = document.getElementById("client-credit-modal-summary");
-    const modalService = document.getElementById("client-credit-modal-service");
-    const modalClientId = document.getElementById("client-credit-modal-client-id");
-    const modalEmail = document.getElementById("client-credit-modal-email");
-    const modalCurrent = document.getElementById("client-credit-modal-current");
-    const modalAdd = document.getElementById("client-credit-modal-add");
-    const modalNew = document.getElementById("client-credit-modal-new");
-    const modalCloseButton = document.getElementById("client-credit-modal-close");
-    const modalCancelButton = document.getElementById("client-credit-modal-cancel");
-    const serviceSelect = document.getElementById("client-credit-service");
-    const clientIdInput = document.getElementById("client-credit-client-id");
-    const creditsInput = document.getElementById("client-credit-add");
-    const previewUrl = "/api/v1/admin/system-status/client-credit/preview";
-    const applyUrl = "/api/v1/admin/system-status/client-credit";
-    let pendingPayload = null;
-    const clientCreditModal = modalEl && bootstrap.Modal ? new bootstrap.Modal(modalEl) : null;
+      const creditAlert = document.getElementById("client-credit-alert");
+      const previewButton = document.getElementById("client-credit-preview-btn");
+      const confirmButton = document.getElementById("client-credit-confirm-btn");
+      const modalEl = document.getElementById("client-credit-modal");
+      const modalSummary = document.getElementById("client-credit-modal-summary");
+      const modalService = document.getElementById("client-credit-modal-service");
+      const modalClientId = document.getElementById("client-credit-modal-client-id");
+      const modalEmail = document.getElementById("client-credit-modal-email");
+      const modalCurrent = document.getElementById("client-credit-modal-current");
+      const modalAdd = document.getElementById("client-credit-modal-add");
+      const modalNew = document.getElementById("client-credit-modal-new");
+      const modalCloseButton = document.getElementById("client-credit-modal-close");
+      const modalCancelButton = document.getElementById("client-credit-modal-cancel");
+      const serviceSelect = document.getElementById("client-credit-service");
+      const clientIdInput = document.getElementById("client-credit-client-id");
+      const creditsInput = document.getElementById("client-credit-add");
+      const previewUrl = "/api/v1/admin/system-status/client-credit/preview";
+      const applyUrl = "/api/v1/admin/system-status/client-credit";
+      let pendingPayload = null;
+      const clientCreditModal = modalEl && bootstrap.Modal ? new bootstrap.Modal(modalEl) : null;
 
-    function setAlert(message, type) {
-      if (!creditAlert) {
-        return;
-      }
-      creditAlert.textContent = message;
-      creditAlert.className = `alert alert-${type}`;
-      creditAlert.classList.toggle("d-none", !message);
-    }
-
-    function setModalSummary(message, type) {
-      modalSummary.textContent = message;
-      modalSummary.className = `alert alert-${type}`;
-    }
-
-    async function readJsonResponse(response) {
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(data.detail || data.message || "Request failed");
-      }
-      return data;
-    }
-
-    previewButton?.addEventListener("click", async () => {
-      setAlert("", "danger");
-      const serviceSlug = serviceSelect?.value || "";
-      const clientId = Number.parseInt(clientIdInput?.value || "", 10);
-      const creditsToAdd = Number.parseInt(creditsInput?.value || "", 10);
-
-      if (!serviceSlug || !Number.isInteger(clientId) || clientId <= 0 || !Number.isInteger(creditsToAdd) || creditsToAdd <= 0) {
-        setAlert("Completa Servicio, Client ID y Saldo a Agregar con valores válidos.", "danger");
-        return;
+      function setAlert(message, type) {
+        if (!creditAlert) {
+          return;
+        }
+        creditAlert.textContent = message;
+        creditAlert.className = `alert alert-${type}`;
+        creditAlert.classList.toggle("d-none", !message);
       }
 
-      previewButton.disabled = true;
-      previewButton.setAttribute("aria-busy", "true");
-      try {
-        const params = new URLSearchParams({
-          service_slug: serviceSlug,
-          client_id: String(clientId),
-          credits_to_add: String(creditsToAdd),
-        });
-        const response = await fetch(`${previewUrl}?${params.toString()}`, { credentials: "same-origin" });
-        const data = await readJsonResponse(response);
-
-        pendingPayload = {
-          service_slug: data.service_slug,
-          client_id: data.client_id,
-          credits_to_add: data.credits_to_add,
-        };
-
-        modalSummary.textContent = `Vas a agregar ${data.credits_to_add} segundos al cliente ${data.client_id}.`;
-        modalSummary.className = "alert alert-info";
-        modalService.textContent = serviceSelect?.selectedOptions?.[0]?.textContent || serviceSlug;
-        modalClientId.textContent = String(data.client_id);
-        modalEmail.textContent = data.email || "Sin correo registrado";
-        modalCurrent.textContent = `${data.current_credits} segundos`;
-        modalAdd.textContent = `${data.credits_to_add} segundos`;
-        modalNew.textContent = `${data.new_credits} segundos`;
-
-        clientCreditModal?.show();
-      } catch (error) {
-        setAlert(error.message || "No se pudo cargar el cliente.", "danger");
-      } finally {
-        previewButton.disabled = false;
-        previewButton.removeAttribute("aria-busy");
-      }
-    });
-
-    confirmButton?.addEventListener("click", async () => {
-      if (!pendingPayload) {
-        setModalSummary("Primero carga un cliente válido.", "warning");
-        return;
+      function setModalSummary(message, type) {
+        modalSummary.textContent = message;
+        modalSummary.className = `alert alert-${type}`;
       }
 
-      confirmButton.disabled = true;
-      confirmButton.setAttribute("aria-busy", "true");
-      try {
-        const response = await fetch(applyUrl, {
-          method: "POST",
-          credentials: "same-origin",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(pendingPayload),
-        });
-        const data = await readJsonResponse(response);
-        clientCreditModal?.hide();
+      async function readJsonResponse(response) {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(data.detail || data.message || "Request failed");
+        }
+        return data;
+      }
+
+      previewButton?.addEventListener("click", async () => {
+        setAlert("", "danger");
+        const serviceSlug = serviceSelect?.value || "";
+        const clientId = Number.parseInt(clientIdInput?.value || "", 10);
+        const creditsToAdd = Number.parseInt(creditsInput?.value || "", 10);
+
+        if (!serviceSlug || !Number.isInteger(clientId) || clientId <= 0 || !Number.isInteger(creditsToAdd) || creditsToAdd <= 0) {
+          setAlert("Completa Servicio, Client ID y Saldo a Agregar con valores válidos.", "danger");
+          return;
+        }
+
+        previewButton.disabled = true;
+        previewButton.setAttribute("aria-busy", "true");
+        try {
+          const params = new URLSearchParams({
+            service_slug: serviceSlug,
+            client_id: String(clientId),
+            credits_to_add: String(creditsToAdd),
+          });
+          const response = await fetch(`${previewUrl}?${params.toString()}`, { credentials: "same-origin" });
+          const data = await readJsonResponse(response);
+
+          pendingPayload = {
+            service_slug: data.service_slug,
+            client_id: data.client_id,
+            credits_to_add: data.credits_to_add,
+          };
+
+          modalSummary.textContent = `Vas a agregar ${data.credits_to_add} segundos al cliente ${data.client_id}.`;
+          modalSummary.className = "alert alert-info";
+          modalService.textContent = serviceSelect?.selectedOptions?.[0]?.textContent || serviceSlug;
+          modalClientId.textContent = String(data.client_id);
+          modalEmail.textContent = data.email || "Sin correo registrado";
+          modalCurrent.textContent = `${data.current_credits} segundos`;
+          modalAdd.textContent = `${data.credits_to_add} segundos`;
+          modalNew.textContent = `${data.new_credits} segundos`;
+
+          clientCreditModal?.show();
+        } catch (error) {
+          setAlert(error.message || "No se pudo cargar el cliente.", "danger");
+        } finally {
+          previewButton.disabled = false;
+          previewButton.removeAttribute("aria-busy");
+        }
+      });
+
+      confirmButton?.addEventListener("click", async () => {
+        if (!pendingPayload) {
+          setModalSummary("Primero carga un cliente válido.", "warning");
+          return;
+        }
+
+        confirmButton.disabled = true;
+        confirmButton.setAttribute("aria-busy", "true");
+        try {
+          const response = await fetch(applyUrl, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(pendingPayload),
+          });
+          const data = await readJsonResponse(response);
+          clientCreditModal?.hide();
+          pendingPayload = null;
+          setAlert(`Saldo actualizado para client_id ${data.client_id}: ${data.current_credits} -> ${data.new_credits} segundos.`, "success");
+        } catch (error) {
+          setModalSummary(error.message || "No se pudo guardar el saldo.", "danger");
+        } finally {
+          confirmButton.disabled = false;
+          confirmButton.removeAttribute("aria-busy");
+        }
+      });
+
+      modalEl?.addEventListener("hidden.bs.modal", () => {
         pendingPayload = null;
-        setAlert(`Saldo actualizado para client_id ${data.client_id}: ${data.current_credits} -> ${data.new_credits} segundos.`, "success");
-      } catch (error) {
-        setModalSummary(error.message || "No se pudo guardar el saldo.", "danger");
-      } finally {
-        confirmButton.disabled = false;
-        confirmButton.removeAttribute("aria-busy");
-      }
-    });
+      });
 
-    modalEl?.addEventListener("hidden.bs.modal", () => {
-      pendingPayload = null;
-    });
+      modalCloseButton?.addEventListener("click", () => {
+        clientCreditModal?.hide();
+      });
 
-    modalCloseButton?.addEventListener("click", () => {
-      clientCreditModal?.hide();
+      modalCancelButton?.addEventListener("click", () => {
+        clientCreditModal?.hide();
+      });
     });
-
-    modalCancelButton?.addEventListener("click", () => {
-      clientCreditModal?.hide();
-    });
-  });
-</script>
+  </script>
 {% endblock %}

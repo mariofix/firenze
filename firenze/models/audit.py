@@ -1,11 +1,11 @@
-from sqlalchemy import String, JSON
+from sqlalchemy import JSON, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from firenze.database import Base
-from firenze.models.base import TimestampMixin
+from ..extensions import db
+from .base import TimestampMixin
 
 
-class Audit(Base, TimestampMixin):
+class Audit(db.Model, TimestampMixin):
     __tablename__ = "audit"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -18,4 +18,10 @@ class Audit(Base, TimestampMixin):
         return f"{self.title}"
 
     def to_dict(self):
-        return {"id": self.id, "title": self.title, "category": self.category, "called_from": self.called_from, "data": self.data,}
+        return {
+            "id": self.id,
+            "title": self.title,
+            "category": self.category,
+            "called_from": self.called_from,
+            "data": self.data,
+        }
