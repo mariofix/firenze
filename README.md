@@ -1,25 +1,18 @@
 # Proyecto Firenze
 
-Servicio de comunicación y administración para servicio Tatot
-Asterisk 18
-Python 3.10
-FastAPI
-SQLAdmin
-Typer
+Servicio de comunicación y administración para servicio Tarot
 
 ## Instalación
 
-poetry install --with deploy
+pip install .
 
 ## Registro de Cambios
 
 ### [Sin liberar]
 
-- Que los audios los pueda subir ruurd desde Portal (#1)
-- Migrar tablas operativas (#2)
-- Solucionar audios
-  - enter-pin.ulaw
-  - Omitir audio de "será revisado" en good-pin
+### [2026.8.1] - 2026-08-03
+
+- Inicia migracion a Flask
 
 ### [2024.1.0] - 2023-12-27
 
