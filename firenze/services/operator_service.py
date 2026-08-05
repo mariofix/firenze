@@ -68,7 +68,7 @@ def _get_operator_by_option(db: Session, option: str) -> Operator:
     """
     try:
         option_int = int(option)
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
         logger.warning(
             "_get_operator_by_option: non-numeric option=%r",
             option,

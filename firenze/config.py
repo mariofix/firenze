@@ -20,9 +20,9 @@ class Settings:
     REDIS_SOCKET_CONNECT_TIMEOUT: float = 2.0
     REDIS_SOCKET_TIMEOUT: float = 2.0
     ALLOWED_DOMAINS: list[str] = field(default_factory=lambda: ["localhost", "tardis.local"])
-    CORS_ORIGINS: list[str] = ["http://localhost"]
+    CORS_ORIGINS: list[str] = field(default_factory=lambda: ["http://localhost"])
     AGI_PATH_PREFIX: str = "/agi"
-    AGI_ALLOWED_NETWORKS: list[str] = ["127.0.0.1/32"]
+    AGI_ALLOWED_NETWORKS: list[str] = field(default_factory=lambda: ["127.0.0.1/32"])
     BASE_DIR: Any = BASE_DIR
     LEGACY_API_URL: str = "http://localhost:9000"
     LEGACY_API_USER: str = ""

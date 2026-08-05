@@ -1,3 +1,4 @@
+from __future__ import annotations
 import datetime
 import secrets
 import string
@@ -14,7 +15,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from firenze.database import Base
+from firenze.extensions import db
 from firenze.models.base import TimestampMixin
 
 if TYPE_CHECKING:
@@ -26,7 +27,7 @@ def _generate_pin() -> str:
     return "".join(secrets.choice(string.digits) for _ in range(8))
 
 
-class Client(Base, TimestampMixin):
+class Client(db.Model, TimestampMixin):
     """Modelo de cliente unificado — una fila por cliente por servicio.
 
     - ``client_id`` es el identificador orientado al negocio, único dentro de un servicio.
@@ -76,7 +77,7 @@ class Client(Base, TimestampMixin):
         return ", ".join(parts[:-1]) + f" y {parts[-1]}"
 
 
-class ClientAni(Base):
+class ClientAni(db.Model):
     """Mapea ANI (ID de llamada) a un cliente dentro de un servicio.
 
     - Un cliente puede tener múltiples ANIs (usuarios registrados con varios teléfonos).

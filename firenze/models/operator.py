@@ -1,14 +1,15 @@
+from __future__ import annotations
 import datetime
 
 from sqlalchemy import DateTime, ForeignKey, String
 from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from firenze.database import Base
+from firenze.extensions import db
 from firenze.models.base import TimestampMixin
 
 
-class Operator(Base, TimestampMixin):
+class Operator(db.Model, TimestampMixin):
     __tablename__ = "operator"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -27,7 +28,7 @@ class Operator(Base, TimestampMixin):
         return f"{self.number}"
 
 
-class OperatorPhone(Base, TimestampMixin):
+class OperatorPhone(db.Model, TimestampMixin):
     __tablename__ = "operator_phone"
 
     id: Mapped[int] = mapped_column(primary_key=True)

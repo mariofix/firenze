@@ -1,13 +1,14 @@
+from __future__ import annotations
 from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from firenze.database import Base
+from firenze.extensions import db
 from firenze.models.base import TimestampMixin
 
 
-class AuthLoginCode(Base, TimestampMixin):
+class AuthLoginCode(db.Model, TimestampMixin):
     __tablename__ = "auth_login_code"
 
     id: Mapped[int] = mapped_column(primary_key=True)
