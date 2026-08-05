@@ -12,7 +12,7 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from firenze.config import settings
+from firenze import settings
 from firenze.models.client import Client, ClientAni, _generate_pin
 from firenze.models.operator import Operator
 from firenze.models.service import Service
