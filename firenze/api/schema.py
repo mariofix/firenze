@@ -77,3 +77,25 @@ class ActiveCallSchema(Schema):
     llamada_activa = fields.String(required=True)
 
 
+
+class CreditLimitArgsSchema(Schema):
+    seconds = fields.Integer(required=True, metadata={"description": "Credit balance in seconds"})
+    uniqueid = fields.String(load_default=None, metadata={"description": "Asterisk UNIQUEID for this call session"})
+    channel = fields.String(load_default=None, metadata={"description": "Asterisk channel name for this call session"})
+
+class ClientLookupArgsSchema(Schema):
+    service = fields.String(required=True, metadata={"description": "Service slug, e.g. fonotarot-latam"})
+    identifier = fields.String(required=True, metadata={"description": "Client identifier (ANI or PIN)"})
+
+class ClientDeductFormSchema(Schema):
+    seconds = fields.Integer(required=True, metadata={"description": "Seconds to deduct"})
+    operator = fields.String(load_default=None, metadata={"description": "Operator Name"})
+
+class SessionArgsSchema(Schema):
+    uniqueid = fields.String(load_default=None, metadata={"description": "Asterisk UNIQUEID for this call session"})
+    channel = fields.String(load_default=None, metadata={"description": "Asterisk channel name for this call session"})
+
+class OperatorSelectFormSchema(Schema):
+    mode = fields.String(required=True, metadata={"description": '"random" or "option"'})
+    selection = fields.String(load_default=None, metadata={"description": "Operator option digits, required when mode=option"})
+    client_id = fields.Integer(load_default=None, metadata={"description": "Internal client ID for measurement tracking"})
