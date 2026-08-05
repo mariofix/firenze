@@ -14,7 +14,7 @@ from sqlalchemy import text
 
 from ..extensions import db
 
-# from ..services.audit_service import create_audit
+from ..services.audit_service import create_audit
 from ..services.call_service import (
     delete_call,
     get_active_call,
@@ -22,14 +22,14 @@ from ..services.call_service import (
     update_call_operator,
 )
 
-# from ..services.client_service import (
-#     ClientNotFound,
-#     ServiceNotFound,
-# )
-# from ..services.client_service import deduct_credits as svc_deduct
-# from ..services.client_service import lookup as svc_lookup
-# from ..services.client_service import update_ani_stats as svc_ani_stats
-# from ..services.credit_service import compute_call_limit
+from ..services.client_service import (
+ClientNotFound,
+ServiceNotFound,
+)
+from ..services.client_service import deduct_credits as svc_deduct
+from ..services.client_service import lookup as svc_lookup
+from ..services.client_service import update_ani_stats as svc_ani_stats
+from ..services.credit_service import compute_call_limit
 from ..services.did_service import resolve_did
 from ..services.dnc_service import check_dnc
 from .schema import (
@@ -42,15 +42,21 @@ from .schema import (
     DidQueryArgsSchema,
     DncQueryArgsSchema,
     DncResponseSchema,
+
+    CreditLimitArgsSchema,
+    ClientLookupArgsSchema,
+    ClientDeductFormSchema,
+    SessionArgsSchema,
+    OperatorSelectFormSchema,
 )
 
-# from ..services.measurement_service import send_measurement_event
-# from ..services.operator_service import OperatorNotFound
-# from ..services.operator_service import get_menu as svc_get_menu
-# from ..services.operator_service import info_operator as svc_operator
-# from ..services.operator_service import login_by_phone, logout_by_phone
-# from ..services.operator_service import release_operator as svc_release
-# from ..services.operator_service import select_operator as svc_select
+from ..services.measurement_service import send_measurement_event
+from ..services.operator_service import OperatorNotFound
+from ..services.operator_service import get_menu as svc_get_menu
+from ..services.operator_service import info_operator as svc_operator
+from ..services.operator_service import login_by_phone, logout_by_phone
+from ..services.operator_service import release_operator as svc_release
+from ..services.operator_service import select_operator as svc_select
 
 
 bp = Blueprint(
@@ -110,139 +116,127 @@ class DidLookup(MethodView):
 
 # ---------------------------------------------------------------------------
 # Credits
-# # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+@bp.route("/credits/limit")
+class CreditLimit(MethodView):
+    @bp.arguments(CreditLimitArgsSchema, location="query")
+    @bp.doc(summary="Calcula timeout de llamada y archivo de audio para un saldo de crédito dado")
+    def get(self, args):
+        seconds = args["seconds"]
+        uniqueid = args.get("uniqueid")
+        channel = args.get("channel")
+        session_client_id = _session_client_id(uniqueid=uniqueid, channel=channel)
+        started_at = time.perf_counter()
+        result = compute_call_limit(seconds)
+        query_duration_ms = round((time.perf_counter() - started_at) * 1000, 3)
+        send_measurement_event(
+            "credit_compute",
+            {
+                "requested_seconds": seconds,
+                "minutes": result.get("minutes"),
+                "query_duration_ms": query_duration_ms,
+            },
+            client_id=session_client_id,
+        )
+        return result
 
 
-# @bp.get("/credits/limit")
-# def agi_credit_limit(
-#     seconds: int = Query(..., description="Credit balance in seconds"),
-#     uniqueid: str | None = Query(default=None, description="Asterisk UNIQUEID for this call session"),
-#     channel: str | None = Query(default=None, description="Asterisk channel name for this call session"),
-# ):
-#     """Calcula timeout de llamada y archivo de audio para un saldo de crédito dado.
+# ---------------------------------------------------------------------------
+# Client lookup and deduction
+# ---------------------------------------------------------------------------
 
-#     Reemplaza la escalera ``[limite-saldo]`` de dialplan de 150 líneas.
-#     """
-#     session_client_id = _session_client_id(uniqueid=uniqueid, channel=channel)
-#     started_at = time.perf_counter()
-#     result = compute_call_limit(seconds)
-#     query_duration_ms = round((time.perf_counter() - started_at) * 1000, 3)
-#     send_measurement_event(
-#         "credit_compute",
-#         {
-#             "requested_seconds": seconds,
-#             "minutes": result.get("minutes"),
-#             "query_duration_ms": query_duration_ms,
-#         },
-#         client_id=session_client_id,
-#     )
-#     return result
+@bp.route("/clients/lookup")
+class ClientLookup(MethodView):
+    @bp.arguments(ClientLookupArgsSchema, location="query")
+    @bp.doc(summary="Busca un cliente por servicio e identificador")
+    def get(self, args):
+        service = args["service"]
+        identifier = args["identifier"]
+        svc_ani_stats(db, service, identifier)
+        try:
+            data = svc_lookup(db, service, identifier)
+            more_data = compute_call_limit(data["segundos"])
+            data.update(more_data)
+            return data
+        except ServiceNotFound as e:
+            current_app.logger.warning(
+                "agi_client_lookup: ServiceNotFound for service=%r identifier=%r: %s",
+                service,
+                identifier,
+                e,
+            )
+            abort(404, message=str(e))
 
+@bp.route("/clients/<string:service>/<int:client_id>/deduct")
+class ClientDeduct(MethodView):
+    @bp.arguments(SessionArgsSchema, location="query")
+    @bp.arguments(ClientDeductFormSchema, location="form")
+    @bp.doc(summary="Descuenta créditos (segundos) del saldo de un cliente")
+    def post(self, form_args, query_args, service, client_id):
+        seconds = form_args["seconds"]
+        operator = form_args.get("operator")
+        uniqueid = query_args.get("uniqueid")
+        channel = query_args.get("channel")
 
-# # ---------------------------------------------------------------------------
-# # Client lookup and deduction
-# # ---------------------------------------------------------------------------
+        segundos = None
+        if channel:
+            current_app.logger.debug(f"agi_client_deduct: Calculando nuevo billsec con CEL y channelname='{channel}'")
+            query = text("""
+                SELECT
+                    TIMESTAMPDIFF(SECOND,
+                        MAX(CASE WHEN eventtype = 'BRIDGE_ENTER' THEN eventtime END),
+                        MAX(CASE WHEN eventtype = 'BRIDGE_EXIT'  THEN eventtime END)
+                    ) AS duration_seconds
+                FROM zvn_asterisk.cel
+                WHERE channame = :channel
+            """)
+            try:
+                row = db.session.execute(query, {"channel": channel}).first()
+                if row and row.duration_seconds is not None:
+                    current_app.logger.info(f"agi_client_deduct: Nuevos segundos calculados para {channel}: {row.duration_seconds}")
+                    segundos = int(row.duration_seconds)
+            except Exception as e:
+                current_app.logger.warning(e)
 
-
-# @bp.get("/clients/lookup")
-# def agi_client_lookup(
-#     service: str = Query(..., description="Service slug, e.g. fonotarot-latam"),
-#     identifier: str = Query(..., description="Client identifier (ANI or PIN)"),
-# ):
-#     """Busca un cliente por servicio e identificador.
-
-#     Retorna ``{clientid, segundos}`` — el contrato que el dialplan espera.
-#     Retorna ``{clientid: 0, segundos: 0}`` si no se encuentra (el dialplan lo maneja).
-#     """
-#     svc_ani_stats(db, service, identifier)
-#     try:
-#         data = svc_lookup(db, service, identifier)
-#         more_data = compute_call_limit(data["segundos"])
-#         data.update(more_data)
-#         return data
-#     except ServiceNotFound as e:
-#         current_app.logger.warning(
-#             "agi_client_lookup: ServiceNotFound for service=%r identifier=%r: %s",
-#             service,
-#             identifier,
-#             e,
-#         )
-#         raise abort(404, detail=str(e))
-
-
-# @bp.post("/clients/{service}/{client_id}/deduct")
-# def agi_client_deduct(
-#     service: str,
-#     client_id: int,
-#     seconds: int = Form(..., description="Seconds to deduct"),
-#     operator: str | None = Form(default=None, description="Operator Name"),
-#     uniqueid: str | None = Query(default=None, description="Asterisk UNIQUEID for this call session"),
-#     channel: str | None = Query(default=None, description="Asterisk channel name for this call session"),
-# ):
-#     """Descuenta créditos (segundos) del saldo de un cliente.
-
-#     Llamado desde el manejador hangup ``[llama-operador]`` después de que termina una llamada.
-#     """
-#     segundos = None
-#     if channel:
-#         current_app.logger.debug(f"agi_client_deduct: Calculando nuevo billsec con CEL y channelname='{channel}'")
-#         query = text("""
-#             SELECT
-#                 TIMESTAMPDIFF(SECOND,
-#                     MAX(CASE WHEN eventtype = 'BRIDGE_ENTER' THEN eventtime END),
-#                     MAX(CASE WHEN eventtype = 'BRIDGE_EXIT'  THEN eventtime END)
-#                 ) AS duration_seconds
-#             FROM zvn_asterisk.cel
-#             WHERE channame = :channel
-#         """)
-#         try:
-#             row = db.execute(query, {"channel": channel}).first()
-#             if row and row.duration_seconds is not None:
-#                 current_app.logger.info(f"agi_client_deduct: Nuevos segundos calculados para {channel}: {row.duration_seconds}")
-#                 segundos = int(row.duration_seconds)
-#         except Exception as e:
-#             current_app.logger.warning(e)
-
-#     try:
-#         session_client_id = _session_client_id(uniqueid=uniqueid, channel=channel)
-#         started_at = time.perf_counter()
-#         data_out = svc_deduct(db, service, client_id, segundos or seconds)
-#         query_duration_ms = round((time.perf_counter() - started_at) * 1000, 3)
-#         data_out.update({"client_id": client_id, "service": service})
-#         create_audit(
-#             db, title="resta_saldo", category="INFO", called_from="firenze.api.agi.agi_client_deduct()", data=data_out
-#         )
-#         send_measurement_event(
-#             "call_ended",
-#             {
-#                 "client_id": client_id,
-#                 "tarotista": operator,
-#                 "call_duration_seconds": segundos or seconds,
-#                 "query_duration_ms": query_duration_ms,
-#             },
-#             client_id=session_client_id,
-#         )
-#         return data_out
-#     except ServiceNotFound as e:
-#         current_app.logger.warning(
-#             "agi_client_deduct: ServiceNotFound for service=%r client_id=%s seconds=%s: %s",
-#             service,
-#             client_id,
-#             segundos or seconds,
-#             e,
-#         )
-#         raise abort(404, detail=str(e))
-#     except ClientNotFound as e:
-#         current_app.logger.warning(
-#             "agi_client_deduct: ClientNotFound for service=%r client_id=%s seconds=%s: %s",
-#             service,
-#             client_id,
-#             segundos or seconds,
-#             e,
-#         )
-#         raise abort(404, detail=str(e))
-
-
+        try:
+            session_client_id = _session_client_id(uniqueid=uniqueid, channel=channel)
+            started_at = time.perf_counter()
+            data_out = svc_deduct(db, service, client_id, segundos or seconds)
+            query_duration_ms = round((time.perf_counter() - started_at) * 1000, 3)
+            data_out.update({"client_id": client_id, "service": service})
+            create_audit(
+                db, title="resta_saldo", category="INFO", called_from="firenze.api.agi.agi_client_deduct()", data=data_out
+            )
+            send_measurement_event(
+                "call_ended",
+                {
+                    "client_id": client_id,
+                    "tarotista": operator,
+                    "call_duration_seconds": segundos or seconds,
+                    "query_duration_ms": query_duration_ms,
+                },
+                client_id=session_client_id,
+            )
+            return data_out
+        except ServiceNotFound as e:
+            current_app.logger.warning(
+                "agi_client_deduct: ServiceNotFound for service=%r client_id=%s seconds=%s: %s",
+                service,
+                client_id,
+                segundos or seconds,
+                e,
+            )
+            abort(404, message=str(e))
+        except ClientNotFound as e:
+            current_app.logger.warning(
+                "agi_client_deduct: ClientNotFound for service=%r client_id=%s seconds=%s: %s",
+                service,
+                client_id,
+                segundos or seconds,
+                e,
+            )
+            abort(404, message=str(e))
 # ---------------------------------------------------------------------------
 # Online call tracking
 # ---------------------------------------------------------------------------
@@ -315,327 +309,219 @@ class CallGet(MethodView):
         return get_active_call(db, service, ani)
 
 
-# # ---------------------------------------------------------------------------
-# # Operator selection
-# # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Operator selection
+# ---------------------------------------------------------------------------
 
-# @bp.get("/operators/menu")
-# def agi_operators_menu(
-#     redis_conn: redis.Redis | None = Depends(get_redis),
-# ):
-#     """Retorna conteo de operadores disponibles y una cadena de audio lista para Playback.
+@bp.route("/operators/menu")
+class OperatorsMenu(MethodView):
+    @bp.doc(summary="Retorna conteo de operadores disponibles y una cadena de audio lista para Playback")
+    def get(self):
+        redis_conn = current_app.extensions.get("redis")
+        return svc_get_menu(db, redis_conn)
 
-#     Reemplaza ``Agi(${AUDIOTEX},ejecutivos_disponibles,7)`` en el dialplan.
+@bp.route("/operators/select")
+class OperatorSelect(MethodView):
+    @bp.arguments(SessionArgsSchema, location="query")
+    @bp.arguments(OperatorSelectFormSchema, location="form")
+    @bp.doc(summary="Selecciona atómicamente un operador disponible y lo marca como ocupado")
+    def post(self, form_args, query_args):
+        mode = form_args["mode"]
+        selection = form_args.get("selection")
+        client_id = form_args.get("client_id")
+        uniqueid = query_args.get("uniqueid")
+        channel = query_args.get("channel")
+        redis_conn = current_app.extensions.get("redis")
+        
+        result = svc_select(db, mode=mode, selection=selection, redis_conn=redis_conn)
+        if result.get("ok"):
+            session_client_id = _session_client_id(uniqueid=uniqueid, channel=channel)
+            send_measurement_event(
+                "call_dialed",
+                {
+                    "client_id": client_id,
+                    "tarotista": result.get("operador_nombre"),
+                },
+                client_id=session_client_id,
+            )
+        return result
 
-#     Respuesta:
-#         disponibles  — número de operadores disponibles
-#         audio_str    — cadena Playback unida con ``&`` de archivos de audio de operador
-#     """
-#     return svc_get_menu(db, redis_conn)
+# ---------------------------------------------------------------------------
+# Operator info
+# ---------------------------------------------------------------------------
 
+@bp.route("/operators/by-option/<string:option>")
+class OperatorInfoByOption(MethodView):
+    @bp.doc(summary="Traduce un dígito de menú IVR en la información de contacto del operador")
+    def get(self, option):
+        redis_conn = current_app.extensions.get("redis")
+        try:
+            op = svc_operator(db, option=option)
+        except OperatorNotFound as e:
+            current_app.logger.warning(
+                "agi_operator_info_by_option: OperatorNotFound for option=%r: %s",
+                option,
+                e,
+            )
+            return {"ok": False, "reason": "not-found"}
 
-# @bp.post("/operators/select")
-# def agi_operator_select(
-#     mode: str = Form(..., description='"random" or "option"'),
-#     selection: str | None = Form(default=None, description="Operator option digits, required when mode=option"),
-#     client_id: int | None = Form(default=None, description="Internal client ID for measurement tracking"),
-#     uniqueid: str | None = Query(default=None, description="Asterisk UNIQUEID for this call session"),
-#     channel: str | None = Query(default=None, description="Asterisk channel name for this call session"),
-#     redis_conn: redis.Redis | None = Depends(get_redis),
-# ):
-#     """Selecciona atómicamente un operador disponible y lo marca como ocupado.
+        phone = next((p for p in op.numbers if p.contact and p.enabled), None)
+        if not phone:
+            current_app.logger.warning(
+                "agi_operator_info_by_option: operator number=%s option=%r "
+                "has no contact+enabled OperatorPhone (numbers=%d)",
+                op.number,
+                option,
+                len(op.numbers),
+            )
+            return {"ok": False, "reason": "no-phone-configured"}
 
-#     Reemplaza ``Agi(${AUDIOTEX},ejecutivo_aleatorio,7)`` y
-#     ``Agi(${AUDIOTEX},info_ejecutivo,opcion,...)`` en el dialplan.
+        ok_status = True
+        ok_meessage = None
+        if op.available == 0 or op.loggedin == 0:
+            ok_status = False
+            ok_meessage = f"{op.loggedin=} {op.available=}"
+        return {
+            "ok": ok_status,
+            "operador_numero": str(op.number),
+            "operador_nombre": op.name,
+            "operador_telefono": phone.number,
+            "operador_trunk": phone.trunk or "",
+            "loggedin": op.loggedin,
+            "available": op.available,
+            "reason": ok_meessage,
+        }
 
-#     Respuesta en caso de éxito:
-#         ok                — verdadero
-#         operador_numero   — número interno del operador
-#         operador_nombre   — nombre del operador
-#         operador_telefono — número de teléfono de contacto del operador
-#         operador_trunk    — troncal SIP por el que marcar
+@bp.route("/operators/by-ani/<string:ani>")
+class OperatorInfoByAni(MethodView):
+    @bp.doc(summary="Busca un operador por uno de sus números de teléfono registrados (ANI)")
+    def get(self, ani):
+        redis_conn = current_app.extensions.get("redis")
+        try:
+            op = svc_operator(db, ani=ani)
+        except OperatorNotFound as e:
+            current_app.logger.warning(
+                "agi_operator_info_by_ani: OperatorNotFound for ani=%r: %s",
+                ani,
+                e,
+            )
+            return {"ok": False, "reason": "not-found"}
 
-#     Respuesta en caso de fallo:
-#         ok      — falso
-#         reason  — "operator-busy" | "no-operators" | "no-phone-configured"
-#     """
-#     result = svc_select(db, mode=mode, selection=selection, redis_conn=redis_conn)
-#     if result.get("ok"):
-#         session_client_id = _session_client_id(uniqueid=uniqueid, channel=channel)
-#         send_measurement_event(
-#             "call_dialed",
-#             {
-#                 "client_id": client_id,
-#                 "tarotista": result.get("operador_nombre"),
-#             },
-#             client_id=session_client_id,
-#         )
-#     return result
+        phone = next((p for p in op.numbers if p.contact and p.enabled), None)
+        if not phone:
+            current_app.logger.warning(
+                "agi_operator_info_by_ani: operator number=%s ani=%r has no contact+enabled OperatorPhone (numbers=%d)",
+                op.number,
+                ani,
+                len(op.numbers),
+            )
+            return {"ok": False, "reason": "no-phone-configured"}
 
+        return {
+            "ok": True,
+            "operador_numero": str(op.number),
+            "operador_nombre": op.name,
+            "operador_telefono": phone.number,
+            "operador_trunk": phone.trunk or "",
+            "loggedin": op.loggedin,
+            "available": op.available,
+        }
 
-# # ---------------------------------------------------------------------------
-# # Operator info
-# # ---------------------------------------------------------------------------
+@bp.route("/operators/<int:number>/release")
+class OperatorRelease(MethodView):
+    @bp.doc(summary="Marca un operador como disponible de nuevo después de que termina una llamada")
+    def post(self, number):
+        redis_conn = current_app.extensions.get("redis")
+        try:
+            svc_release(db, number, redis_conn)
+        except OperatorNotFound as e:
+            current_app.logger.warning(
+                "agi_operator_release: OperatorNotFound for number=%s: %s",
+                number,
+                e,
+            )
+            abort(404, message=str(e))
+        return {"ok": True}
 
+# ---------------------------------------------------------------------------
+# Operator login / logout (from dialplan)
+# ---------------------------------------------------------------------------
 
-# @bp.get("/operators/by-option/{option}")
-# def agi_operator_info_by_option(
-#     option: str,
-#     redis_conn: redis.Redis | None = Depends(get_redis),
-# ):
-#     """Traduce un dígito de menú IVR en la información de contacto del operador.
+@bp.route("/operators/by-phone/<string:ani>/login")
+class OperatorLogin(MethodView):
+    @bp.arguments(SessionArgsSchema, location="query")
+    @bp.doc(summary="Marca el operador como conectado por su número de teléfono (ANI)")
+    def post(self, query_args, ani):
+        uniqueid = query_args.get("uniqueid")
+        channel = query_args.get("channel")
+        redis_conn = current_app.extensions.get("redis")
+        
+        session_client_id = _session_client_id(uniqueid=uniqueid, channel=channel)
+        started_at = time.perf_counter()
+        try:
+            tarotista = login_by_phone(db, ani, redis_conn)
+            query_duration_ms = round((time.perf_counter() - started_at) * 1000, 3)
+            send_measurement_event(
+                "operator_login",
+                {
+                    "tarotista": tarotista.name,
+                    "query_duration_ms": query_duration_ms,
+                },
+                client_id=session_client_id,
+            )
+            create_audit(
+                db,
+                title="operator_login",
+                category="INFO",
+                called_from="firenze.api.agi.agi_operator_login()",
+                data={"ani": ani},
+            )
+        except OperatorNotFound as e:
+            current_app.logger.warning(
+                "agi_operator_login: OperatorNotFound for ani=%r: %s",
+                ani,
+                e,
+            )
+            abort(404, message=str(e))
 
-#     Utilizado por el dialplan después de que la persona que llama elige un operador del menú
-#     reproducido por ``/operators/menu``. El dialplan necesita el
-#     número interno del operador (para pasar a ``/operators/select``), nombre (para logs y
-#     CDR), teléfono (para ``Dial()``), y troncal (para la
-#     tecnología de canal de salida). Este extremo proporciona los cuatro en un viaje redondo
-#     y NO reclama el operador -- el reclamo atómico sucede más tarde a través de
-#     ``/operators/select``.
+        return {"ok": True}
 
-#     La división existe porque típicamente hay una ventana de 5-10 segundos
-#     entre renderizar menú y Dial (la persona que llama oye opciones, elige una, el audio
-#     termina). Reclamar en la selección bloquearía un operador durante esa
-#     ventana completa incluso si la llamada se abandona después. Reclamar
-#     justo antes de Dial mantiene a los operadores libres el mayor tiempo posible al
-#     costo de una pequeña ventana de condición de carrera que ``/operators/select`` resuelve con
-#     ``SELECT FOR UPDATE``.
+@bp.route("/operators/by-phone/<string:ani>/logout")
+class OperatorLogout(MethodView):
+    @bp.arguments(SessionArgsSchema, location="query")
+    @bp.doc(summary="Marca el operador como desconectado por su número de teléfono (ANI)")
+    def post(self, query_args, ani):
+        uniqueid = query_args.get("uniqueid")
+        channel = query_args.get("channel")
+        redis_conn = current_app.extensions.get("redis")
+        
+        session_client_id = _session_client_id(uniqueid=uniqueid, channel=channel)
+        started_at = time.perf_counter()
+        try:
+            tarotista = logout_by_phone(db, ani, redis_conn)
+            query_duration_ms = round((time.perf_counter() - started_at) * 1000, 3)
+            send_measurement_event(
+                "operator_logout",
+                {
+                    "tarotista": tarotista.name,
+                    "query_duration_ms": query_duration_ms,
+                },
+                client_id=session_client_id,
+            )
+        except OperatorNotFound as e:
+            current_app.logger.warning(
+                "agi_operator_logout: OperatorNotFound for ani=%r: %s",
+                ani,
+                e,
+            )
+            abort(404, message=str(e))
 
-#     Parámetro de ruta:
-#         option: el dígito de menú que presionó la persona que llama, p. ej. "1" o "01".
-#                 Comparado numéricamente; ambas formas funcionan sin importar cómo
-#                 se almacena la columna.
-
-#     Respuesta en caso de éxito:
-#         ok                : verdadero
-#         operador_numero   : número interno del operador (cadena,
-#                             pasar a ``/operators/select`` como ``selection``)
-#         operador_nombre   : nombre de visualización del operador
-#         operador_telefono : número de teléfono de contacto del operador para Dial()
-#         operador_trunk    : troncal SIP por el que marcar, puede ser cadena vacía
-#         loggedin          : verdadero/falso, si el operador está conectado
-#                             (asesor: el reclamo real está en ``/operators/select``)
-#         available         : verdadero/falso, si el operador está libre actualmente
-#                             (asesor: el reclamo real está en ``/operators/select``)
-
-#     Respuesta en caso de fallo:
-#         ok      : falso
-#         reason  : "not-found"           - ningún operador tiene este dígito de opción
-#                   "no-phone-configured" - el operador existe pero no tiene
-#                                           teléfono de contacto habilitado para Dial()
-#     """
-#     try:
-#         op = svc_operator(db, option=option)
-#     except OperatorNotFound as e:
-#         current_app.logger.warning(
-#             "agi_operator_info_by_option: OperatorNotFound for option=%r: %s",
-#             option,
-#             e,
-#         )
-#         return {"ok": False, "reason": "not-found"}
-
-#     phone = next((p for p in op.numbers if p.contact and p.enabled), None)
-#     if not phone:
-#         current_app.logger.warning(
-#             "agi_operator_info_by_option: operator number=%s option=%r "
-#             "has no contact+enabled OperatorPhone (numbers=%d)",
-#             op.number,
-#             option,
-#             len(op.numbers),
-#         )
-#         return {"ok": False, "reason": "no-phone-configured"}
-
-#     ok_status = True
-#     ok_meessage = None
-#     if op.available == 0 or op.loggedin == 0:
-#         ok_status = False
-#         ok_meessage = f"{op.loggedin=} {op.available=}"
-#     return {
-#         "ok": ok_status,
-#         "operador_numero": str(op.number),
-#         "operador_nombre": op.name,
-#         "operador_telefono": phone.number,
-#         "operador_trunk": phone.trunk or "",
-#         "loggedin": op.loggedin,
-#         "available": op.available,
-#         "reason": ok_meessage,
-#     }
-
-
-# @bp.get("/operators/by-ani/{ani}")
-# def agi_operator_info_by_ani(
-#     ani: str,
-#     redis_conn: redis.Redis | None = Depends(get_redis),
-# ):
-#     """Busca un operador por uno de sus números de teléfono registrados (ANI).
-
-#     Utilizado cuando el número de teléfono de la persona que llama identifica al operador,
-#     p. ej. un operador que llama desde su propia línea. Coincide contra
-#     ``OperatorPhone.number`` donde ``enabled=True``.
-
-#     Retorna la misma forma plana que ``/operators/by-option/{option}`` así
-#     el dialplan puede ``JSON_DECODE`` los mismos nombres de campo sin importar
-#     qué búsqueda utilizó. El campo ``operador_telefono`` es el
-#     teléfono de contacto del operador (el marcado con ``contact=True`` y
-#     ``enabled=True``), que puede diferir del ANI de entrada -- el ANI
-#     es solo el identificador, el teléfono de contacto es lo que ``Dial()``.
-
-#     Parámetro de ruta:
-#         ani: número de teléfono en el formato almacenado en ``OperatorPhone.number``.
-
-#     Respuesta en caso de éxito:
-#         ok                : verdadero
-#         operador_numero   : número interno del operador (cadena)
-#         operador_nombre   : nombre de visualización del operador
-#         operador_telefono : teléfono de contacto del operador para Dial()
-#         operador_trunk    : troncal SIP por el que marcar, puede ser cadena vacía
-#         loggedin          : verdadero/falso, si el operador está conectado
-#         available         : verdadero/falso, si el operador está libre actualmente
-
-#     Respuesta en caso de fallo:
-#         ok      : falso
-#         reason  : "not-found"           - ningún teléfono habilitado coincide con el ANI
-#                   "no-phone-configured" - el operador existe pero no tiene
-#                                           teléfono de contacto habilitado para Dial()
-#     """
-#     try:
-#         op = svc_operator(db, ani=ani)
-#     except OperatorNotFound as e:
-#         current_app.logger.warning(
-#             "agi_operator_info_by_ani: OperatorNotFound for ani=%r: %s",
-#             ani,
-#             e,
-#         )
-#         return {"ok": False, "reason": "not-found"}
-
-#     phone = next((p for p in op.numbers if p.contact and p.enabled), None)
-#     if not phone:
-#         current_app.logger.warning(
-#             "agi_operator_info_by_ani: operator number=%s ani=%r has no contact+enabled OperatorPhone (numbers=%d)",
-#             op.number,
-#             ani,
-#             len(op.numbers),
-#         )
-#         return {"ok": False, "reason": "no-phone-configured"}
-
-#     return {
-#         "ok": True,
-#         "operador_numero": str(op.number),
-#         "operador_nombre": op.name,
-#         "operador_telefono": phone.number,
-#         "operador_trunk": phone.trunk or "",
-#         "loggedin": op.loggedin,
-#         "available": op.available,
-#     }
-
-
-# @bp.post("/operators/{number}/release")
-# def agi_operator_release(
-#     number: int,
-#     redis_conn: redis.Redis | None = Depends(get_redis),
-# ):
-#     """Marca un operador como disponible de nuevo después de que termina una llamada.
-
-#     Llamado desde el manejador hangup ``[llama-operador]`` y en fallo de marcación.
-#     Reemplaza ``Agi(${AUDIOTEX},cambia_estado,${OPERATOR_NUM},1)``.
-#     """
-#     try:
-#         svc_release(db, number, redis_conn)
-#     except OperatorNotFound as e:
-#         current_app.logger.warning(
-#             "agi_operator_release: OperatorNotFound for number=%s: %s",
-#             number,
-#             e,
-#         )
-#         raise abort(404, detail=str(e))
-#     return {"ok": True}
-
-
-# # ---------------------------------------------------------------------------
-# # Operator login / logout (from dialplan)
-# # ---------------------------------------------------------------------------
-
-
-# @bp.post("/operators/by-phone/{ani}/login")
-# def agi_operator_login(
-#     ani: str,
-#     uniqueid: str | None = Query(default=None, description="Asterisk UNIQUEID for this call session"),
-#     channel: str | None = Query(default=None, description="Asterisk channel name for this call session"),
-#     redis_conn: redis.Redis | None = Depends(get_redis),
-# ):
-#     """Marca el operador como conectado por su número de teléfono (ANI).
-
-#     Llamado desde el contexto dialplan ``[tarotista-login]``.
-#     """
-#     session_client_id = _session_client_id(uniqueid=uniqueid, channel=channel)
-#     started_at = time.perf_counter()
-#     try:
-#         tarotista = login_by_phone(db, ani, redis_conn)
-#         query_duration_ms = round((time.perf_counter() - started_at) * 1000, 3)
-#         send_measurement_event(
-#             "operator_login",
-#             {
-#                 "tarotista": tarotista.name,
-#                 "query_duration_ms": query_duration_ms,
-#             },
-#             client_id=session_client_id,
-#         )
-#         create_audit(
-#             db,
-#             title="operator_login",
-#             category="INFO",
-#             called_from="firenze.api.agi.agi_operator_login()",
-#             data={"ani": ani},
-#         )
-#     except OperatorNotFound as e:
-#         current_app.logger.warning(
-#             "agi_operator_login: OperatorNotFound for ani=%r: %s",
-#             ani,
-#             e,
-#         )
-#         raise abort(404, detail=str(e))
-
-#     return {"ok": True}
-
-
-# @bp.post("/operators/by-phone/{ani}/logout")
-# def agi_operator_logout(
-#     ani: str,
-#     uniqueid: str | None = Query(default=None, description="Asterisk UNIQUEID for this call session"),
-#     channel: str | None = Query(default=None, description="Asterisk channel name for this call session"),
-#     redis_conn: redis.Redis | None = Depends(get_redis),
-# ):
-#     """Marca el operador como desconectado por su número de teléfono (ANI).
-
-#     Llamado desde el contexto dialplan ``[tarotista-logout]``.
-#     """
-#     session_client_id = _session_client_id(uniqueid=uniqueid, channel=channel)
-#     started_at = time.perf_counter()
-#     try:
-#         tarotista = logout_by_phone(db, ani, redis_conn)
-#         query_duration_ms = round((time.perf_counter() - started_at) * 1000, 3)
-#         send_measurement_event(
-#             "operator_logout",
-#             {
-#                 "tarotista": tarotista.name,
-#                 "query_duration_ms": query_duration_ms,
-#             },
-#             client_id=session_client_id,
-#         )
-#     except OperatorNotFound as e:
-#         current_app.logger.warning(
-#             "agi_operator_logout: OperatorNotFound for ani=%r: %s",
-#             ani,
-#             e,
-#         )
-#         raise abort(404, detail=str(e))
-
-#     create_audit(
-#         db,
-#         title="operator_logout",
-#         category="INFO",
-#         called_from="firenze.api.agi.agi_operator_logout()",
-#         data={"ani": ani},
-#     )
-#     return {"ok": True}
+        create_audit(
+            db,
+            title="operator_logout",
+            category="INFO",
+            called_from="firenze.api.agi.agi_operator_logout()",
+            data={"ani": ani},
+        )
+        return {"ok": True}
