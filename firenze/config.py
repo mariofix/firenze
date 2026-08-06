@@ -16,9 +16,6 @@ class Settings:
     DEBUG: bool = False
     LOG_LEVEL: str = "INFO"
     SECRET_KEY: str = "CHANGE-ME-this-is-a-dev-only-default-key-replace-in-production"
-    REDIS_URL: str = "redis://localhost:6379"
-    REDIS_SOCKET_CONNECT_TIMEOUT: float = 2.0
-    REDIS_SOCKET_TIMEOUT: float = 2.0
     ALLOWED_DOMAINS: list[str] = field(default_factory=lambda: ["localhost", "tardis.local"])
     CORS_ORIGINS: list[str] = field(default_factory=lambda: ["http://localhost"])
     AGI_PATH_PREFIX: str = "/agi"

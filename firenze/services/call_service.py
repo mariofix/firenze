@@ -1,13 +1,11 @@
 """Seguimiento de llamadas en línea - insertar, eliminar, actualizar, y búsqueda de llamadas activas.
 
 Tanto la API como la CLI llaman a estas funciones - ninguna lógica comercial vive en
-enrutadores o comandos CLI. MySQL es la fuente de verdad; Redis es una
-caché caliente consumida por lectores PHP heredados y tableros.
+enrutadores o comandos CLI.
 """
 
 import logging
 
-import redis
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 
@@ -23,7 +21,6 @@ def insert_call(
     did: str,
     client_id: int,
     operator: int = 0,
-    redis_conn: redis.Redis | None = None,
 ) -> dict:
     """Inserta un registro de llamada en línea.
 
@@ -56,7 +53,6 @@ def delete_call(
     db: SQLAlchemy,
     service: str,
     ani: str,
-    redis_conn: redis.Redis | None = None,
 ) -> dict:
     """Elimina un registro de llamada en línea.
 
@@ -76,7 +72,6 @@ def update_call_operator(
     service: str,
     ani: str,
     operator: int,
-    redis_conn: redis.Redis | None = None,
 ) -> dict:
     """Actualiza el número de operador asignado en un registro de llamada activa.
 

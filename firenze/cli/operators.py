@@ -9,7 +9,6 @@ from rich.console import Console
 from rich.table import Table
 
 from firenze.config import LOGGING_CONFIG
-from firenze.redis import operator_state
 from firenze.services.operator_service import OperatorNotFound
 from firenze.services.operator_service import login as svc_login
 from firenze.services.operator_service import logout as svc_logout
@@ -24,9 +23,8 @@ app = typer.Typer()
 def login(ctx: typer.Context, number: int = typer.Argument(..., help="Operator Number")):
     """Mark operator as logged in and available."""
     session = ctx.obj.get("dbsession")
-    redis_conn = ctx.obj.get("redis")
     try:
-        op = svc_login(session, number, redis_conn)
+        op = svc_login(session, number)
         logger.info(f"Login: {op}")
     except OperatorNotFound as e:
         logger.error(str(e))
@@ -39,9 +37,8 @@ def login(ctx: typer.Context, number: int = typer.Argument(..., help="Operator N
 def logout(ctx: typer.Context, number: int = typer.Argument(..., help="Operator Number")):
     """Mark operator as logged out and unavailable."""
     session = ctx.obj.get("dbsession")
-    redis_conn = ctx.obj.get("redis")
     try:
-        op = svc_logout(session, number, redis_conn)
+        op = svc_logout(session, number)
         logger.info(f"Logout: {op}")
     except OperatorNotFound as e:
         logger.error(str(e))
@@ -58,9 +55,8 @@ def change_status(
 ):
     """Set operator availability without changing login state."""
     session = ctx.obj.get("dbsession")
-    redis_conn = ctx.obj.get("redis")
     try:
-        op = set_availability(session, number, bool(status), redis_conn)
+        op = set_availability(session, number, bool(status))
         logger.info(f"Status change: {op}")
     except OperatorNotFound as e:
         logger.error(str(e))
@@ -71,11 +67,10 @@ def change_status(
 
 @app.command("list")
 def list_operators(ctx: typer.Context):
-    """List all operators with DB and Redis state."""
+    """List all operators with DB state."""
     from firenze.models import Operator
 
     session = ctx.obj.get("dbsession")
-    redis_conn = ctx.obj.get("redis")
     operators = session.query(Operator).all()
 
     table = Table(title="Operators", highlight=True, box=box.ASCII2)
@@ -83,15 +78,11 @@ def list_operators(ctx: typer.Context):
     table.add_column("Name")
     table.add_column("IVR Option")
     table.add_column("Phones")
-    table.add_column("Last Call (DB)")
-    table.add_column("Logged In (DB)")
-    table.add_column("Available (DB)")
-    table.add_column("Last Call (Redis)")
-    table.add_column("Logged In (Redis)")
-    table.add_column("Available (Redis)")
+    table.add_column("Last Call")
+    table.add_column("Logged In")
+    table.add_column("Available")
 
     for op in operators:
-        kv = operator_state.get_state(redis_conn, op.number) if redis_conn else None
         table.add_row(
             str(op.number),
             str(op.name),
@@ -100,9 +91,6 @@ def list_operators(ctx: typer.Context):
             str(op.lastcall),
             str(op.loggedin),
             str(op.available),
-            str(kv["lastcall"]) if kv else "N/A",
-            str(kv["loggedin"]) if kv else "N/A",
-            str(kv["available"]) if kv else "N/A",
         )
 
     Console().print(table)
@@ -113,33 +101,28 @@ def info(
     ctx: typer.Context,
     number: int = typer.Argument(..., help="Operator Number"),
 ):
-    """Show a single operator's DB and Redis state."""
+    """Show a single operator's DB state."""
     from firenze.models import Operator
 
     session = ctx.obj.get("dbsession")
-    redis_conn = ctx.obj.get("redis")
 
     op = session.query(Operator).filter_by(number=number).first()
     if not op:
         typer.echo(f"Operator {number} not found", err=True)
         raise typer.Exit(code=1)
 
-    kv = operator_state.get_state(redis_conn, op.number) if redis_conn else None
-
     table = Table(title=f"Operator {op.number}", highlight=True, box=box.ASCII2)
     table.add_column("Field")
     table.add_column("DB")
-    table.add_column("Redis")
 
-    table.add_row("Name", str(op.name), "")
-    table.add_row("IVR Option", str(op.option), "")
-    table.add_row("Logged In", str(op.loggedin), str(kv["loggedin"]) if kv else "N/A")
-    table.add_row("Available", str(op.available), str(kv["available"]) if kv else "N/A")
-    table.add_row("Last Call", str(op.lastcall), str(kv["lastcall"]) if kv else "N/A")
+    table.add_row("Name", str(op.name))
+    table.add_row("IVR Option", str(op.option))
+    table.add_row("Logged In", str(op.loggedin))
+    table.add_row("Available", str(op.available))
+    table.add_row("Last Call", str(op.lastcall))
     table.add_row(
         "Phones",
         "\n".join(f"{p.number}/E:{p.enabled}/C:{p.contact}/P:{p.pin}" for p in op.numbers),
-        "",
     )
 
     Console().print(table)

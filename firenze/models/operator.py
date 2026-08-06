@@ -16,7 +16,6 @@ class Operator(db.Model, TimestampMixin):
     number: Mapped[int] = mapped_column(unique=True)
     name: Mapped[str] = mapped_column(String(64))
     description: Mapped[str | None] = mapped_column(LONGTEXT, default=None)
-    enable_valkey: Mapped[bool] = mapped_column(default=True)
     loggedin: Mapped[bool] = mapped_column(default=False)
     available: Mapped[bool] = mapped_column(default=False)
     lastcall: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True))

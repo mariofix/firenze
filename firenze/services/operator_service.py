@@ -9,13 +9,11 @@ import logging
 import secrets
 import time
 
-import redis
 from sqlalchemy import Integer, cast
 from sqlalchemy.orm import Session
 
 from firenze.models import Operator
 from firenze.models.operator import OperatorPhone
-from firenze.redis import operator_state
 
 logger = logging.getLogger("firenze")
 
@@ -85,47 +83,41 @@ def _get_operator_by_option(db: Session, option: str) -> Operator:
     return op
 
 
-def login(db: Session, number: int, redis_conn: redis.Redis | None = None) -> Operator:
-    """Marca el operador como conectado y disponible en DB y Redis."""
+def login(db: Session, number: int) -> Operator:
+    """Marca el operador como conectado y disponible en DB."""
     op = _get_operator(db, number)
     op.loggedin = True
     op.available = True
     db.commit()
     db.refresh(op)
 
-    if op.enable_valkey and redis_conn:
-        operator_state.set_state(redis_conn, op.number, loggedin=True, available=True, lastcall=0)
-
     return op
 
 
-def logout(db: Session, number: int, redis_conn: redis.Redis | None = None) -> Operator:
-    """Marca el operador como desconectado e indisponible en DB y Redis."""
+def logout(db: Session, number: int) -> Operator:
+    """Marca el operador como desconectado e indisponible en DB."""
     op = _get_operator(db, number)
     op.loggedin = False
     op.available = False
     db.commit()
     db.refresh(op)
 
-    if op.enable_valkey and redis_conn:
-        operator_state.set_state(redis_conn, op.number, loggedin=False, available=False)
-
     return op
 
 
-def login_by_phone(db: Session, ani: str, redis_conn: redis.Redis | None = None) -> Operator:
+def login_by_phone(db: Session, ani: str) -> Operator:
     """Busca operador por ANI de teléfono y marca como conectado y disponible."""
     op = _get_operator_by_phone(db, ani)
-    return login(db, op.number, redis_conn)
+    return login(db, op.number)
 
 
-def logout_by_phone(db: Session, ani: str, redis_conn: redis.Redis | None = None) -> Operator:
+def logout_by_phone(db: Session, ani: str) -> Operator:
     """Busca operador por ANI de teléfono y marca como desconectado e indisponible."""
     op = _get_operator_by_phone(db, ani)
-    return logout(db, op.number, redis_conn)
+    return logout(db, op.number)
 
 
-def get_menu(db: Session, redis_conn: redis.Redis | None = None) -> dict:
+def get_menu(db: Session) -> dict:
     """Retorna conteo de operadores disponibles y una cadena de audio lista para Playback.
 
     La cadena de audio se une con ``&`` desde ``Operator.audio_file``, ordenada por
@@ -189,7 +181,6 @@ def info_operator(
 def select_operator(
     db: Session,
     mode: str,
-    redis_conn: redis.Redis | None = None,
     selection: str | None = None,
 ) -> dict:
     """Verifica atómicamente disponibilidad del operador, marca como ocupado, y retorna info del operador.
@@ -261,15 +252,6 @@ def select_operator(
     op.available = False
     db.commit()
 
-    if redis_conn and op.enable_valkey:
-        operator_state.set_state(
-            redis_conn,
-            op.number,
-            loggedin=True,
-            available=False,
-            lastcall=int(time.time()),
-        )
-
     phone = next((p for p in op.numbers if p.contact and p.enabled), None)
     if not phone:
         logger.error(
@@ -291,18 +273,12 @@ def select_operator(
     }
 
 
-def release_operator(db: Session, number: int, redis_conn: redis.Redis | None = None) -> Operator:
-    """Marca el operador como disponible de nuevo después de que termina una llamada.
-
-    Estampa ``lastcall`` en Redis para que podamos ver cuándo fue la última vez que el operador
-    terminó una llamada (utilizado para detección de "olvidó desconectarse" e informes de actividad).
-    """
+def release_operator(db: Session, number: int) -> Operator:
+    """Marca el operador como disponible de nuevo después de que termina una llamada."""
     return set_availability(
         db,
         number,
         available=True,
-        redis_conn=redis_conn,
-        lastcall=int(time.time()),
     )
 
 
@@ -310,30 +286,13 @@ def set_availability(
     db: Session,
     number: int,
     available: bool,
-    redis_conn: redis.Redis | None = None,
-    lastcall: int | None = None,
 ) -> Operator:
-    """Cambia disponibilidad sin cambiar estado de conexión.
-
-    Cuando ``lastcall`` se proporciona, se escribe en Redis; de lo contrario, la
-    marca de tiempo existente se preserva por ``operator_state.set_state``.
-    """
+    """Cambia disponibilidad sin cambiar estado de conexión."""
     op = _get_operator(db, number)
     op.available = available
     if available:
         op.lastcall = datetime.datetime.now()
     db.commit()
     db.refresh(op)
-
-    if op.enable_valkey and redis_conn:
-        current = operator_state.get_state(redis_conn, op.number)
-        loggedin = current["loggedin"] if current else op.loggedin
-        operator_state.set_state(
-            redis_conn,
-            op.number,
-            loggedin=loggedin,
-            available=available,
-            lastcall=lastcall,
-        )
 
     return op

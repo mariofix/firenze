@@ -52,9 +52,8 @@ def clear_calls(
     service: str = typer.Argument(None, help="Clear only this service (all if omitted)"),
     confirm: bool = typer.Option(False, "--yes", help="Skip confirmation"),
 ):
-    """Clear stale online call records from MySQL and Redis."""
+    """Clear stale online call records from MySQL."""
     session = ctx.obj.get("dbsession")
-    redis_conn = ctx.obj.get("redis")
 
     query = session.query(OnlineCalls)
     if service:
@@ -71,6 +70,6 @@ def clear_calls(
         typer.confirm(f"Delete {label}?", abort=True)
 
     for call in calls:
-        delete_call(session, call.service, call.ani, redis_conn)
+        delete_call(session, call.service, call.ani)
 
     typer.echo(f"Cleared {label}")

@@ -5,10 +5,9 @@
 
 # import typer
 
-# from firenze.cli import calls, client, did, dnc, fastapi, migration, operators, users
+# # from firenze.cli import calls, client, did, dnc, fastapi, migration, operators, users
 # from firenze.config import LOGGING_CONFIG
 # from firenze.database import SessionLocal
-# from firenze.redis import get_redis
 
 # logging.config.dictConfig(LOGGING_CONFIG)
 # logger = logging.getLogger("firenze")
@@ -32,8 +31,3 @@
 #     ctx.call_on_close(db.close)
 #     ctx.obj["dbsession"] = db
 #     ctx.obj["logger"] = logger
-#     try:
-#         ctx.obj["redis"] = get_redis()
-#     except Exception:
-#         logger.warning("Redis unavailable — operator state commands will skip Redis sync")
-#         ctx.obj["redis"] = None

@@ -55,15 +55,6 @@ AVAILABLE_LANGUAGES = {
     "es": {"flag": "es", "flag_icon": "🇪🇸", "name": "Español"},
 }
 
-# Valkey/Redis
-CACHE_URL: str = "zvn-lin3.local:6379"
-CACHE_DB: int = 0
-VALKEY_URL: str = f"valkey://{CACHE_URL}/{CACHE_DB}"
-VALKEY_SOCKET_CONNECT_TIMEOUT: float = 2.0
-VALKEY_SOCKET_TIMEOUT: float = 2.0
-REDIS_URL: str = f"redis://{CACHE_URL}/{CACHE_DB}"
-REDIS_SOCKET_CONNECT_TIMEOUT: float = 2.0
-REDIS_SOCKET_TIMEOUT: float = 2.0
 
 # Flask Debugtoolbar
 DEBUG_TB_ENABLED = True

@@ -219,8 +219,8 @@
               <div>
                 <div class="row py-2 align-items-center">
                   <div class="col-auto">
-                    <span class="badge {% if call.source == 'db+redis' %}bg-success-lt{% elif call.source == 'db_only' %}bg-warning-lt text-warning{% else %}bg-azure-lt{% endif %}">
-                      {{ call.source }}
+                    <span class="badge bg-azure-lt">
+                      Activa
                     </span>
                   </div>
                   <div class="col">
@@ -389,19 +389,6 @@
                           <span class="badge bg-danger-lt text-danger">Sin Conexión</span>
                         {% endif %}
                       </div>
-                  {# <div>
-                    {% if op.enable_valkey and op.sincronizados is sameas true %}
-                      <span class="badge bg-success-lt text-success" title="Redis cache sincronizados">
-                        <i class="fa fa-memory" aria-hidden="true"></i>
-                        <span class="ms-1">Redis OK</span>
-                      </span>
-                    {% else %}
-                      <span class="badge bg-warning-lt text-warning" title="Redis no sincronizado">
-                        <i class="fa fa-memory" aria-hidden="true"></i>
-                        <span class="ms-1">Redis NOK</span>
-                      </span>
-                    {% endif %}
-                  </div> #}
                     </div>
                   </div>
                 </div>
@@ -533,27 +520,15 @@
           <div class="card-body">
             <div class="datagrid">
               <div class="datagrid-item">
-                <div class="datagrid-title">Redis / Valkey</div>
+                <div class="datagrid-title">Operadores Conectados</div>
                 <div class="datagrid-content">
-                  <span class="badge {% if redis_online %}bg-success-lt text-success{% else %}bg-danger-lt text-danger{% endif %}">
-                    {% if redis_online %}Saludable{% else %}Sin Conexión{% endif %}
-                  </span>
+                  <span class="badge bg-success-lt text-success">{{ operator_summary.logged_in }}/{{ operator_summary.total }} conectados</span>
                 </div>
               </div>
               <div class="datagrid-item">
-                <div class="datagrid-title">Sincronización de Caché</div>
+                <div class="datagrid-title">Operadores Disponibles</div>
                 <div class="datagrid-content">
-                  <span class="badge {% if operator_summary.drift == 0 %}bg-success-lt text-success{% else %}bg-warning-lt text-warning{% endif %}">
-                    {{ operator_summary.sincronizados }}/{{ operator_summary.total }} sincronizados
-                  </span>
-                </div>
-              </div>
-              <div class="datagrid-item">
-                <div class="datagrid-title">Alertas de Desviación</div>
-                <div class="datagrid-content">
-                  <span class="badge {% if operator_summary.drift == 0 %}bg-success-lt text-success{% else %}bg-warning-lt text-warning{% endif %}">
-                    {{ operator_summary.drift }}
-                  </span>
+                  <span class="badge bg-success-lt text-success">{{ operator_summary.available }}/{{ operator_summary.total }} disponibles</span>
                 </div>
               </div>
               <div class="datagrid-item">
@@ -562,13 +537,6 @@
                   <span class="badge bg-blue-lt text-blue">{{ active_calls|length }} en progreso</span>
                 </div>
               </div>
-            </div>
-            <div class="row g-2 text-secondary small mt-3">
-              <div class="col-6">Versión de Redis: <strong>{{ redis_info.get("redis_version", "—") }}</strong></div>
-              <div class="col-6">Clientes: <strong>{{ redis_info.get("connected_clients", "—") }}</strong></div>
-              <div class="col-6">Memoria: <strong>{{ redis_info.get("used_memory_human", "—") }}</strong></div>
-              <div class="col-6">Función: <strong>{{ redis_info.get("role", "—") | title }}</strong></div>
-              <div class="col-12">Claves del Operador: <strong>{{ redis_operators_count }}</strong> · Claves de Llamadas: <strong>{{ redis_calls_count }}</strong></div>
             </div>
           </div>
         </div>

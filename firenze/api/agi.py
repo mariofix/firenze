@@ -314,12 +314,15 @@ class CallGet(MethodView):
 # Operator selection
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Operator selection
+# ---------------------------------------------------------------------------
+
 @bp.route("/operators/menu")
 class OperatorsMenu(MethodView):
     @bp.doc(summary="Retorna conteo de operadores disponibles y una cadena de audio lista para Playback")
     def get(self):
-        redis_conn = current_app.extensions.get("redis")
-        return svc_get_menu(db, redis_conn)
+        return svc_get_menu(db)
 
 @bp.route("/operators/select")
 class OperatorSelect(MethodView):
@@ -332,9 +335,8 @@ class OperatorSelect(MethodView):
         client_id = form_args.get("client_id")
         uniqueid = query_args.get("uniqueid")
         channel = query_args.get("channel")
-        redis_conn = current_app.extensions.get("redis")
-        
-        result = svc_select(db, mode=mode, selection=selection, redis_conn=redis_conn)
+
+        result = svc_select(db, mode=mode, selection=selection)
         if result.get("ok"):
             session_client_id = _session_client_id(uniqueid=uniqueid, channel=channel)
             send_measurement_event(
@@ -355,7 +357,6 @@ class OperatorSelect(MethodView):
 class OperatorInfoByOption(MethodView):
     @bp.doc(summary="Traduce un dígito de menú IVR en la información de contacto del operador")
     def get(self, option):
-        redis_conn = current_app.extensions.get("redis")
         try:
             op = svc_operator(db, option=option)
         except OperatorNotFound as e:
@@ -397,7 +398,6 @@ class OperatorInfoByOption(MethodView):
 class OperatorInfoByAni(MethodView):
     @bp.doc(summary="Busca un operador por uno de sus números de teléfono registrados (ANI)")
     def get(self, ani):
-        redis_conn = current_app.extensions.get("redis")
         try:
             op = svc_operator(db, ani=ani)
         except OperatorNotFound as e:
@@ -432,9 +432,8 @@ class OperatorInfoByAni(MethodView):
 class OperatorRelease(MethodView):
     @bp.doc(summary="Marca un operador como disponible de nuevo después de que termina una llamada")
     def post(self, number):
-        redis_conn = current_app.extensions.get("redis")
         try:
-            svc_release(db, number, redis_conn)
+            svc_release(db, number)
         except OperatorNotFound as e:
             current_app.logger.warning(
                 "agi_operator_release: OperatorNotFound for number=%s: %s",
@@ -455,12 +454,11 @@ class OperatorLogin(MethodView):
     def post(self, query_args, ani):
         uniqueid = query_args.get("uniqueid")
         channel = query_args.get("channel")
-        redis_conn = current_app.extensions.get("redis")
-        
+
         session_client_id = _session_client_id(uniqueid=uniqueid, channel=channel)
         started_at = time.perf_counter()
         try:
-            tarotista = login_by_phone(db, ani, redis_conn)
+            tarotista = login_by_phone(db, ani)
             query_duration_ms = round((time.perf_counter() - started_at) * 1000, 3)
             send_measurement_event(
                 "operator_login",
@@ -494,12 +492,11 @@ class OperatorLogout(MethodView):
     def post(self, query_args, ani):
         uniqueid = query_args.get("uniqueid")
         channel = query_args.get("channel")
-        redis_conn = current_app.extensions.get("redis")
-        
+
         session_client_id = _session_client_id(uniqueid=uniqueid, channel=channel)
         started_at = time.perf_counter()
         try:
-            tarotista = logout_by_phone(db, ani, redis_conn)
+            tarotista = logout_by_phone(db, ani)
             query_duration_ms = round((time.perf_counter() - started_at) * 1000, 3)
             send_measurement_event(
                 "operator_logout",

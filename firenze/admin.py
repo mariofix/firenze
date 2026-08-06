@@ -3,7 +3,6 @@ import calendar
 import datetime
 import logging
 
-import redis as redis_lib
 from markupsafe import Markup, escape
 from sqladmin import Admin, BaseView, ModelView, expose
 from sqladmin.authentication import login_required
@@ -30,7 +29,6 @@ from firenze.models import (
     ServiceNumber,
     User,
 )
-from firenze.redis import get_redis
 from firenze.services import auth_service
 
 _log = logging.getLogger("firenze")
@@ -353,9 +351,6 @@ class OperatorAdmin(ModelView, model=Operator):
         "option": {
             "description": "Código de 1-2 dígitos que el llamador presiona para seleccionar este operador, por ejemplo 01"
         },
-        "enable_valkey": {
-            "description": "Usar Redis/Valkey para estado de disponibilidad en tiempo real (recomendado)"
-        },
     }
 
 
@@ -573,7 +568,7 @@ class MonthlyReportIndex(BaseView):
         try:
             year = int(request.query_params.get("year", today.year))
             month = int(request.query_params.get("month", today.month))
-        except TypeError, ValueError:
+        except (TypeError, ValueError):
             year, month = today.year, today.month
 
         month = max(1, min(12, month))
@@ -615,11 +610,11 @@ class MonthlyAgentReportIndex(BaseView):
         today = datetime.date.today()
         try:
             year = int(request.query_params.get("year", today.year))
-        except TypeError, ValueError:
+        except (TypeError, ValueError):
             year = today.year
         try:
             month = int(request.query_params.get("month", today.month))
-        except TypeError, ValueError:
+        except (TypeError, ValueError):
             month = today.month
 
         year = max(_REPORT_MIN_YEAR, min(today.year + 1, year))
@@ -772,7 +767,7 @@ class FirenzeAdmin(Admin):
         top_ani_raw = request.query_params.get("top_ani", "10")
         try:
             requested_top_ani = int(top_ani_raw)
-        except TypeError, ValueError:
+        except (TypeError, ValueError):
             requested_top_ani = 10
         top_ani_limit = requested_top_ani if requested_top_ani in {5, 10, 15} else 10
         operator_period = request.query_params.get("operator_period", "current_month")
@@ -784,7 +779,7 @@ class FirenzeAdmin(Admin):
             "system_status.html",
             context={
                 "title": "Estado del Sistema",
-                "subtitle": "Salud de Redis / Valkey, informes CDR, estado del operador y llamadas activas",
+                "subtitle": "Informes CDR, estado del operador y llamadas activas",
                 **data,
             },
         )
@@ -821,61 +816,6 @@ class FirenzeAdmin(Admin):
         selected_operator_period = operator_period if operator_period in operator_period_meta else "current_month"
         operator_period_start = operator_period_meta[selected_operator_period]["start"]
         operator_period_end = operator_period_meta[selected_operator_period]["end"]
-
-        redis_conn = get_redis()
-        redis_online = redis_conn is not None
-        redis_info: dict = {}
-        redis_operators: dict[int, dict] = {}
-        redis_calls: list[dict] = []
-
-        if redis_conn:
-            try:
-                redis_info = redis_conn.info()
-            except redis_lib.RedisError:
-                pass
-
-            try:
-                for key in redis_conn.scan_iter("firenze:operator:*", count=100):
-                    try:
-                        number = int(key.split(":")[-1])
-                        raw = redis_conn.hgetall(key)
-                        if raw:
-                            redis_operators[number] = {
-                                "loggedin": bool(int(raw.get("loggedin", 0))),
-                                "available": bool(int(raw.get("available", 0))),
-                                "lastcall": int(raw.get("lastcall", 0) or 0),
-                                "ttl": redis_conn.ttl(key),
-                            }
-                    except ValueError, redis_lib.RedisError:
-                        continue
-            except redis_lib.RedisError as exc:
-                _log.warning("No se pudo escanear las claves del operador: %s", exc)
-
-            try:
-                for key in redis_conn.scan_iter("firenze:call:*", count=100):
-                    try:
-                        # key format: firenze:call:{service}:{ani}
-                        parts = key.split(":", 3)
-                        if len(parts) < 4:
-                            continue
-                        service, ani = parts[2], parts[3]
-                        raw = redis_conn.hgetall(key)
-                        if raw:
-                            redis_calls.append(
-                                {
-                                    "service": service,
-                                    "ani": ani,
-                                    "did": raw.get("did", ""),
-                                    "operator": int(raw.get("operator", 0) or 0),
-                                    "client_id": int(raw.get("client_id", 0) or 0),
-                                    "created_at": int(raw.get("created_at", 0) or 0),
-                                    "ttl": redis_conn.ttl(key),
-                                }
-                            )
-                    except ValueError, redis_lib.RedisError:
-                        continue
-            except redis_lib.RedisError as exc:
-                _log.warning("No se pudo escanear las claves de llamadas: %s", exc)
 
         # DB queries
         db = SessionLocal()
@@ -1093,40 +1033,20 @@ class FirenzeAdmin(Admin):
             days = delta_seconds // 86400
             return f"hace {days} day{'s' if days != 1 else ''}"
 
-        # Enrich operator list with Redis state
+        # Operator list
         enriched_operators = []
         for op in operators:
-            rs = redis_operators.get(op.number)
-            if op.enable_valkey and rs is not None:
-                synced = rs["loggedin"] == op.loggedin and rs["available"] == op.available
-            else:
-                synced = None
             enriched_operators.append(
                 {
                     "number": op.number,
                     "name": op.name,
                     "option": op.option,
-                    "enable_valkey": op.enable_valkey,
                     "db_loggedin": op.loggedin,
                     "db_available": op.available,
                     "db_lastcall": op.lastcall,
                     "lastcall_ago": _format_time_ago(op.lastcall),
-                    "redis_state": rs,
-                    "synced": synced,
                 }
             )
-        # # UI order: available first, then in-call, then offline.
-        # enriched_operators.sort(
-        #     key=lambda op: (
-        #         0
-        #         if op["db_loggedin"] and op["db_available"]
-        #         else 1
-        #         if op["db_loggedin"]
-        #         else 2,
-        #         str(op["name"]).lower(),
-        #         int(op["number"]),
-        #     )
-        # )
 
         def _format_elapsed_call_duration(created_at: datetime.datetime | None) -> str:
             if created_at is None:
@@ -1136,15 +1056,11 @@ class FirenzeAdmin(Admin):
             minutes, seconds = divmod(remainder, 60)
             return f"{hours:02}:{minutes:02}:{seconds:02}"
 
-        # Enrich call list — cross-reference DB vs Redis
-        redis_call_keys = {(c["service"], c["ani"]) for c in redis_calls}
-        db_call_keys = {(c.service, c.ani) for c in online_calls}
-
+        # Call list
         enriched_calls = []
         for call in online_calls:
             enriched_calls.append(
                 {
-                    "source": ("db+redis" if (call.service, call.ani) in redis_call_keys else "db_only"),
                     "service": call.service,
                     "ani": call.ani,
                     "did": call.did,
@@ -1154,22 +1070,6 @@ class FirenzeAdmin(Admin):
                     "call_duration": _format_elapsed_call_duration(call.created_at),
                 }
             )
-        for rc in redis_calls:
-            if (rc["service"], rc["ani"]) not in db_call_keys:
-                ts = rc.get("created_at")
-                created_at = datetime.datetime.fromtimestamp(ts) if ts else None
-                enriched_calls.append(
-                    {
-                        "source": "redis_only",
-                        "service": rc["service"],
-                        "ani": rc["ani"],
-                        "did": rc["did"],
-                        "operator": rc["operator"],
-                        "client_id": rc["client_id"],
-                        "created_at": created_at,
-                        "call_duration": _format_elapsed_call_duration(created_at),
-                    }
-                )
 
         enriched_calls.sort(
             key=lambda call: (call["created_at"] or datetime.datetime.min),
@@ -1180,9 +1080,6 @@ class FirenzeAdmin(Admin):
             "total": len(enriched_operators),
             "logged_in": sum(1 for op in enriched_operators if op["db_loggedin"]),
             "available": sum(1 for op in enriched_operators if op["db_available"]),
-            "valkey_enabled": sum(1 for op in enriched_operators if op["enable_valkey"]),
-            "synced": sum(1 for op in enriched_operators if op["synced"] is True),
-            "drift": sum(1 for op in enriched_operators if op["synced"] is False),
         }
 
         service_counts: dict[str, int] = {}
@@ -1326,16 +1223,12 @@ class FirenzeAdmin(Admin):
         ]
 
         return {
-            "redis_online": redis_online,
-            "redis_info": redis_info,
             "operators": enriched_operators,
             "operator_summary": operator_summary,
             "operator_activity_top5": operator_activity_top5,
             "active_calls": enriched_calls,
             "active_call_services": active_call_services,
             "service_options": [{"slug": service.slug, "name": service.name} for service in services if service.slug],
-            "redis_operators_count": len(redis_operators),
-            "redis_calls_count": len(redis_calls),
             "pending_credits": int(pending_credits.total),
             "ani_reports": {
                 "total_anis": int(ani_usage.total_anis or 0),
