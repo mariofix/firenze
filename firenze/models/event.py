@@ -1,12 +1,13 @@
+from __future__ import annotations
 from sqlalchemy import String
 from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.orm import Mapped, mapped_column
 
-from firenze.database import Base
+from firenze.extensions import db
 from firenze.models.base import TimestampMixin
 
 
-class Event(Base, TimestampMixin):
+class Event(db.Model, TimestampMixin):
     __tablename__ = "event"
 
     id: Mapped[int] = mapped_column(primary_key=True)

@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Mezclas SQLAlchemy compartidas."""
 
 import datetime

@@ -1,12 +1,13 @@
+from __future__ import annotations
 import datetime
 
 from sqlalchemy import BigInteger, DateTime, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from firenze.database import Base
+from firenze.extensions import db
 
 
-class AsteriskCDR(Base):
+class AsteriskCDR(db.Model):
     """Mapeo de solo lectura para la tabla CDR de Asterisk."""
 
     __tablename__ = "cdr"
