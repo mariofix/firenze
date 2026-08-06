@@ -351,6 +351,9 @@ class OperatorAdmin(ModelView, model=Operator):
         "option": {
             "description": "Código de 1-2 dígitos que el llamador presiona para seleccionar este operador, por ejemplo 01"
         },
+        "enable_valkey": {
+            "description": "Usar Redis/Valkey para estado de disponibilidad en tiempo real (recomendado)"
+        },
     }
 
 
