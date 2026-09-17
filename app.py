@@ -1,6 +1,8 @@
-from firenze import create_app
 import os
+
 from dotenv import load_dotenv
+
+from firenze import create_app
 
 load_dotenv()
 

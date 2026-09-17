@@ -1,4 +1,3 @@
-from __future__ import annotations
 import datetime
 
 from sqlalchemy import BigInteger, DateTime, Index, Integer, String

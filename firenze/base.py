@@ -1,11 +1,10 @@
 from ipaddress import ip_address, ip_network
 
 from flask import Flask, jsonify, request
-from flask_debugtoolbar import DebugToolbarExtension
 from werkzeug.exceptions import Forbidden
 
 from .api import agi_bp
-from .extensions import alembic, api, cors, db
+from .extensions import alembic, api, cors, db, debugtoolbar, admin
 from .version import __version__
 
 
@@ -17,15 +16,16 @@ def create_app(base_settings: str | None):
     app.config.from_prefixed_env()
 
     # Extensions
-    if app.debug:
-        DebugToolbarExtension(app)
-
+    debugtoolbar.init_app(app)
     api.init_app(app)
     cors.init_app(app)
     db.init_app(app)
     alembic.init_app(app)
     app.config["agi_networks"] = [ip_network(cidr) for cidr in app.config.get("AGI_ALLOWED_NETWORKS", [])]
+    # Flask-Admin
+    admin.init_app(app)
 
+    
     api.register_blueprint(agi_bp)
 
     @app.before_request

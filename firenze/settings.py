@@ -9,7 +9,7 @@ TRUSTED_HOSTS: list[str] = [
     "localhost",
     "tardis.local",
 ]
-SESSION_COOKIE_NAME: str = "newfirenze"
+SESSION_COOKIE_NAME: str = "new_firenze"
 
 # API
 CORS_ORIGINS: list[str] = ["http://localhost", "http://*.local"]
@@ -20,7 +20,7 @@ AGI_PATH_PREFIX: str = "/agi"
 AGI_ALLOWED_NETWORKS: list[str] = ["127.0.0.1/32", "10.0.0.0/24"]
 
 # Old Firenze
-LEGACY_API_URL: str = "http://localhost:9000"
+LEGACY_API_URL: str = "http://localhost:9002"
 LEGACY_API_USER: str = ""
 LEGACY_API_PASSWORD: str = ""
 
@@ -45,15 +45,6 @@ SECURITY_REGISTERABLE = False
 SECURITY_CONFIRMABLE = False
 SECURITY_RECOVERABLE = False
 SECURITY_OAUTH_ENABLE = False
-
-# Flask-Babel
-BABEL_DEFAULT_LOCALE = "en"
-BABEL_DEFAULT_TIMEZONE = "America/Santiago"
-BABEL_DEFAULT_FOLDER = "firenze/translations"
-BABEL_DOMAIN = "firenze"
-AVAILABLE_LANGUAGES = {
-    "es": {"flag": "es", "flag_icon": "🇪🇸", "name": "Español"},
-}
 
 
 # Flask Debugtoolbar
@@ -92,7 +83,7 @@ ALEMBIC = {
 
 
 API_TITLE: str = "Firenze"
-API_VERSION: str = "2026.8.1"
+API_VERSION: str = "2026.9.0"
 OPENAPI_VERSION: str = "3.1.1"
 OPENAPI_URL_PREFIX: str = "/api/v1"
 OPENAPI_SWAGGER_UI_PATH: str = "/docs"

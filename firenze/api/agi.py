@@ -13,7 +13,6 @@ from flask_smorest import Blueprint
 from sqlalchemy import text
 
 from ..extensions import db
-
 from ..services.audit_service import create_audit
 from ..services.call_service import (
     delete_call,
@@ -21,10 +20,9 @@ from ..services.call_service import (
     insert_call,
     update_call_operator,
 )
-
 from ..services.client_service import (
-ClientNotFound,
-ServiceNotFound,
+    ClientNotFound,
+    ServiceNotFound,
 )
 from ..services.client_service import deduct_credits as svc_deduct
 from ..services.client_service import lookup as svc_lookup
@@ -32,24 +30,6 @@ from ..services.client_service import update_ani_stats as svc_ani_stats
 from ..services.credit_service import compute_call_limit
 from ..services.did_service import resolve_did
 from ..services.dnc_service import check_dnc
-from .schema import (
-    ActiveCallSchema,
-    CallAssignFormSchema,
-    CallCloseFormSchema,
-    CallInsertFormSchema,
-    CallResultSchema,
-    DidLookupResponseSchema,
-    DidQueryArgsSchema,
-    DncQueryArgsSchema,
-    DncResponseSchema,
-
-    CreditLimitArgsSchema,
-    ClientLookupArgsSchema,
-    ClientDeductFormSchema,
-    SessionArgsSchema,
-    OperatorSelectFormSchema,
-)
-
 from ..services.measurement_service import send_measurement_event
 from ..services.operator_service import OperatorNotFound
 from ..services.operator_service import get_menu as svc_get_menu
@@ -57,7 +37,22 @@ from ..services.operator_service import info_operator as svc_operator
 from ..services.operator_service import login_by_phone, logout_by_phone
 from ..services.operator_service import release_operator as svc_release
 from ..services.operator_service import select_operator as svc_select
-
+from .schema import (
+    ActiveCallSchema,
+    CallAssignFormSchema,
+    CallCloseFormSchema,
+    CallInsertFormSchema,
+    CallResultSchema,
+    ClientDeductFormSchema,
+    ClientLookupArgsSchema,
+    CreditLimitArgsSchema,
+    DidLookupResponseSchema,
+    DidQueryArgsSchema,
+    DncQueryArgsSchema,
+    DncResponseSchema,
+    OperatorSelectFormSchema,
+    SessionArgsSchema,
+)
 
 bp = Blueprint(
     "agi",
@@ -118,6 +113,7 @@ class DidLookup(MethodView):
 # Credits
 # ---------------------------------------------------------------------------
 
+
 @bp.route("/credits/limit")
 class CreditLimit(MethodView):
     @bp.arguments(CreditLimitArgsSchema, location="query")
@@ -146,6 +142,7 @@ class CreditLimit(MethodView):
 # Client lookup and deduction
 # ---------------------------------------------------------------------------
 
+
 @bp.route("/clients/lookup")
 class ClientLookup(MethodView):
     @bp.arguments(ClientLookupArgsSchema, location="query")
@@ -167,6 +164,7 @@ class ClientLookup(MethodView):
                 e,
             )
             abort(404, message=str(e))
+
 
 @bp.route("/clients/<string:service>/<int:client_id>/deduct")
 class ClientDeduct(MethodView):
@@ -194,7 +192,9 @@ class ClientDeduct(MethodView):
             try:
                 row = db.session.execute(query, {"channel": channel}).first()
                 if row and row.duration_seconds is not None:
-                    current_app.logger.info(f"agi_client_deduct: Nuevos segundos calculados para {channel}: {row.duration_seconds}")
+                    current_app.logger.info(
+                        f"agi_client_deduct: Nuevos segundos calculados para {channel}: {row.duration_seconds}"
+                    )
                     segundos = int(row.duration_seconds)
             except Exception as e:
                 current_app.logger.warning(e)
@@ -206,7 +206,11 @@ class ClientDeduct(MethodView):
             query_duration_ms = round((time.perf_counter() - started_at) * 1000, 3)
             data_out.update({"client_id": client_id, "service": service})
             create_audit(
-                db, title="resta_saldo", category="INFO", called_from="firenze.api.agi.agi_client_deduct()", data=data_out
+                db,
+                title="resta_saldo",
+                category="INFO",
+                called_from="firenze.api.agi.agi_client_deduct()",
+                data=data_out,
             )
             send_measurement_event(
                 "call_ended",
@@ -237,6 +241,8 @@ class ClientDeduct(MethodView):
                 e,
             )
             abort(404, message=str(e))
+
+
 # ---------------------------------------------------------------------------
 # Online call tracking
 # ---------------------------------------------------------------------------
@@ -309,7 +315,6 @@ class CallGet(MethodView):
         return get_active_call(db, service, ani)
 
 
-
 # ---------------------------------------------------------------------------
 # Operator selection
 # ---------------------------------------------------------------------------
@@ -317,12 +322,14 @@ class CallGet(MethodView):
 # ---------------------------------------------------------------------------
 # Operator selection
 # ---------------------------------------------------------------------------
+
 
 @bp.route("/operators/menu")
 class OperatorsMenu(MethodView):
     @bp.doc(summary="Retorna conteo de operadores disponibles y una cadena de audio lista para Playback")
     def get(self):
         return svc_get_menu(db)
+
 
 @bp.route("/operators/select")
 class OperatorSelect(MethodView):
@@ -349,9 +356,11 @@ class OperatorSelect(MethodView):
             )
         return result
 
+
 # ---------------------------------------------------------------------------
 # Operator info
 # ---------------------------------------------------------------------------
+
 
 @bp.route("/operators/by-option/<string:option>")
 class OperatorInfoByOption(MethodView):
@@ -394,6 +403,7 @@ class OperatorInfoByOption(MethodView):
             "reason": ok_meessage,
         }
 
+
 @bp.route("/operators/by-ani/<string:ani>")
 class OperatorInfoByAni(MethodView):
     @bp.doc(summary="Busca un operador por uno de sus números de teléfono registrados (ANI)")
@@ -428,6 +438,7 @@ class OperatorInfoByAni(MethodView):
             "available": op.available,
         }
 
+
 @bp.route("/operators/<int:number>/release")
 class OperatorRelease(MethodView):
     @bp.doc(summary="Marca un operador como disponible de nuevo después de que termina una llamada")
@@ -443,9 +454,11 @@ class OperatorRelease(MethodView):
             abort(404, message=str(e))
         return {"ok": True}
 
+
 # ---------------------------------------------------------------------------
 # Operator login / logout (from dialplan)
 # ---------------------------------------------------------------------------
+
 
 @bp.route("/operators/by-phone/<string:ani>/login")
 class OperatorLogin(MethodView):
@@ -484,6 +497,7 @@ class OperatorLogin(MethodView):
             abort(404, message=str(e))
 
         return {"ok": True}
+
 
 @bp.route("/operators/by-phone/<string:ani>/logout")
 class OperatorLogout(MethodView):

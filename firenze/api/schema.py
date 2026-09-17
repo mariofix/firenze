@@ -1,7 +1,6 @@
 from marshmallow import Schema, fields
 
 
-
 class DncQueryArgsSchema(Schema):
     uniqueid = fields.String(
         load_default=None,
@@ -31,19 +30,19 @@ class DidQueryArgsSchema(Schema):
 class DidLookupResponseSchema(Schema):
     siguiente = fields.String(
         required=True,
-        metadata={"description": "Contexto de Asterisk para Goto (\"prepago-service\" para todos los DIDs nuevos)"},
+        metadata={"description": 'Contexto de Asterisk para Goto ("prepago-service" para todos los DIDs nuevos)'},
     )
     servicio = fields.String(
         required=True,
-        metadata={"description": "Slug del servicio (p. ej. \"alotarot\", \"fonotarot-cl\")"},
+        metadata={"description": 'Slug del servicio (p. ej. "alotarot", "fonotarot-cl")'},
     )
     auth_method = fields.String(
         required=True,
-        metadata={"description": "\"ani\" o \"pin\""},
+        metadata={"description": '"ani" o "pin"'},
     )
     intro_audio = fields.String(
         required=True,
-        metadata={"description": "Cadena compatible con Playback (p. ej. \"zvn/intro-alotarot\")"},
+        metadata={"description": 'Cadena compatible con Playback (p. ej. "zvn/intro-alotarot")'},
     )
 
 
@@ -77,25 +76,32 @@ class ActiveCallSchema(Schema):
     llamada_activa = fields.String(required=True)
 
 
-
 class CreditLimitArgsSchema(Schema):
     seconds = fields.Integer(required=True, metadata={"description": "Credit balance in seconds"})
     uniqueid = fields.String(load_default=None, metadata={"description": "Asterisk UNIQUEID for this call session"})
     channel = fields.String(load_default=None, metadata={"description": "Asterisk channel name for this call session"})
 
+
 class ClientLookupArgsSchema(Schema):
     service = fields.String(required=True, metadata={"description": "Service slug, e.g. fonotarot-latam"})
     identifier = fields.String(required=True, metadata={"description": "Client identifier (ANI or PIN)"})
+
 
 class ClientDeductFormSchema(Schema):
     seconds = fields.Integer(required=True, metadata={"description": "Seconds to deduct"})
     operator = fields.String(load_default=None, metadata={"description": "Operator Name"})
 
+
 class SessionArgsSchema(Schema):
     uniqueid = fields.String(load_default=None, metadata={"description": "Asterisk UNIQUEID for this call session"})
     channel = fields.String(load_default=None, metadata={"description": "Asterisk channel name for this call session"})
 
+
 class OperatorSelectFormSchema(Schema):
     mode = fields.String(required=True, metadata={"description": '"random" or "option"'})
-    selection = fields.String(load_default=None, metadata={"description": "Operator option digits, required when mode=option"})
-    client_id = fields.Integer(load_default=None, metadata={"description": "Internal client ID for measurement tracking"})
+    selection = fields.String(
+        load_default=None, metadata={"description": "Operator option digits, required when mode=option"}
+    )
+    client_id = fields.Integer(
+        load_default=None, metadata={"description": "Internal client ID for measurement tracking"}
+    )

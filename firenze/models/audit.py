@@ -1,4 +1,3 @@
-from __future__ import annotations
 from sqlalchemy import JSON, String
 from sqlalchemy.orm import Mapped, mapped_column
 

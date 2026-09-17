@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 
-from firenze.admin import FirenzeAdmin
+from firenze.old_admin import FirenzeAdmin
 from firenze.auth import admin_loggedin_user
 from firenze.dependencies import get_db
 from firenze.schemas.admin_reports import (
