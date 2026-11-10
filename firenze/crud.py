@@ -2,7 +2,6 @@ import logging
 import secrets
 import string
 
-from fastapi import Request
 from sqlalchemy.orm import Session
 
 from firenze import models, schemas
@@ -69,13 +68,13 @@ def check_pin(db: Session, pin) -> bool:
     return False
 
 
-def generate_pin() -> int:
-    from .core import get_db
+# def generate_pin() -> int:
+#     from ..core import get_db
 
-    db = get_db()
-    logger.debug("generate_pin()")
-    random_pin = int("".join(secrets.choice(string.digits) for i in range(8)))
-    if check_pin(db, random_pin):
-        raise Exception(f"{random_pin=} ya existe")
-    else:
-        return random_pin
+#     db = get_db()
+#     logger.debug("generate_pin()")
+#     random_pin = int("".join(secrets.choice(string.digits) for i in range(8)))
+#     if check_pin(db, random_pin):
+#         raise Exception(f"{random_pin=} ya existe")
+#     else:
+#         return random_pin

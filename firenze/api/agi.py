@@ -31,10 +31,9 @@ from ..services.credit_service import compute_call_limit
 from ..services.did_service import resolve_did
 from ..services.dnc_service import check_dnc
 from ..services.measurement_service import send_measurement_event
-from ..services.operator_service import OperatorNotFound
+from ..services.operator_service import OperatorNotFound, login_by_phone, logout_by_phone
 from ..services.operator_service import get_menu as svc_get_menu
 from ..services.operator_service import info_operator as svc_operator
-from ..services.operator_service import login_by_phone, logout_by_phone
 from ..services.operator_service import release_operator as svc_release
 from ..services.operator_service import select_operator as svc_select
 from .schema import (

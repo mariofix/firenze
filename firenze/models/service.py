@@ -15,8 +15,8 @@ class Service(db.Model, TimestampMixin):
     intro_audio: Mapped[str] = mapped_column(String(255), default="")
     numbers: Mapped[list[ServiceNumber]] = relationship(back_populates="service")
 
-    def __str__(self):
-        return self.name
+    def __str__(self) -> str:
+        return str(self.name)
 
 
 class ServiceNumber(db.Model, TimestampMixin):
@@ -31,5 +31,5 @@ class ServiceNumber(db.Model, TimestampMixin):
     )
     service: Mapped[Service | None] = relationship(back_populates="numbers")
 
-    def __str__(self):
-        return self.did
+    def __str__(self) -> str:
+        return f"+{self.did}"

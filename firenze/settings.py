@@ -25,7 +25,7 @@ LEGACY_API_USER: str = ""
 LEGACY_API_PASSWORD: str = ""
 
 SQLALCHEMY_DATABASE_URI: str = "sqlite:///:memory:"
-SQLALCHEMY_RECORD_QUERIES: bool = DEBUG
+SQLALCHEMY_RECORD_QUERIES: bool = True
 SQLALCHEMY_ECHO = False
 SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True, "pool_recycle": 1800}
 

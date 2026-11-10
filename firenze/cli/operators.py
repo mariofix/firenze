@@ -9,10 +9,9 @@ from rich.console import Console
 from rich.table import Table
 
 from firenze.config import LOGGING_CONFIG
-from firenze.services.operator_service import OperatorNotFound
+from firenze.services.operator_service import OperatorNotFound, set_availability
 from firenze.services.operator_service import login as svc_login
 from firenze.services.operator_service import logout as svc_logout
-from firenze.services.operator_service import set_availability
 
 logging.config.dictConfig(LOGGING_CONFIG)
 logger = logging.getLogger("firenze")
